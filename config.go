@@ -27,7 +27,7 @@ func LoadConfig() error {
 }
 
 // GetKey returns a key in the configuration
-func GetKey(key string) interface{} {
+func GetConfKey(key string) interface{} {
 	keys := strings.Split(key, ":")
 	c := Config
 	for i := 0; i < len(keys) - 1; i++ {

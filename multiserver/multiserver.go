@@ -11,13 +11,13 @@ import (
 func main() {
 	multiserver.LoadConfig()
 	
-	lobbyaddr := multiserver.GetKey("servers:lobby:address")
+	lobbyaddr := multiserver.GetConfKey("servers:lobby:address")
 	if lobbyaddr == nil || fmt.Sprintf("%T", lobbyaddr) != "string" {
 		log.Fatal("Lobby server address not set or not a string")
 		return
 	}
 	
-	host := multiserver.GetKey("host")
+	host := multiserver.GetConfKey("host")
 	if host == nil || fmt.Sprintf("%T", host) != "string" {
 		log.Fatal("Host not set or not a string")
 		return

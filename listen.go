@@ -8,6 +8,8 @@ import (
 	"fmt"
 )
 
+var ErrPlayerLimitReached = errors.New("player limit reached")
+
 type Listener struct {
 	conn net.PacketConn
 	
@@ -66,6 +68,9 @@ func (l *Listener) Accept() (*Peer, error) {
 			}
 		}
 		close(clt.accepted)
+		
+		connectedPeers++
+		
 		return clt.Peer, nil
 	case err := <-l.errs:
 		return nil, err
@@ -116,6 +121,30 @@ func (l *Listener) processNetPkt(pkt netPkt) error {
 		binary.BigEndian.PutUint16(data[2:4], uint16(clt.ID()))
 		if _, err := clt.sendRaw(rawPkt{Data: data}); err != nil {
 			return fmt.Errorf("can't set client peer id: %w", err)
+		}
+		
+		var maxPeers int
+		maxPeersKey := GetConfKey("player_limit")
+		if maxPeersKey == nil || fmt.Sprintf("%T", maxPeersKey) != "int" {
+			maxPeers = -1
+		}
+		maxPeers = maxPeersKey.(int)
+		
+		if GetPeerCount() >= maxPeers && maxPeers > -1 {
+			data := []byte{
+				uint8(0x00), uint8(0x0A),
+				uint8(0x06), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+			}
+			
+			_, err := clt.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
+			if err != nil {
+				return err
+			}
+			
+			clt.SendDisco(0, true)
+			clt.Close()
+			
+			return ErrPlayerLimitReached
 		}
 		
 		go func() {

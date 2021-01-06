@@ -13,7 +13,7 @@ import (
 	"database/sql"
 	"crypto/subtle"
 	
-	"github.com/Voynic/srp"
+	"github.com/HimbeerserverDE/srp"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -21,6 +21,8 @@ var ErrAuthFailed = errors.New("authentication failure")
 var ErrServerDoesNotExist = errors.New("server doesn't exist")
 
 var passPhrase []byte = []byte("jK7BPRoxM9ffwh7Z")
+
+var connectedPeers int = 0
 
 const (
 	// ConnTimeout is the amount of time after no packets being received
@@ -241,7 +243,6 @@ func Connect(conn net.PacketConn, addr net.Addr) *Peer {
 		log.Print(err)
 	}
 	<-ack
-	
 	srv.sendAck(0, true, 65500)
 	
 	go func() {
@@ -286,6 +287,10 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 						msg += " (timed out)"
 					}
 					log.Print(msg)
+					
+					if !p2.IsSrv() {
+						connectedPeers--
+					}
 					
 					return
 				}
@@ -429,6 +434,10 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 					}
 					log.Print(msg)
 					
+					if !p2.IsSrv() {
+						connectedPeers--
+					}
+					
 					return
 				}
 				
@@ -465,12 +474,12 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 				
 				if pwd == "" {
 					// New player
-					p.authMech = AuthMechFirstSRP
+					p2.authMech = AuthMechFirstSRP
 					
 					binary.BigEndian.PutUint32(data[7:11], uint32(AuthMechFirstSRP))
 				} else {
 					// Existing player
-					p.authMech = AuthMechSRP
+					p2.authMech = AuthMechSRP
 					
 					binary.BigEndian.PutUint32(data[7:11], uint32(AuthMechSRP))
 				}
@@ -487,7 +496,7 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 			case 0x50:
 				// Process data
 				// Make sure the client is allowed to use AuthMechFirstSRP
-				if p.authMech != AuthMechFirstSRP {
+				if p2.authMech != AuthMechFirstSRP {
 					log.Print(p2.Addr().String() + " used unsupported AuthMechFirstSRP")
 					
 					// Send ACCESS_DENIED
@@ -561,7 +570,7 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 			case 0x51:
 				// Process data
 				// Make sure the client is allowed to use AuthMechSRP
-				if p.authMech != AuthMechSRP {
+				if p2.authMech != AuthMechSRP {
 					log.Print(p2.Addr().String() + " used unsupported AuthMechSRP")
 					
 					// Send ACCESS_DENIED
@@ -634,7 +643,7 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 			case 0x52:
 				// Process data
 				// Make sure the client is allowed to use AuthMechSRP
-				if p.authMech != AuthMechSRP {
+				if p2.authMech != AuthMechSRP {
 					log.Print(p2.Addr().String() + " used unsupported AuthMechSRP")
 					
 					// Send ACCESS_DENIED
@@ -720,7 +729,7 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 // Redirect closes the connection to srv1
 // and redirects the client to srv2
 func (p *Peer) Redirect(newsrv string) error {
-	straddr := GetKey("servers:" + newsrv + ":address")
+	straddr := GetConfKey("servers:" + newsrv + ":address")
 	if straddr == nil || fmt.Sprintf("%T", straddr) != "string" {
 		return ErrServerDoesNotExist
 	}
@@ -862,8 +871,13 @@ func readItem(db *sql.DB, name string) (string, error) {
 	
 	var r string
 	
-	rows.Next()
-	err = rows.Scan(&r)
+	for rows.Next() {
+		err = rows.Scan(&r)
+	}
 	
 	return r, nil
+}
+
+func GetPeerCount() int {
+	return connectedPeers
 }

@@ -18,6 +18,10 @@ func Proxy(src, dst *Peer) {
 				}
 				log.Print(msg)
 				
+				if !src.IsSrv() {
+					connectedPeers--
+				}
+				
 				break
 			}
 			
