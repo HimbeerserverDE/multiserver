@@ -19,6 +19,7 @@ import (
 
 var ErrAuthFailed = errors.New("authentication failure")
 var ErrServerDoesNotExist = errors.New("server doesn't exist")
+var ErrAlreadyConnected = errors.New("already connected to server")
 
 var passPhrase []byte = []byte("jK7BPRoxM9ffwh7Z")
 
@@ -243,6 +244,7 @@ func Connect(conn net.PacketConn, addr net.Addr) *Peer {
 		log.Print(err)
 	}
 	<-ack
+	
 	srv.sendAck(0, true, 65500)
 	
 	go func() {
@@ -732,6 +734,10 @@ func (p *Peer) Redirect(newsrv string) error {
 	straddr := GetConfKey("servers:" + newsrv + ":address")
 	if straddr == nil || fmt.Sprintf("%T", straddr) != "string" {
 		return ErrServerDoesNotExist
+	}
+	
+	if p.Server().Addr().String() == straddr {
+		return ErrAlreadyConnected
 	}
 	
 	srvaddr, err := net.ResolveUDPAddr("udp", straddr.(string))

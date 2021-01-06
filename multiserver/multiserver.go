@@ -11,6 +11,15 @@ import (
 func main() {
 	multiserver.LoadConfig()
 	
+	multiserver.InitLua()
+	defer multiserver.CloseLua()
+	
+	err := multiserver.LoadPlugins()
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	
 	lobbyaddr := multiserver.GetConfKey("servers:lobby:address")
 	if lobbyaddr == nil || fmt.Sprintf("%T", lobbyaddr) != "string" {
 		log.Fatal("Lobby server address not set or not a string")
@@ -39,6 +48,7 @@ func main() {
 	log.Print("Listening on " + host.(string))
 	
 	l := multiserver.Listen(lc)
+	multiserver.SetListener(l)
 	for {
 		clt, err := l.Accept()
 		if err != nil {

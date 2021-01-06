@@ -22,6 +22,8 @@ type Listener struct {
 	peerid PeerID
 }
 
+var listener *Listener
+
 // Listen listens for packets on conn until it is closed
 func Listen(conn net.PacketConn) *Listener {
 	l := &Listener{
@@ -179,4 +181,16 @@ func (l *Listener) processNetPkt(pkt netPkt) error {
 	}
 	
 	return nil
+}
+
+func (l *Listener) GetPeerByID(id PeerID) *Peer {
+	return l.id2peer[id].Peer
+}
+
+func SetListener(l *Listener) {
+	listener = l
+}
+
+func GetListener() *Listener {
+	return listener
 }

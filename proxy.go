@@ -29,6 +29,14 @@ func Proxy(src, dst *Peer) {
 			continue
 		}
 		
+		// Process
+		if pkt.Data[0] == uint8(0x00) && pkt.Data[1] == uint8(0x32) && !src.IsSrv() {
+			if processChatMessage(src.ID(), pkt.Data) {
+				continue
+			}
+		}
+		
+		// Forward
 		if _, err := dst.Send(pkt); err != nil {
 			log.Print(err)
 		}
