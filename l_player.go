@@ -119,6 +119,8 @@ func getConnectedPlayers(L *lua.LState) int {
 	i := PeerIDCltMin
 	for l.id2peer[i].Peer != nil {
 		r.Append(lua.LNumber(i))
+		
+		i++
 	}
 	
 	L.Push(r)
