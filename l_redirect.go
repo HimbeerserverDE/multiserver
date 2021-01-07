@@ -1,8 +1,6 @@
 package multiserver
 
-import (
-	"github.com/yuin/gopher-lua"
-)
+import "github.com/yuin/gopher-lua"
 
 func redirect(L *lua.LState) int {
 	id := PeerID(L.ToInt(1))
