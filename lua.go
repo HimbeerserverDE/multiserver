@@ -23,6 +23,7 @@ func InitLua() {
 	addLuaFunc(luaGetPeerID, "get_peer_id")
 	addLuaFunc(kickPlayer, "kick_player")
 	addLuaFunc(getCurrentServer, "get_current_server")
+	addLuaFunc(getPlayerAddress, "get_player_address")
 	addLuaFunc(luaLog, "log")
 	addLuaFunc(luaStringSplit, "split")
 }

@@ -97,3 +97,17 @@ func getCurrentServer(L *lua.LState) int {
 	
 	return 1
 }
+
+func getPlayerAddress(L *lua.LState) int {
+	id := L.ToInt(1)
+	l := GetListener()
+	p := l.GetPeerByID(PeerID(id))
+	
+	if p != nil {
+		L.Push(lua.LString(p.Addr().String()))
+	} else {
+		L.Push(lua.LNil)
+	}
+	
+	return 1
+}
