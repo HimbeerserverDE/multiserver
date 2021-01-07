@@ -27,6 +27,7 @@ func InitLua() {
 	addLuaFunc(getConnectedPlayers, "get_connected_players")
 	addLuaFunc(luaLog, "log")
 	addLuaFunc(luaStringSplit, "split")
+	addLuaFunc(luaEnd, "request_end")
 }
 
 func CloseLua() {

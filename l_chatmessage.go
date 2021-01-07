@@ -43,7 +43,10 @@ func processChatMessage(peerid PeerID, msg []byte) bool {
 			if chatCommands[i].name == params[0] {
 				if err := l.CallByParam(lua.P{Fn: chatCommands[i].function, NRet: 1, Protect: true}, lua.LNumber(peerid), lua.LString(strings.Join(params[1:], " "))); err != nil {
 					log.Print(err)
-					// end server
+					
+					go func() {
+						End(true, true)
+					}()
 				}
 				if str, ok := l.Get(-1).(lua.LString); ok {
 					wstr := wider([]byte(str.String()))
@@ -78,7 +81,8 @@ func processChatMessage(peerid PeerID, msg []byte) bool {
 		for i := range chatMessageHandlers {
 			if err := l.CallByParam(lua.P{Fn: chatMessageHandlers[i], NRet: 1, Protect: true}, lua.LNumber(peerid), lua.LString(s)); err != nil {
 				log.Print(err)
-				// end server
+				
+				End(true, true)
 			}
 			if b, ok := l.Get(-1).(lua.LBool); ok {
 				if lua.LVAsBool(b) {
