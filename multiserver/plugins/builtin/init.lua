@@ -43,3 +43,18 @@ multiserver.register_chatcommand("server", {
 		end
 	end,
 })
+
+multiserver.register_chatcommand("find", {
+	func = function(id, param)
+		if not param or param == "" then
+			return "Usage: /find <playername>"
+		end
+		
+		local peerid = multiserver.get_peer_id(param)
+		if peerid then
+			return param .. " is connected to server " .. multiserver.get_current_server(peerid) .. "."
+		else
+			return param .. " is not online."
+		end
+	end,
+})
