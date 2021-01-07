@@ -21,6 +21,7 @@ func InitLua() {
 	addLuaFunc(getPlayerName, "get_player_name")
 	addLuaFunc(luaGetPeerID, "get_peer_id")
 	addLuaFunc(kickPlayer, "kick_player")
+	addLuaFunc(getCurrentServer, "get_current_server")
 	addLuaFunc(luaLog, "log")
 }
 

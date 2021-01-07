@@ -66,3 +66,21 @@ func kickPlayer(L *lua.LState) int {
 	
 	return 0
 }
+
+func getCurrentServer(L *lua.LState) int {
+	id := L.ToInt(1)
+	l := GetListener()
+	p := l.GetPeerByID(PeerID(id))
+	
+	servers := GetConfKey("servers").(map[interface{}]interface{})
+	
+	for server := range servers {
+		if GetConfKey("servers:" + server.(string) + ":address") == p.Server().Addr().String() {
+			L.Push(lua.LString(server.(string)))
+			
+			break
+		}
+	}
+	
+	return 1
+}
