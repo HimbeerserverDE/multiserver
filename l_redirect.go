@@ -20,9 +20,9 @@ func getServers(L *lua.LState) int {
 	for server := range servers {
 		addr := GetConfKey("servers:" + server.(string) + ":address")
 		r.RawSet(lua.LString(server.(string)), lua.LString(addr.(string)))
-		
-		break
 	}
+	
+	L.Push(r)
 	
 	return 1
 }
