@@ -12,3 +12,17 @@ func redirect(L *lua.LState) int {
 	
 	return 0
 }
+
+func getServers(L *lua.LState) int {
+	servers := GetConfKey("servers").(map[interface{}]interface{})
+	
+	r := L.NewTable()
+	for server := range servers {
+		addr := GetConfKey("servers:" + server.(string) + ":address")
+		r.RawSet(lua.LString(server.(string)), lua.LString(addr.(string)))
+		
+		break
+	}
+	
+	return 1
+}

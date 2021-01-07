@@ -28,6 +28,8 @@ func luaGetPeerID(L *lua.LState) int {
 			
 			break
 		}
+		
+		i++
 	}
 	
 	return 1

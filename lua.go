@@ -14,6 +14,7 @@ func InitLua() {
 	l.SetGlobal("multiserver", api_funcs)
 	
 	addLuaFunc(redirect, "redirect")
+	addLuaFunc(getServers, "get_servers")
 	addLuaFunc(registerChatCommand, "register_chatcommand")
 	addLuaFunc(registerOnChatMessage, "register_on_chatmessage")
 	addLuaFunc(chatSendPlayer, "chat_send_player")
