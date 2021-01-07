@@ -37,8 +37,10 @@ multiserver.register_chatcommand("sendcurrent", {
 			return "All targets are already connected to this server!"
 		end
 		
+		local fromsrv = multiserver.get_current_server(id)
+		
 		for _, peerid in ipairs(multiserver.get_connected_players()) do
-			if multiserver.get_current_server(peerid) == multiserver.get_current_server(id) then
+			if multiserver.get_current_server(peerid) == fromsrv then
 				multiserver.redirect(peerid, param)
 			end
 		end
@@ -56,6 +58,9 @@ multiserver.register_chatcommand("sendall", {
 		end
 		
 		for _, peerid in ipairs(multiserver.get_connected_players()) do
+			multiserver.log(peerid)
+			multiserver.log(multiserver.get_current_server(peerid))
+			multiserver.log(param)
 			if multiserver.get_current_server(peerid) ~= param then
 				multiserver.redirect(peerid, param)
 			end
