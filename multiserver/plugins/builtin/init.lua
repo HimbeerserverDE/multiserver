@@ -58,3 +58,20 @@ multiserver.register_chatcommand("find", {
 		end
 	end,
 })
+
+multiserver.register_chatcommand("ip", {
+	func = function(id, param)
+		if not param or param == "" then
+			return "Usage: /ip <playername>"
+		end
+		
+		local peerid = multiserver.get_peer_id(param)
+		if peerid then
+			local addr = multiserver.get_player_address(peerid)
+			addr = multiserver.split(addr, ":")[1]
+			return param .. "'s IP address is " .. addr
+		else
+			return param .. " is not online."
+		end
+	end,
+})
