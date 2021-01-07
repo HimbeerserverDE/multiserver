@@ -11,6 +11,7 @@ import (
 
 type chatCommand struct {
 	name     string
+	privs    map[string]bool
 	function *lua.LFunction
 }
 
@@ -20,8 +21,18 @@ var chatMessageHandlers []*lua.LFunction
 func registerChatCommand(L *lua.LState) int {
 	name := L.ToString(1)
 	cmddef := L.ToTable(2)
+	
+	privs := cmddef.RawGet(lua.LString("privs")).(*lua.LTable)
+	pmap := make(map[string]bool)
+	privs.ForEach(func(k, v lua.LValue) {
+		if lua.LVAsBool(v) {
+			pmap[k.String()] = true
+		}
+	})
+	
 	f := cmddef.RawGet(lua.LString("func")).(*lua.LFunction)
-	chatCommands = append(chatCommands, chatCommand{name: name, function: f})
+	
+	chatCommands = append(chatCommands, chatCommand{name: name, privs: pmap, function: f})
 	
 	return 0
 }
@@ -41,6 +52,59 @@ func processChatMessage(peerid PeerID, msg []byte) bool {
 		params := strings.Split(s, " ")
 		for i := range chatCommands {
 			if chatCommands[i].name == params[0] {
+				// Priv check
+				db, err := initDB()
+				if err != nil {
+					log.Print(err)
+					return true
+				}
+				
+				eprivs, err := readPrivItem(db, string(GetListener().GetPeerByID(peerid).username))
+				if err != nil {
+					log.Print(err)
+					return true
+				}
+				
+				db.Close()
+				
+				privs := decodePrivs(eprivs)
+				
+				allowAccess := true
+				for priv := range chatCommands[i].privs {
+					if chatCommands[i].privs[priv] && !privs[priv] {
+						allowAccess = false
+					}
+				}
+				
+				if !allowAccess {
+					str := "You do not have permission to run this command! Required privileges: " + strings.Replace(encodePrivs(chatCommands[i].privs), "|", " ", -1)
+					wstr := wider([]byte(str))
+					
+					data := make([]byte, 16 + len(wstr))
+					data[0] = uint8(0x00)
+					data[1] = uint8(0x2F)
+					data[2] = uint8(0x01)
+					data[3] = uint8(0x00)
+					data[4] = uint8(0x00)
+					data[5] = uint8(0x00)
+					binary.BigEndian.PutUint16(data[6:8], uint16(len(str)))
+					copy(data[8:8 + len(wstr)], wstr)
+					data[8 + len(wstr)] = uint8(0x00)
+					data[9 + len(wstr)] = uint8(0x00)
+					data[10 + len(wstr)] = uint8(0x00)
+					data[11 + len(wstr)] = uint8(0x00)
+					binary.BigEndian.PutUint32(data[12 + len(wstr):16 + len(wstr)], uint32(time.Now().Unix()))
+					
+					ack, err := GetListener().GetPeerByID(peerid).Send(Pkt{Data: data, ChNo: 0, Unrel: false})
+					if err != nil {
+						log.Print(err)
+					}
+					<-ack
+					
+					return true
+				}
+				
+				// Callback
 				if err := l.CallByParam(lua.P{Fn: chatCommands[i].function, NRet: 1, Protect: true}, lua.LNumber(peerid), lua.LString(strings.Join(params[1:], " "))); err != nil {
 					log.Print(err)
 					

@@ -466,7 +466,7 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 					continue
 				}
 				
-				pwd, err := readItem(db, string(p2.username))
+				pwd, err := readAuthItem(db, string(p2.username))
 				if err != nil {
 					errs <- err
 					continue
@@ -534,7 +534,13 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 					continue
 				}
 				
-				err = addItem(db, string(p2.username), pwd)
+				err = addAuthItem(db, string(p2.username), pwd)
+				if err != nil {
+					errs <- err
+					continue
+				}
+				
+				err = addPrivItem(db, string(p2.username))
 				if err != nil {
 					errs <- err
 					continue
@@ -602,7 +608,7 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 					continue
 				}
 				
-				pwd, err := readItem(db, string(p2.username))
+				pwd, err := readAuthItem(db, string(p2.username))
 				if err != nil {
 					errs <- err
 					continue
@@ -791,8 +797,8 @@ func decodeVerifierAndSalt(src string) ([]byte, []byte, error) {
 	return s, v, nil
 }
 
-// InitDB opens auth.sqlite and creates the required table
-// if it doesn't exist
+// initDB opens auth.sqlite and creates the required tables
+// if they don't exist
 // It returns said database
 func initDB() (*sql.DB, error) {
 	db, err := sql.Open("sqlite3", "storage/auth.sqlite")
@@ -807,6 +813,10 @@ func initDB() (*sql.DB, error) {
 		name VARCHAR(32) NOT NULL,
 		password VARCHAR(512) NOT NULL
 	);
+	CREATE TABLE IF NOT EXISTS privileges (
+		name VARCHAR(32) NOT NULL,
+		privileges VARCHAR(1024)
+	);
 	`
 	
 	_, err = db.Exec(sql_table)
@@ -817,9 +827,9 @@ func initDB() (*sql.DB, error) {
 	return db, nil
 }
 
-// addItem inserts a DB entry
-func addItem(db *sql.DB, name, password string) error {
-	sql_additem := `INSERT INTO auth (
+// addAuthItem inserts an auth DB entry
+func addAuthItem(db *sql.DB, name, password string) error {
+	sql_addAuthItem := `INSERT INTO auth (
 		name,
 		password
 	) VALUES (
@@ -828,7 +838,7 @@ func addItem(db *sql.DB, name, password string) error {
 	);
 	`
 	
-	stmt, err := db.Prepare(sql_additem)
+	stmt, err := db.Prepare(sql_addAuthItem)
 	if err != nil {
 		return err
 	}
@@ -842,11 +852,11 @@ func addItem(db *sql.DB, name, password string) error {
 	return nil
 }
 
-// modItem updates a DB entry
-func modItem(db *sql.DB, name, password string) error {
-	sql_moditem := `UPDATE auth SET password = ? WHERE name = ?;`
+// modAuthItem updates an auth DB entry
+func modAuthItem(db *sql.DB, name, password string) error {
+	sql_modAuthItem := `UPDATE auth SET password = ? WHERE name = ?;`
 	
-	stmt, err := db.Prepare(sql_moditem)
+	stmt, err := db.Prepare(sql_modAuthItem)
 	if err != nil {
 		return err
 	}
@@ -860,11 +870,11 @@ func modItem(db *sql.DB, name, password string) error {
 	return nil
 }
 
-// readItem selects and reads a DB entry
-func readItem(db *sql.DB, name string) (string, error) {
-	sql_readitem := `SELECT password FROM auth WHERE name = ?;`
+// readAuthItem selects and reads an auth DB entry
+func readAuthItem(db *sql.DB, name string) (string, error) {
+	sql_readAuthItem := `SELECT password FROM auth WHERE name = ?;`
 	
-	stmt, err := db.Prepare(sql_readitem)
+	stmt, err := db.Prepare(sql_readAuthItem)
 	if err != nil {
 		return "", err
 	}

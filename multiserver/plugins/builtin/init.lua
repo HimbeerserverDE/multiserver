@@ -1,4 +1,5 @@
 multiserver.register_chatcommand("send", {
+	privs = {send = true},
 	func = function(id, param)
 		local name = multiserver.split(param, " ")[1]
 		local tosrv = multiserver.split(param, " ")[2]
@@ -24,6 +25,7 @@ multiserver.register_chatcommand("send", {
 })
 
 multiserver.register_chatcommand("sendcurrent", {
+	privs = {send = true},
 	func = function(id, param)
 		if not param or param == "" then
 			return "Usage: /sendcurrent <servername>"
@@ -48,6 +50,7 @@ multiserver.register_chatcommand("sendcurrent", {
 })
 
 multiserver.register_chatcommand("sendall", {
+	privs = {send = true},
 	func = function(id, param)
 		if not param or param == "" then
 			return "Usage: /sendall <servername>"
@@ -69,12 +72,14 @@ multiserver.register_chatcommand("sendall", {
 })
 
 multiserver.register_chatcommand("alert", {
+	privs = {alert = true},
 	func = function(id, param)
 		multiserver.chat_send_all("[ALERT] " .. param)
 	end,
 })
 
 multiserver.register_chatcommand("server", {
+	privs = {},
 	func = function(id, param)
 		if not param or param == "" then
 			local r = ""
@@ -94,6 +99,7 @@ multiserver.register_chatcommand("server", {
 })
 
 multiserver.register_chatcommand("find", {
+	privs = {find = true},
 	func = function(id, param)
 		if not param or param == "" then
 			return "Usage: /find <playername>"
@@ -109,6 +115,7 @@ multiserver.register_chatcommand("find", {
 })
 
 multiserver.register_chatcommand("ip", {
+	privs = {ip = true},
 	func = function(id, param)
 		if not param or param == "" then
 			return "Usage: /ip <playername>"
@@ -126,7 +133,76 @@ multiserver.register_chatcommand("ip", {
 })
 
 multiserver.register_chatcommand("end", {
+	privs = {end_proxy = true},
 	func = function(id, param)
 		multiserver.request_end(false)
+	end,
+})
+
+multiserver.register_chatcommand("p_privs", {
+	privs = {},
+	func = function(id, param)
+		local name = param
+		if not name or name == "" then
+			name = multiserver.get_player_name(id)
+		end
+		
+		local privs = multiserver.get_player_privs(name)
+		local privnames = {}
+		for priv, v in pairs(privs) do
+			table.insert(privnames, priv)
+		end
+		
+		return name .. "'s privileges: " .. table.concat(privnames, " ")
+	end,
+})
+
+multiserver.register_chatcommand("p_grant", {
+	privs = {privs = true},
+	func = function(id, param)
+		local name = multiserver.split(param, " ")[1]
+		local privnames = multiserver.split(param, " ")[2]
+		
+		if not privnames or privnames == "" then
+			privnames = name
+			name = multiserver.get_player_name(id)
+		end
+		
+		if not multiserver.get_peer_id(name) then
+			return name .. " is not online."
+		end
+		
+		local privs = multiserver.get_player_privs(name)
+		for _, newpriv in ipairs(multiserver.split(privnames:gsub(" ", ""), ",")) do
+			privs[newpriv] = true
+		end
+		multiserver.set_player_privs(name, privs)
+		
+		return "Privileges updated."
+	end,
+})
+
+multiserver.register_chatcommand("p_revoke", {
+	privs = {privs = true},
+	func = function(id, param)
+		local name = multiserver.split(param, " ")[1]
+		local privnames = multiserver.split(param, " ")[2]
+		
+		if not privnames or privnames == "" then
+			privnames = name
+			name = multiserver.get_player_name(id)
+		end
+		
+		if not multiserver.get_peer_id(name) then
+			return name .. " is not online."
+		end
+		
+		local privs = multiserver.get_player_privs(name)
+		for _, rmpriv in ipairs(multiserver.split(privnames:gsub(" ", ""), ",")) do
+			privs[rmpriv] = nil
+		end
+		multiserver.set_player_privs(name, privs)
+		
+		return "Privileges updated."
 	end,
 })
