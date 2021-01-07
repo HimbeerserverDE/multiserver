@@ -24,6 +24,7 @@ func InitLua() {
 	addLuaFunc(kickPlayer, "kick_player")
 	addLuaFunc(getCurrentServer, "get_current_server")
 	addLuaFunc(getPlayerAddress, "get_player_address")
+	addLuaFunc(getConnectedPlayers, "get_connected_players")
 	addLuaFunc(luaLog, "log")
 	addLuaFunc(luaStringSplit, "split")
 }

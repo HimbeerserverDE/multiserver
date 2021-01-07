@@ -111,3 +111,15 @@ func getPlayerAddress(L *lua.LState) int {
 	
 	return 1
 }
+
+func getConnectedPlayers(L *lua.LState) int {
+	r := L.NewTable()
+	i := PeerIDCltMin
+	for l.id2peer[i].Peer != nil {
+		r.Append(lua.LNumber(i))
+	}
+	
+	L.Push(r)
+	
+	return 1
+}
