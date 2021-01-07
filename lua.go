@@ -20,6 +20,7 @@ func InitLua() {
 	addLuaFunc(chatSendAll, "chat_send_all")
 	addLuaFunc(getPlayerName, "get_player_name")
 	addLuaFunc(luaLog, "log")
+	addLuaFunc(kickPlayer, "kick_player")
 }
 
 func CloseLua() {
