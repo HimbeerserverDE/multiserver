@@ -23,6 +23,7 @@ func InitLua() {
 	addLuaFunc(kickPlayer, "kick_player")
 	addLuaFunc(getCurrentServer, "get_current_server")
 	addLuaFunc(luaLog, "log")
+	addLuaFunc(luaStringSplit, "split")
 }
 
 func CloseLua() {
