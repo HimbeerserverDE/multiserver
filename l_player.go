@@ -17,6 +17,22 @@ func getPlayerName(L *lua.LState) int {
 	return 1
 }
 
+func luaGetPeerID(L *lua.LState) int {
+	name := L.ToString(1)
+	l := GetListener()
+	
+	i := PeerIDCltMin
+	for l.id2peer[i].Peer != nil {
+		if string(l.id2peer[i].username) == name {
+			L.Push(lua.LNumber(i))
+			
+			break
+		}
+	}
+	
+	return 1
+}
+
 func kickPlayer(L *lua.LState) int {
 	id := L.ToInt(1)
 	reason := L.ToString(2)

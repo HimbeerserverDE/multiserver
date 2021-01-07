@@ -19,8 +19,9 @@ func InitLua() {
 	addLuaFunc(chatSendPlayer, "chat_send_player")
 	addLuaFunc(chatSendAll, "chat_send_all")
 	addLuaFunc(getPlayerName, "get_player_name")
-	addLuaFunc(luaLog, "log")
+	addLuaFunc(luaGetPeerID, "get_peer_id")
 	addLuaFunc(kickPlayer, "kick_player")
+	addLuaFunc(luaLog, "log")
 }
 
 func CloseLua() {
