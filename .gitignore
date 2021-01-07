@@ -1,2 +1,2 @@
 multiserver/multiserver
-multiserver/storage/auth.sqlite
+# multiserver/storage/auth.sqlite
