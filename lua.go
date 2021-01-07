@@ -15,6 +15,7 @@ func InitLua() {
 	
 	addLuaFunc(redirect, "redirect")
 	addLuaFunc(registerChatCommand, "register_chatcommand")
+	addLuaFunc(registerOnChatMessage, "register_on_chatmessage")
 	addLuaFunc(chatSendPlayer, "chat_send_player")
 	addLuaFunc(chatSendAll, "chat_send_all")
 	addLuaFunc(getPlayerName, "get_player_name")

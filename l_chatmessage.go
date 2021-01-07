@@ -15,12 +15,20 @@ type chatCommand struct {
 }
 
 var chatCommands []chatCommand
+var chatMessageHandlers []*lua.LFunction
 
 func registerChatCommand(L *lua.LState) int {
 	name := L.ToString(1)
 	cmddef := L.ToTable(2)
 	f := cmddef.RawGet(lua.LString("func")).(*lua.LFunction)
 	chatCommands = append(chatCommands, chatCommand{name: name, function: f})
+	
+	return 0
+}
+
+func registerOnChatMessage(L *lua.LState) int {
+	f := L.ToFunction(1)
+	chatMessageHandlers = append(chatMessageHandlers, f)
 	
 	return 0
 }
@@ -34,6 +42,7 @@ func processChatMessage(peerid PeerID, msg []byte) bool {
 		for i := range chatCommands {
 			if chatCommands[i].name == params[0] {
 				if err := l.CallByParam(lua.P{Fn: chatCommands[i].function, NRet: 1, Protect: true}, lua.LNumber(peerid), lua.LString(strings.Join(params[1:], ""))); err != nil {
+					log.Print(err)
 					// end server
 				}
 				if str, ok := l.Get(-1).(lua.LString); ok {
@@ -62,6 +71,19 @@ func processChatMessage(peerid PeerID, msg []byte) bool {
 				}
 				
 				return true
+			}
+		}
+	} else {
+		// Regular message
+		for i := range chatMessageHandlers {
+			if err := l.CallByParam(lua.P{Fn: chatMessageHandlers[i], NRet: 1, Protect: true}, lua.LNumber(peerid), lua.LString(s)); err != nil {
+				log.Print(err)
+				// end server
+			}
+			if b, ok := l.Get(-1).(lua.LBool); ok {
+				if lua.LVAsBool(b) {
+					return true
+				}
 			}
 		}
 	}
