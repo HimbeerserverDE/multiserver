@@ -124,3 +124,9 @@ multiserver.register_chatcommand("ip", {
 		end
 	end,
 })
+
+multiserver.register_chatcommand("end", {
+	func = function(id, param)
+		multiserver.request_end(false)
+	end,
+})
