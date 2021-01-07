@@ -19,6 +19,37 @@ multiserver.register_chatcommand("send", {
 	end,
 })
 
+multiserver.register_chatcommand("sendcurrent", {
+	func = function(id, param)
+		if not param or param == "" then
+			return "Usage: /sendcurrent <servername>"
+		end
+		if param == multiserver.get_current_server(id) then
+			return "All targets are already connected to this server!"
+		end
+		
+		for _, peerid in ipairs(multiserver.get_connected_players()) do
+			if multiserver.get_current_server(peerid) == multiserver.get_current_server(id) then
+				multiserver.redirect(peerid, param)
+			end
+		end
+	end,
+})
+
+multiserver.register_chatcommand("sendall", {
+	func = function(id, param)
+		if not param or param == "" then
+			return "Usage: /sendall <servername>"
+		end
+		
+		for _, peerid in ipairs(multiserver.get_connected_players()) do
+			if multiserver.get_current_server(peerid) != param then
+				multiserver.redirect(peerid, param)
+			end
+		end
+	end,
+})
+
 multiserver.register_chatcommand("alert", {
 	func = function(id, param)
 		multiserver.chat_send_all("[ALERT] " .. param)
