@@ -70,11 +70,14 @@ func main() {
 		errs := make(chan error)
 		fin := make(chan struct{}) // close-only
 		go multiserver.Init(srv, clt, false, errs, fin)
-		<-fin
 		
-		clt.SetServer(srv)
-		
-		go multiserver.Proxy(clt, srv)
-		go multiserver.Proxy(srv, clt)
+		go func() {
+			<-fin
+			
+			clt.SetServer(srv)
+			
+			go multiserver.Proxy(clt, srv)
+			go multiserver.Proxy(srv, clt)
+		}()
 	}
 }
