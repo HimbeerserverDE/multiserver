@@ -20,6 +20,7 @@ func Proxy(src, dst *Peer) {
 				
 				if !src.IsSrv() {
 					connectedPeers--
+					processLeave(src.ID())
 				}
 				
 				break

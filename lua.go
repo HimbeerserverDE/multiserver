@@ -1,8 +1,6 @@
 package multiserver
 
-import (
-	"github.com/yuin/gopher-lua"
-)
+import "github.com/yuin/gopher-lua"
 
 var l *lua.LState
 var api_funcs *lua.LTable
@@ -28,6 +26,8 @@ func InitLua() {
 	addLuaFunc(getCurrentServer, "get_current_server")
 	addLuaFunc(getPlayerAddress, "get_player_address")
 	addLuaFunc(getConnectedPlayers, "get_connected_players")
+	addLuaFunc(registerOnJoinPlayer, "register_on_joinplayer")
+	addLuaFunc(registerOnLeavePlayer, "register_on_leaveplayer")
 	// log
 	addLuaFunc(luaLog, "log")
 	// string

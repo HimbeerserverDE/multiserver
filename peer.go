@@ -292,6 +292,7 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 					
 					if !p2.IsSrv() {
 						connectedPeers--
+						processLeave(p2.ID())
 					}
 					
 					return
@@ -438,6 +439,7 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 					
 					if !p2.IsSrv() {
 						connectedPeers--
+						processLeave(p2.ID())
 					}
 					
 					return
@@ -451,6 +453,9 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 			case 0x02:
 				// Process data
 				p2.username = pkt.Data[11:]
+				
+				// Lua Callback
+				processJoin(p2.ID())
 				
 				// Send HELLO
 				data := make([]byte, 13 + len(p2.username))

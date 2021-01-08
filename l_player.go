@@ -7,6 +7,43 @@ import (
 	"github.com/yuin/gopher-lua"
 )
 
+var joinHandlers  []*lua.LFunction
+var leaveHandlers []*lua.LFunction
+
+func registerOnJoinPlayer(L *lua.LState) int {
+	f := L.ToFunction(1)
+	joinHandlers = append(joinHandlers, f)
+	
+	return 0
+}
+
+func registerOnLeavePlayer(L *lua.LState) int {
+	f := L.ToFunction(1)
+	leaveHandlers = append(leaveHandlers, f)
+	
+	return 0
+}
+
+func processJoin(peerid PeerID) {
+	for i := range joinHandlers {
+		if err := l.CallByParam(lua.P{Fn: joinHandlers[i], NRet: 0, Protect: true}, lua.LNumber(peerid)); err != nil {
+			log.Print(err)
+			
+			End(true, true)
+		}
+	}
+}
+
+func processLeave(peerid PeerID) {
+	for i := range leaveHandlers {
+		if err := l.CallByParam(lua.P{Fn: leaveHandlers[i], NRet: 0, Protect: true}, lua.LNumber(peerid)); err != nil {
+			log.Print(err)
+			
+			End(true, true)
+		}
+	}
+}
+
 func getPlayerName(L *lua.LState) int {
 	id := L.ToInt(1)
 	l := GetListener()
