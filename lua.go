@@ -38,6 +38,8 @@ func InitLua() {
 	addLuaFunc(getPlayerPrivs, "get_player_privs")
 	addLuaFunc(setPlayerPrivs, "set_player_privs")
 	addLuaFunc(checkPlayerPrivs, "check_player_privs")
+	// config
+	addLuaFunc(luaGetConfKey, "get_conf_key")
 }
 
 func CloseLua() {
