@@ -3,5 +3,3 @@ player_limit: -1
 servers:
   lobby:
     address: "127.0.0.1:30000"
-  map2:
-    address: "127.0.0.1:30001"
