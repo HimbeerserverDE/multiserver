@@ -9,6 +9,8 @@ import (
 )
 
 func main() {
+	multiserver.InitAOMap()
+	
 	multiserver.LoadConfig()
 	
 	multiserver.InitLua()
