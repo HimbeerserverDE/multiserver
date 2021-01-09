@@ -17,19 +17,19 @@ func Proxy(src, dst *Peer) {
 					msg += " (timed out)"
 				}
 				log.Print(msg)
-				
+
 				if !src.IsSrv() {
 					connectedPeers--
 					processLeave(src.ID())
 				}
-				
+
 				break
 			}
-			
+
 			log.Print(err)
 			continue
 		}
-		
+
 		// Process
 		// Chat message
 		if pkt.Data[0] == uint8(0x00) && pkt.Data[1] == uint8(0x32) && !src.IsSrv() {
@@ -41,13 +41,13 @@ func Proxy(src, dst *Peer) {
 		if pkt.Data[0] == uint8(0x00) && pkt.Data[1] == uint8(0x31) && src.IsSrv() {
 			processAORmAdd(dst, pkt.Data)
 		}
-		
+
 		// Forward
 		if _, err := dst.Send(pkt); err != nil {
 			log.Print(err)
 		}
 	}
-	
+
 	dst.SendDisco(0, true)
 	dst.Close()
 }

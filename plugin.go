@@ -17,14 +17,14 @@ func LoadPlugins() error {
 	if err != nil {
 		return err
 	}
-	
+
 	for _, file := range files {
 		if file.IsDir() {
 			subfiles, err := ioutil.ReadDir("plugins/" + file.Name())
 			if err != nil {
 				return err
 			}
-			
+
 			for _, subfile := range subfiles {
 				if subfile.Name() == "init.lua" {
 					log.Print("Loading plugin " + file.Name())
@@ -36,6 +36,6 @@ func LoadPlugins() error {
 			}
 		}
 	}
-	
+
 	return nil
 }
