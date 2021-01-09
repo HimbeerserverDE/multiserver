@@ -11,7 +11,7 @@ func getPlayerPrivs(L *lua.LState) int {
 
 	r := L.NewTable()
 
-	db, err := initDB()
+	db, err := initAuthDB()
 	if err != nil {
 		log.Print(err)
 
@@ -58,7 +58,7 @@ func setPlayerPrivs(L *lua.LState) int {
 
 	ps := encodePrivs(newpmap)
 
-	db, err := initDB()
+	db, err := initAuthDB()
 	if err != nil {
 		log.Print(err)
 
@@ -79,7 +79,7 @@ func checkPlayerPrivs(L *lua.LState) int {
 	name := L.ToString(1)
 	reqprivs := L.ToTable(2)
 
-	db, err := initDB()
+	db, err := initAuthDB()
 	if err != nil {
 		log.Print(err)
 

@@ -5,7 +5,6 @@ import (
 	"log"
 	"net"
 	"time"
-
 	"github.com/HimbeerserverDE/multiserver"
 )
 

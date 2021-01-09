@@ -2,15 +2,29 @@ package multiserver
 
 import (
 	"io/ioutil"
+	"os"
 	"strings"
-
 	"gopkg.in/yaml.v2"
 )
 
 var Config map[interface{}]interface{}
 
+var defaultConfig []byte = []byte(`host: "0.0.0.0:33000"
+player_limit: -1
+servers:
+  lobby:
+    address: "127.0.0.1:30000"
+`)
+
 // LoadConfig loads the configuration file
 func LoadConfig() error {
+	os.Mkdir("config", 0775)
+	
+	_, err := os.Stat("config/multiserver.yml")
+	if os.IsNotExist(err) {
+		ioutil.WriteFile("config/multiserver.yml", defaultConfig, 0775)
+	}
+	
 	data, err := ioutil.ReadFile("config/multiserver.yml")
 	if err != nil {
 		return err

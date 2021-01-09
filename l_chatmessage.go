@@ -53,7 +53,7 @@ func processChatMessage(peerid PeerID, msg []byte) bool {
 		for i := range chatCommands {
 			if chatCommands[i].name == params[0] {
 				// Priv check
-				db, err := initDB()
+				db, err := initAuthDB()
 				if err != nil {
 					log.Print(err)
 					return true
