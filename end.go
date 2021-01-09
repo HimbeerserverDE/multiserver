@@ -2,15 +2,15 @@ package multiserver
 
 import (
 	"log"
-	"time"
 	"os"
+	"time"
 )
 
 func End(crash, reconnect bool) {
 	log.Print("Ending")
-	
+
 	l := GetListener()
-	
+
 	data := make([]byte, 7)
 	data[0] = uint8(0x00)
 	data[1] = uint8(0x0A)
@@ -27,7 +27,7 @@ func End(crash, reconnect bool) {
 		data[5] = uint8(0x00)
 	}
 	data[6] = uint8(0x00)
-	
+
 	i := PeerIDCltMin
 	for l.id2peer[i].Peer != nil {
 		ack, err := l.id2peer[i].Send(Pkt{Data: data, ChNo: 0, Unrel: false})
@@ -35,15 +35,15 @@ func End(crash, reconnect bool) {
 			log.Print(err)
 		}
 		<-ack
-		
+
 		l.id2peer[i].SendDisco(0, true)
 		l.id2peer[i].Close()
-		
+
 		i++
 	}
-	
+
 	time.Sleep(time.Second)
-	
+
 	if crash {
 		os.Exit(1)
 	} else {

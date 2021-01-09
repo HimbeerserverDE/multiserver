@@ -7,10 +7,10 @@ var api_funcs *lua.LTable
 
 func InitLua() {
 	l = lua.NewState()
-	
+
 	api_funcs = l.NewTable()
 	l.SetGlobal("multiserver", api_funcs)
-	
+
 	// redirect
 	addLuaFunc(redirect, "redirect")
 	addLuaFunc(getServers, "get_servers")

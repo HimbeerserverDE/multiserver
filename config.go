@@ -3,7 +3,7 @@ package multiserver
 import (
 	"io/ioutil"
 	"strings"
-	
+
 	"gopkg.in/yaml.v2"
 )
 
@@ -15,14 +15,14 @@ func LoadConfig() error {
 	if err != nil {
 		return err
 	}
-	
+
 	Config = make(map[interface{}]interface{})
-	
+
 	err = yaml.Unmarshal(data, &Config)
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -30,12 +30,12 @@ func LoadConfig() error {
 func GetConfKey(key string) interface{} {
 	keys := strings.Split(key, ":")
 	c := Config
-	for i := 0; i < len(keys) - 1; i++ {
+	for i := 0; i < len(keys)-1; i++ {
 		if c[keys[i]] == nil {
 			return nil
 		}
 		c = c[keys[i]].(map[interface{}]interface{})
 	}
-	
-	return c[keys[len(keys) - 1]]
+
+	return c[keys[len(keys)-1]]
 }

@@ -1,18 +1,18 @@
 package multiserver
 
 import (
-	"time"
-	"net"
-	"sync"
+	"crypto/subtle"
+	"database/sql"
+	"encoding/base64"
+	"encoding/binary"
+	"errors"
 	"fmt"
 	"log"
-	"errors"
+	"net"
 	"strings"
-	"encoding/binary"
-	"encoding/base64"
-	"database/sql"
-	"crypto/subtle"
-	
+	"sync"
+	"time"
+
 	"github.com/HimbeerserverDE/srp"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -30,7 +30,7 @@ const (
 	// ConnTimeout is the amount of time after no packets being received
 	// from a Peer that it is automatically disconnected
 	ConnTimeout = 30 * time.Second
-	
+
 	// PingTimeout is the amount of time after no packets being sent
 	// to a Peer that a CtlPing is automatically sent to prevent timeout
 	PingTimeout = 5 * time.Second
@@ -45,49 +45,49 @@ const (
 type Peer struct {
 	conn net.PacketConn
 	addr net.Addr
-	
+
 	disco chan struct{} // close-only
-	
+
 	id PeerID
-	
-	pkts	 chan Pkt
-	errs	 chan error // don't close
+
+	pkts     chan Pkt
+	errs     chan error    // don't close
 	timedout chan struct{} // close only
-	
+
 	chans [ChannelCount]pktchan // read/write
-	
-	mu		 sync.RWMutex
+
+	mu       sync.RWMutex
 	idOfPeer PeerID
-	timeout	 *time.Timer
-	ping	 *time.Ticker
-	
+	timeout  *time.Timer
+	ping     *time.Ticker
+
 	username []byte
-	
+
 	srp_s []byte
 	srp_A []byte
 	srp_a []byte
 	srp_B []byte
 	srp_K []byte
-	
+
 	authMech int
-	
+
 	forward bool
-	
+
 	srv *Peer
-	
+
 	initAoReceived bool
 }
 
 type pktchan struct {
-	insplit	map[seqnum][][]byte
-	inrel	map[seqnum][]byte
-	inrelsn	seqnum
-	
+	insplit map[seqnum][][]byte
+	inrel   map[seqnum][]byte
+	inrelsn seqnum
+
 	ackchans sync.Map // map[seqnum]chan struct{}
-	
+
 	outsplitmu sync.Mutex
 	outsplitsn seqnum
-	
+
 	outrelmu  sync.Mutex
 	outrelsn  seqnum
 	outrelwin seqnum
@@ -161,70 +161,70 @@ func (p *Peer) Recv() (Pkt, error) {
 func (p *Peer) Close() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	
+
 	select {
 	case <-p.Disco():
 		return ErrClosed
 	default:
 	}
-	
+
 	p.timeout.Stop()
 	p.timeout = nil
 	p.ping.Stop()
 	p.ping = nil
-	
+
 	close(p.disco)
-	
+
 	return nil
 }
 
 func newPeer(conn net.PacketConn, addr net.Addr, id, idOfPeer PeerID) *Peer {
 	p := &Peer{
-		conn:	  conn,
-		addr:	  addr,
-		id:		  id,
+		conn:     conn,
+		addr:     addr,
+		id:       id,
 		idOfPeer: idOfPeer,
-		
-		pkts:	make(chan Pkt),
-		disco:	make(chan struct{}),
-		errs:	make(chan error),
+
+		pkts:  make(chan Pkt),
+		disco: make(chan struct{}),
+		errs:  make(chan error),
 	}
-	
+
 	for i := range p.chans {
 		p.chans[i] = pktchan{
-			insplit:	make(map[seqnum][][]byte),
-			inrel:		make(map[seqnum][]byte),
-			inrelsn:	seqnumInit,
-			
-			outsplitsn:	seqnumInit,
-			outrelsn:	seqnumInit,
-			outrelwin:	seqnumInit,
+			insplit: make(map[seqnum][][]byte),
+			inrel:   make(map[seqnum][]byte),
+			inrelsn: seqnumInit,
+
+			outsplitsn: seqnumInit,
+			outrelsn:   seqnumInit,
+			outrelwin:  seqnumInit,
 		}
 	}
-	
+
 	p.timedout = make(chan struct{})
 	p.timeout = time.AfterFunc(ConnTimeout, func() {
 		close(p.timedout)
-		
+
 		p.SendDisco(0, true)
 		p.Close()
 	})
-	
+
 	p.ping = time.NewTicker(PingTimeout)
 	go p.sendPings(p.ping.C)
-	
+
 	p.forward = true
-	
+
 	if !p.IsSrv() {
 		aoIDs[p.ID()] = make(map[uint16]bool)
 	}
-	
+
 	return p
 }
 
 func (p *Peer) sendPings(ping <-chan time.Time) {
 	pkt := rawPkt{Data: []byte{uint8(rawTypeCtl), uint8(ctlPing)}}
-	
+
 	for {
 		select {
 		case <-ping:
@@ -241,26 +241,26 @@ func (p *Peer) sendPings(ping <-chan time.Time) {
 // and closes conn when the Peer disconnects
 func Connect(conn net.PacketConn, addr net.Addr) *Peer {
 	srv := newPeer(conn, addr, PeerIDSrv, PeerIDNil)
-	
+
 	pkts := make(chan netPkt)
 	go readNetPkts(conn, pkts, srv.errs)
 	go srv.processNetPkts(pkts)
-	
+
 	ack, err := srv.Send(Pkt{Data: []byte{uint8(0), uint8(0)}, ChNo: 0, Unrel: false})
 	if err != nil {
 		log.Print(err)
 	}
-	
+
 	t := time.Now()
 	for time.Since(t).Seconds() < 8 {
 		breakloop := false
-		
+
 		select {
 		case <-ack:
 			breakloop = true
 		default:
 		}
-		
+
 		if breakloop {
 			break
 		}
@@ -268,19 +268,19 @@ func Connect(conn net.PacketConn, addr net.Addr) *Peer {
 	if time.Since(t).Seconds() >= 8 {
 		srv.SendDisco(0, true)
 		srv.Close()
-		
+
 		conn.Close()
-		
+
 		return nil
 	}
-	
+
 	srv.sendAck(0, true, 65500)
-	
+
 	go func() {
 		<-srv.Disco()
 		conn.Close()
 	}()
-	
+
 	return srv
 }
 
@@ -289,11 +289,11 @@ func Connect(conn net.PacketConn, addr net.Addr) *Peer {
 // This doesn't support AUTH_MECHANISM_FIRST_SRP yet
 func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 	defer close(fin)
-	
+
 	if p2.ID() == PeerIDSrv {
 		// We're trying to connect to a server
 		// INIT
-		data := make([]byte, 11 + len(p.username))
+		data := make([]byte, 11+len(p.username))
 		data[0] = uint8(0x00)
 		data[1] = uint8(0x02)
 		data[2] = uint8(0x1c)
@@ -302,13 +302,13 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 		binary.BigEndian.PutUint16(data[7:9], uint16(0x0027))
 		binary.BigEndian.PutUint16(data[9:11], uint16(len(p.username)))
 		copy(data[11:], p.username)
-		
+
 		time.Sleep(250 * time.Millisecond)
-		
+
 		if _, err := p2.Send(Pkt{Data: data, ChNo: 1, Unrel: true}); err != nil {
 			log.Print(err)
 		}
-		
+
 		for {
 			pkt, err := p2.Recv()
 			if err != nil {
@@ -318,45 +318,45 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 						msg += " (timed out)"
 					}
 					log.Print(msg)
-					
+
 					if !p2.IsSrv() {
 						connectedPeers--
 						processLeave(p2.ID())
 					}
-					
+
 					return
 				}
-				
+
 				log.Print(err)
 				continue
 			}
-			
+
 			switch cmd := binary.BigEndian.Uint16(pkt.Data[0:2]); cmd {
 			case 0x02:
-				if pkt.Data[10] & 2 > 0 {
+				if pkt.Data[10]&2 > 0 {
 					// Compute and send SRP_BYTES_A
 					_, _, err := srp.NewClient([]byte(strings.ToLower(string(p.username))), passPhrase)
 					if err != nil {
 						log.Print(err)
 						continue
 					}
-					
+
 					A, a, err := srp.InitiateHandshake()
 					if err != nil {
 						log.Print(err)
 						continue
 					}
-					
+
 					p.srp_A = A
 					p.srp_a = a
-					
-					data := make([]byte, 5 + len(p.srp_A))
+
+					data := make([]byte, 5+len(p.srp_A))
 					data[0] = uint8(0x00)
 					data[1] = uint8(0x51)
 					binary.BigEndian.PutUint16(data[2:4], uint16(len(p.srp_A)))
-					copy(data[4:4 + len(p.srp_A)], p.srp_A)
-					data[4 + len(p.srp_A)] = uint8(1)
-					
+					copy(data[4:4+len(p.srp_A)], p.srp_A)
+					data[4+len(p.srp_A)] = uint8(1)
+
 					ack, err := p2.Send(Pkt{Data: data, ChNo: 1, Unrel: false})
 					if err != nil {
 						log.Print(err)
@@ -370,16 +370,16 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 						log.Print(err)
 						continue
 					}
-					
-					data := make([]byte, 7 + len(s) + len(v))
+
+					data := make([]byte, 7+len(s)+len(v))
 					data[0] = uint8(0x00)
 					data[1] = uint8(0x50)
 					binary.BigEndian.PutUint16(data[2:4], uint16(len(s)))
-					copy(data[4:4 + len(s)], s)
-					binary.BigEndian.PutUint16(data[4 + len(s):6 + len(s)], uint16(len(v)))
-					copy(data[6 + len(s):6 + len(s) + len(v)], v)
-					data[6 + len(s) + len(v)] = uint8(0)
-					
+					copy(data[4:4+len(s)], s)
+					binary.BigEndian.PutUint16(data[4+len(s):6+len(s)], uint16(len(v)))
+					copy(data[6+len(s):6+len(s)+len(v)], v)
+					data[6+len(s)+len(v)] = uint8(0)
+
 					ack, err := p2.Send(Pkt{Data: data, ChNo: 1, Unrel: false})
 					if err != nil {
 						log.Print(err)
@@ -390,25 +390,25 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 			case 0x60:
 				// Compute and send SRP_BYTES_M
 				lenS := binary.BigEndian.Uint16(pkt.Data[2:4])
-				s := pkt.Data[4:lenS + 4]
-				B := pkt.Data[lenS + 6:]
-				
+				s := pkt.Data[4 : lenS+4]
+				B := pkt.Data[lenS+6:]
+
 				K, err := srp.CompleteHandshake(p.srp_A, p.srp_a, []byte(strings.ToLower(string(p.username))), passPhrase, s, B)
 				if err != nil {
 					log.Print(err)
 					continue
 				}
-				
+
 				p.srp_K = K
-				
+
 				M := srp.CalculateM(p.username, s, p.srp_A, B, p.srp_K)
-				
-				data := make([]byte, 4 + len(M))
+
+				data := make([]byte, 4+len(M))
 				data[0] = uint8(0x00)
 				data[1] = uint8(0x52)
 				binary.BigEndian.PutUint16(data[2:4], uint16(len(M)))
 				copy(data[4:], M)
-				
+
 				ack, err := p2.Send(Pkt{Data: data, ChNo: 1, Unrel: false})
 				if err != nil {
 					log.Print(err)
@@ -418,18 +418,18 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 			case 0x0A:
 				// Auth failed for some reason
 				log.Print(ErrAuthFailed)
-				
+
 				data := []byte{
 					uint8(0x00), uint8(0x0A),
 					uint8(0x09), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
 				}
-				
+
 				ack, err := p.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
 				if err != nil {
 					log.Print(err)
 				}
 				<-ack
-				
+
 				p.SendDisco(0, true)
 				p.Close()
 				return
@@ -441,7 +441,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 					continue
 				}
 				<-ack
-				
+
 				if !ignMedia {
 					return
 				}
@@ -450,21 +450,21 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 				if !ignMedia {
 					continue
 				}
-				
+
 				v := []byte("5.4.0-dev-dd5a732fa")
-				
-				data := make([]byte, 8 + len(v))
+
+				data := make([]byte, 8+len(v))
 				copy(data[0:6], []byte{uint8(0), uint8(0x43), uint8(5), uint8(4), uint8(0), uint8(0)})
 				binary.BigEndian.PutUint16(data[6:8], uint16(len(v)))
 				copy(data[8:], v)
-				
+
 				ack, err := p2.Send(Pkt{Data: data, ChNo: 1, Unrel: false})
 				if err != nil {
 					log.Print(err)
 					continue
 				}
 				<-ack
-				
+
 				return
 			}
 		}
@@ -478,64 +478,64 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 						msg += " (timed out)"
 					}
 					log.Print(msg)
-					
+
 					if !p2.IsSrv() {
 						connectedPeers--
 						processLeave(p2.ID())
 					}
-					
+
 					return
 				}
-				
+
 				log.Print(err)
 				continue
 			}
-			
+
 			switch cmd := binary.BigEndian.Uint16(pkt.Data[0:2]); cmd {
 			case 0x02:
 				// Process data
 				p2.username = pkt.Data[11:]
-				
+
 				// Lua Callback
 				processJoin(p2.ID())
-				
+
 				// Send HELLO
-				data := make([]byte, 13 + len(p2.username))
+				data := make([]byte, 13+len(p2.username))
 				data[0] = uint8(0x00)
 				data[1] = uint8(0x02)
 				data[2] = uint8(0x1c)
 				binary.BigEndian.PutUint16(data[3:5], uint16(0x0000))
 				binary.BigEndian.PutUint16(data[5:7], uint16(0x0027))
-				
+
 				db, err := initDB()
 				if err != nil {
 					log.Print(err)
 					continue
 				}
-				
+
 				pwd, err := readAuthItem(db, string(p2.username))
 				if err != nil {
 					log.Print(err)
 					continue
 				}
-				
+
 				db.Close()
-				
+
 				if pwd == "" {
 					// New player
 					p2.authMech = AuthMechFirstSRP
-					
+
 					binary.BigEndian.PutUint32(data[7:11], uint32(AuthMechFirstSRP))
 				} else {
 					// Existing player
 					p2.authMech = AuthMechSRP
-					
+
 					binary.BigEndian.PutUint32(data[7:11], uint32(AuthMechSRP))
 				}
-				
+
 				binary.BigEndian.PutUint16(data[11:13], uint16(len(p2.username)))
 				copy(data[13:], p2.username)
-				
+
 				ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
 				if err != nil {
 					log.Print(err)
@@ -547,54 +547,54 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 				// Make sure the client is allowed to use AuthMechFirstSRP
 				if p2.authMech != AuthMechFirstSRP {
 					log.Print(p2.Addr().String() + " used unsupported AuthMechFirstSRP")
-					
+
 					// Send ACCESS_DENIED
 					data := []byte{
 						uint8(0x00), uint8(0x0A),
 						uint8(0x01), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
 					}
-					
+
 					ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
 					if err != nil {
 						log.Print(err)
 						continue
 					}
 					<-ack
-					
+
 					p2.SendDisco(0, true)
 					p2.Close()
 					return
 				}
-				
+
 				// This is a new player, save verifier and salt
 				lenS := binary.BigEndian.Uint16(pkt.Data[2:4])
-				s := pkt.Data[4:4 + lenS]
-				
-				lenV := binary.BigEndian.Uint16(pkt.Data[4 + lenS:6 + lenS])
-				v := pkt.Data[6 + lenS:6 + lenS + lenV]
-				
+				s := pkt.Data[4 : 4+lenS]
+
+				lenV := binary.BigEndian.Uint16(pkt.Data[4+lenS : 6+lenS])
+				v := pkt.Data[6+lenS : 6+lenS+lenV]
+
 				pwd := encodeVerifierAndSalt(s, v)
-				
+
 				db, err := initDB()
 				if err != nil {
 					log.Print(err)
 					continue
 				}
-				
+
 				err = addAuthItem(db, string(p2.username), pwd)
 				if err != nil {
 					log.Print(err)
 					continue
 				}
-				
+
 				err = addPrivItem(db, string(p2.username))
 				if err != nil {
 					log.Print(err)
 					continue
 				}
-				
+
 				db.Close()
-				
+
 				// Send AUTH_ACCEPT
 				data := []byte{
 					uint8(0x00), uint8(0x03),
@@ -610,14 +610,14 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 					// Sudo mode mechs
 					uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x02),
 				}
-				
+
 				ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
 				if err != nil {
 					log.Print(err)
 					continue
 				}
 				<-ack
-				
+
 				// Connect to Minetest server
 				fin2 := make(chan struct{}) // close-only
 				Init(p2, p, ignMedia, fin2)
@@ -626,68 +626,68 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 				// Make sure the client is allowed to use AuthMechSRP
 				if p2.authMech != AuthMechSRP {
 					log.Print(p2.Addr().String() + " used unsupported AuthMechSRP")
-					
+
 					// Send ACCESS_DENIED
 					data := []byte{
 						uint8(0x00), uint8(0x0A),
 						uint8(0x01), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
 					}
-					
+
 					ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
 					if err != nil {
 						log.Print(err)
 						continue
 					}
 					<-ack
-					
+
 					p2.SendDisco(0, true)
 					p2.Close()
 					return
 				}
-				
+
 				lenA := binary.BigEndian.Uint16(pkt.Data[2:4])
-				A := pkt.Data[4:4 + lenA]
-				
+				A := pkt.Data[4 : 4+lenA]
+
 				db, err := initDB()
 				if err != nil {
 					log.Print(err)
 					continue
 				}
-				
+
 				pwd, err := readAuthItem(db, string(p2.username))
 				if err != nil {
 					log.Print(err)
 					continue
 				}
-				
+
 				db.Close()
-				
+
 				s, v, err := decodeVerifierAndSalt(pwd)
 				if err != nil {
 					log.Print(err)
 					continue
 				}
-				
+
 				B, _, K, err := srp.Handshake(A, v)
 				if err != nil {
 					log.Print(err)
 					continue
 				}
-				
+
 				p2.srp_s = s
 				p2.srp_A = A
 				p2.srp_B = B
 				p2.srp_K = K
-				
+
 				// Send SRP_BYTES_S_B
-				data := make([]byte, 6 + len(s) + len(B))
+				data := make([]byte, 6+len(s)+len(B))
 				data[0] = uint8(0x00)
 				data[1] = uint8(0x60)
 				binary.BigEndian.PutUint16(data[2:4], uint16(len(s)))
-				copy(data[4:4 + len(s)], s)
-				binary.BigEndian.PutUint16(data[4 + len(s):6 + len(s)], uint16(len(B)))
-				copy(data[6 + len(s):6 + len(s) + len(B)], B)
-				
+				copy(data[4:4+len(s)], s)
+				binary.BigEndian.PutUint16(data[4+len(s):6+len(s)], uint16(len(B)))
+				copy(data[6+len(s):6+len(s)+len(B)], B)
+
 				ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
 				if err != nil {
 					log.Print(err)
@@ -699,30 +699,30 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 				// Make sure the client is allowed to use AuthMechSRP
 				if p2.authMech != AuthMechSRP {
 					log.Print(p2.Addr().String() + " used unsupported AuthMechSRP")
-					
+
 					// Send ACCESS_DENIED
 					data := []byte{
 						uint8(0x00), uint8(0x0A),
 						uint8(0x01), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
 					}
-					
+
 					ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
 					if err != nil {
 						log.Print(err)
 						continue
 					}
 					<-ack
-					
+
 					p2.SendDisco(0, true)
 					p2.Close()
 					return
 				}
-				
+
 				lenM := binary.BigEndian.Uint16(pkt.Data[2:4])
-				M := pkt.Data[4:4 + lenM]
-				
+				M := pkt.Data[4 : 4+lenM]
+
 				M2 := srp.CalculateM(p2.username, p2.srp_s, p2.srp_A, p2.srp_B, p2.srp_K)
-				
+
 				if subtle.ConstantTimeCompare(M, M2) == 1 {
 					// Password is correct
 					// Send AUTH_ACCEPT
@@ -740,34 +740,34 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 						// Sudo mode mechs
 						uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x02),
 					}
-					
+
 					ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
 					if err != nil {
 						log.Print(err)
 						continue
 					}
 					<-ack
-					
+
 					// Connect to Minetest server
 					fin2 := make(chan struct{}) // close-only
 					Init(p2, p, ignMedia, fin2)
-					} else {
+				} else {
 					// Client supplied wrong password
 					log.Print("User " + string(p2.username) + " at " + p2.Addr().String() + " supplied wrong password")
-					
+
 					// Send ACCESS_DENIED
 					data := []byte{
 						uint8(0x00), uint8(0x0A),
 						uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
 					}
-					
+
 					ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
 					if err != nil {
 						log.Print(err)
 						continue
 					}
 					<-ack
-					
+
 					p2.SendDisco(0, true)
 					p2.Close()
 					return
@@ -783,71 +783,71 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 // and redirects the client to srv2
 func (p *Peer) Redirect(newsrv string) error {
 	defer processRedirectDone(p, newsrv)
-	
+
 	straddr := GetConfKey("servers:" + newsrv + ":address")
 	if straddr == nil || fmt.Sprintf("%T", straddr) != "string" {
 		return ErrServerDoesNotExist
 	}
-	
+
 	if p.Server().Addr().String() == straddr {
 		return ErrAlreadyConnected
 	}
-	
+
 	srvaddr, err := net.ResolveUDPAddr("udp", straddr.(string))
 	if err != nil {
 		return err
 	}
-	
+
 	conn, err := net.DialUDP("udp", nil, srvaddr)
 	if err != nil {
 		return err
 	}
 	srv := Connect(conn, conn.RemoteAddr())
-	
+
 	if srv == nil {
 		return ErrServerUnreachable
 	}
-	
+
 	// Remove active objects
 	len := 0
 	for _ = range aoIDs[p.ID()] {
 		len++
 	}
-	
-	data := make([]byte, 6 + len * 2)
+
+	data := make([]byte, 6+len*2)
 	data[0] = uint8(0x00)
 	data[1] = uint8(0x31)
 	binary.BigEndian.PutUint16(data[2:4], uint16(len))
 	i := 4
 	for ao := range aoIDs[p.ID()] {
-		binary.BigEndian.PutUint16(data[i:2 + i], ao)
-		
+		binary.BigEndian.PutUint16(data[i:2+i], ao)
+
 		i += 2
 	}
-	binary.BigEndian.PutUint16(data[i:2 + i], uint16(0))
-	
+	binary.BigEndian.PutUint16(data[i:2+i], uint16(0))
+
 	ack, err := p.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
 	if err != nil {
 		return err
 	}
 	<-ack
-	
+
 	aoIDs[p.ID()] = make(map[uint16]bool)
 	p.initAoReceived = false
-	
+
 	p.Server().StopForwarding()
-	
+
 	fin := make(chan struct{}) // close-only
 	go Init(p, srv, true, fin)
 	<-fin
-	
+
 	p.SetServer(srv)
-	
+
 	go Proxy(p, srv)
 	go Proxy(srv, p)
-	
+
 	log.Print(p.Addr().String() + " redirected to " + newsrv)
-	
+
 	return nil
 }
 
@@ -860,17 +860,17 @@ func encodeVerifierAndSalt(s, v []byte) string {
 func decodeVerifierAndSalt(src string) ([]byte, []byte, error) {
 	sString := strings.Split(src, "#")[0]
 	vString := strings.Split(src, "#")[1]
-	
+
 	s, err := base64.StdEncoding.DecodeString(sString)
 	if err != nil {
 		return nil, nil, err
 	}
-	
+
 	v, err := base64.StdEncoding.DecodeString(vString)
 	if err != nil {
 		return nil, nil, err
 	}
-	
+
 	return s, v, nil
 }
 
@@ -885,7 +885,7 @@ func initDB() (*sql.DB, error) {
 	if db == nil {
 		panic("DB is nil")
 	}
-	
+
 	sql_table := `CREATE TABLE IF NOT EXISTS auth (
 		name VARCHAR(32) NOT NULL,
 		password VARCHAR(512) NOT NULL
@@ -895,12 +895,12 @@ func initDB() (*sql.DB, error) {
 		privileges VARCHAR(1024)
 	);
 	`
-	
+
 	_, err = db.Exec(sql_table)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return db, nil
 }
 
@@ -914,60 +914,60 @@ func addAuthItem(db *sql.DB, name, password string) error {
 		?
 	);
 	`
-	
+
 	stmt, err := db.Prepare(sql_addAuthItem)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
-	
+
 	_, err = stmt.Exec(name, password)
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
 // modAuthItem updates an auth DB entry
 func modAuthItem(db *sql.DB, name, password string) error {
 	sql_modAuthItem := `UPDATE auth SET password = ? WHERE name = ?;`
-	
+
 	stmt, err := db.Prepare(sql_modAuthItem)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
-	
+
 	_, err = stmt.Exec(password, name)
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
 // readAuthItem selects and reads an auth DB entry
 func readAuthItem(db *sql.DB, name string) (string, error) {
 	sql_readAuthItem := `SELECT password FROM auth WHERE name = ?;`
-	
+
 	stmt, err := db.Prepare(sql_readAuthItem)
 	if err != nil {
 		return "", err
 	}
 	defer stmt.Close()
-	
+
 	rows, err := stmt.Query(name)
 	if err != nil {
 		return "", err
 	}
-	
+
 	var r string
-	
+
 	for rows.Next() {
 		err = rows.Scan(&r)
 	}
-	
+
 	return r, nil
 }
 

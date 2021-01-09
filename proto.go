@@ -10,10 +10,10 @@ type PeerID uint16
 const (
 	// Used by clients before the server sets their ID
 	PeerIDNil PeerID = iota
-	
+
 	// The server always has this ID
 	PeerIDSrv
-	
+
 	// Lowest ID the server can assign to a client
 	PeerIDCltMin
 )
@@ -22,9 +22,9 @@ const (
 const ChannelCount = 3
 
 type rawPkt struct {
-	Data	[]byte
-	ChNo	uint8
-	Unrel	bool
+	Data  []byte
+	ChNo  uint8
+	Unrel bool
 }
 
 type rawType uint8
@@ -46,9 +46,9 @@ const (
 )
 
 type Pkt struct {
-	Data	[]byte
-	ChNo	uint8
-	Unrel	bool
+	Data  []byte
+	ChNo  uint8
+	Unrel bool
 }
 
 // seqnums are sequence numbers used to maintain reliable packet order
