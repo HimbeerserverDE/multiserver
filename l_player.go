@@ -123,7 +123,6 @@ func getCurrentServer(L *lua.LState) int {
 	p := l.GetPeerByID(PeerID(id))
 	
 	servers := GetConfKey("servers").(map[interface{}]interface{})
-	
 	for server := range servers {
 		if GetConfKey("servers:" + server.(string) + ":address") == p.Server().Addr().String() {
 			L.Push(lua.LString(server.(string)))

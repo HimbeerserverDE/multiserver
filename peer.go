@@ -20,6 +20,7 @@ import (
 var ErrAuthFailed = errors.New("authentication failure")
 var ErrServerDoesNotExist = errors.New("server doesn't exist")
 var ErrAlreadyConnected = errors.New("already connected to server")
+var ErrServerUnreachable = errors.New("server is unreachable")
 
 var passPhrase []byte = []byte("jK7BPRoxM9ffwh7Z")
 
@@ -249,7 +250,29 @@ func Connect(conn net.PacketConn, addr net.Addr) *Peer {
 	if err != nil {
 		log.Print(err)
 	}
-	<-ack
+	
+	t := time.Now()
+	for time.Since(t).Seconds() < 8 {
+		breakloop := false
+		
+		select {
+		case <-ack:
+			breakloop = true
+		default:
+		}
+		
+		if breakloop {
+			break
+		}
+	}
+	if time.Since(t).Seconds() >= 8 {
+		srv.SendDisco(0, true)
+		srv.Close()
+		
+		conn.Close()
+		
+		return nil
+	}
 	
 	srv.sendAck(0, true, 65500)
 	
@@ -264,7 +287,7 @@ func Connect(conn net.PacketConn, addr net.Addr) *Peer {
 // Init authenticates to the server srv
 // and finishes the initialisation process if ignMedia is true
 // This doesn't support AUTH_MECHANISM_FIRST_SRP yet
-func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
+func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 	defer close(fin)
 	
 	if p2.ID() == PeerIDSrv {
@@ -283,7 +306,7 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 		time.Sleep(250 * time.Millisecond)
 		
 		if _, err := p2.Send(Pkt{Data: data, ChNo: 1, Unrel: true}); err != nil {
-			errs <- err
+			log.Print(err)
 		}
 		
 		for {
@@ -304,7 +327,7 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 					return
 				}
 				
-				errs <- err
+				log.Print(err)
 				continue
 			}
 			
@@ -314,13 +337,13 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 					// Compute and send SRP_BYTES_A
 					_, _, err := srp.NewClient([]byte(strings.ToLower(string(p.username))), passPhrase)
 					if err != nil {
-						errs <- err
+						log.Print(err)
 						continue
 					}
 					
 					A, a, err := srp.InitiateHandshake()
 					if err != nil {
-						errs <- err
+						log.Print(err)
 						continue
 					}
 					
@@ -336,7 +359,7 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 					
 					ack, err := p2.Send(Pkt{Data: data, ChNo: 1, Unrel: false})
 					if err != nil {
-						errs <- err
+						log.Print(err)
 						continue
 					}
 					<-ack
@@ -344,7 +367,7 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 					// Compute and send s and v
 					s, v, err := srp.NewClient([]byte(strings.ToLower(string(p.username))), passPhrase)
 					if err != nil {
-						errs <- err
+						log.Print(err)
 						continue
 					}
 					
@@ -359,7 +382,7 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 					
 					ack, err := p2.Send(Pkt{Data: data, ChNo: 1, Unrel: false})
 					if err != nil {
-						errs <- err
+						log.Print(err)
 						continue
 					}
 					<-ack
@@ -372,7 +395,7 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 				
 				K, err := srp.CompleteHandshake(p.srp_A, p.srp_a, []byte(strings.ToLower(string(p.username))), passPhrase, s, B)
 				if err != nil {
-					errs <- err
+					log.Print(err)
 					continue
 				}
 				
@@ -388,13 +411,25 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 				
 				ack, err := p2.Send(Pkt{Data: data, ChNo: 1, Unrel: false})
 				if err != nil {
-					errs <- err
+					log.Print(err)
 					continue
 				}
 				<-ack
 			case 0x0A:
 				// Auth failed for some reason
-				errs <- ErrAuthFailed
+				log.Print(ErrAuthFailed)
+				
+				data := []byte{
+					uint8(0x00), uint8(0x0A),
+					uint8(0x09), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+				}
+				
+				ack, err := p.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
+				if err != nil {
+					log.Print(err)
+				}
+				<-ack
+				
 				p.SendDisco(0, true)
 				p.Close()
 				return
@@ -402,10 +437,11 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 				// Auth succeeded
 				ack, err := p2.Send(Pkt{Data: []byte{uint8(0), uint8(0x11), uint8(0), uint8(0)}, ChNo: 1, Unrel: false})
 				if err != nil {
-					errs <- err
+					log.Print(err)
 					continue
 				}
 				<-ack
+				
 				if !ignMedia {
 					return
 				}
@@ -424,7 +460,7 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 				
 				ack, err := p2.Send(Pkt{Data: data, ChNo: 1, Unrel: false})
 				if err != nil {
-					errs <- err
+					log.Print(err)
 					continue
 				}
 				<-ack
@@ -451,7 +487,7 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 					return
 				}
 				
-				errs <- err
+				log.Print(err)
 				continue
 			}
 			
@@ -473,13 +509,13 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 				
 				db, err := initDB()
 				if err != nil {
-					errs <- err
+					log.Print(err)
 					continue
 				}
 				
 				pwd, err := readAuthItem(db, string(p2.username))
 				if err != nil {
-					errs <- err
+					log.Print(err)
 					continue
 				}
 				
@@ -502,7 +538,7 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 				
 				ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
 				if err != nil {
-					errs <- err
+					log.Print(err)
 					continue
 				}
 				<-ack
@@ -520,7 +556,7 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 					
 					ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
 					if err != nil {
-						errs <- err
+						log.Print(err)
 						continue
 					}
 					<-ack
@@ -541,19 +577,19 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 				
 				db, err := initDB()
 				if err != nil {
-					errs <- err
+					log.Print(err)
 					continue
 				}
 				
 				err = addAuthItem(db, string(p2.username), pwd)
 				if err != nil {
-					errs <- err
+					log.Print(err)
 					continue
 				}
 				
 				err = addPrivItem(db, string(p2.username))
 				if err != nil {
-					errs <- err
+					log.Print(err)
 					continue
 				}
 				
@@ -577,15 +613,14 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 				
 				ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
 				if err != nil {
-					errs <- err
+					log.Print(err)
 					continue
 				}
 				<-ack
 				
 				// Connect to Minetest server
-				errs2 := make(chan error)
 				fin2 := make(chan struct{}) // close-only
-				Init(p2, p, ignMedia, errs2, fin2)
+				Init(p2, p, ignMedia, fin2)
 			case 0x51:
 				// Process data
 				// Make sure the client is allowed to use AuthMechSRP
@@ -600,7 +635,7 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 					
 					ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
 					if err != nil {
-						errs <- err
+						log.Print(err)
 						continue
 					}
 					<-ack
@@ -615,13 +650,13 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 				
 				db, err := initDB()
 				if err != nil {
-					errs <- err
+					log.Print(err)
 					continue
 				}
 				
 				pwd, err := readAuthItem(db, string(p2.username))
 				if err != nil {
-					errs <- err
+					log.Print(err)
 					continue
 				}
 				
@@ -629,13 +664,13 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 				
 				s, v, err := decodeVerifierAndSalt(pwd)
 				if err != nil {
-					errs <- err
+					log.Print(err)
 					continue
 				}
 				
 				B, _, K, err := srp.Handshake(A, v)
 				if err != nil {
-					errs <- err
+					log.Print(err)
 					continue
 				}
 				
@@ -655,7 +690,7 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 				
 				ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
 				if err != nil {
-					errs <- err
+					log.Print(err)
 					continue
 				}
 				<-ack
@@ -673,7 +708,7 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 					
 					ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
 					if err != nil {
-						errs <- err
+						log.Print(err)
 						continue
 					}
 					<-ack
@@ -708,15 +743,14 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 					
 					ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
 					if err != nil {
-						errs <- err
+						log.Print(err)
 						continue
 					}
 					<-ack
 					
 					// Connect to Minetest server
-					errs2 := make(chan error)
 					fin2 := make(chan struct{}) // close-only
-					Init(p2, p, ignMedia, errs2, fin2)
+					Init(p2, p, ignMedia, fin2)
 					} else {
 					// Client supplied wrong password
 					log.Print("User " + string(p2.username) + " at " + p2.Addr().String() + " supplied wrong password")
@@ -729,7 +763,7 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 					
 					ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
 					if err != nil {
-						errs <- err
+						log.Print(err)
 						continue
 					}
 					<-ack
@@ -748,6 +782,32 @@ func Init(p, p2 *Peer, ignMedia bool, errs chan<- error, fin chan struct{}) {
 // Redirect closes the connection to srv1
 // and redirects the client to srv2
 func (p *Peer) Redirect(newsrv string) error {
+	defer processRedirectDone(p, newsrv)
+	
+	straddr := GetConfKey("servers:" + newsrv + ":address")
+	if straddr == nil || fmt.Sprintf("%T", straddr) != "string" {
+		return ErrServerDoesNotExist
+	}
+	
+	if p.Server().Addr().String() == straddr {
+		return ErrAlreadyConnected
+	}
+	
+	srvaddr, err := net.ResolveUDPAddr("udp", straddr.(string))
+	if err != nil {
+		return err
+	}
+	
+	conn, err := net.DialUDP("udp", nil, srvaddr)
+	if err != nil {
+		return err
+	}
+	srv := Connect(conn, conn.RemoteAddr())
+	
+	if srv == nil {
+		return ErrServerUnreachable
+	}
+	
 	// Remove active objects
 	len := 0
 	for _ = range aoIDs[p.ID()] {
@@ -774,32 +834,10 @@ func (p *Peer) Redirect(newsrv string) error {
 	
 	aoIDs[p.ID()] = make(map[uint16]bool)
 	
-	// Redirect
-	straddr := GetConfKey("servers:" + newsrv + ":address")
-	if straddr == nil || fmt.Sprintf("%T", straddr) != "string" {
-		return ErrServerDoesNotExist
-	}
-	
-	if p.Server().Addr().String() == straddr {
-		return ErrAlreadyConnected
-	}
-	
-	srvaddr, err := net.ResolveUDPAddr("udp", straddr.(string))
-	if err != nil {
-		return err
-	}
-	
-	conn, err := net.DialUDP("udp", nil, srvaddr)
-	if err != nil {
-		return err
-	}
-	srv := Connect(conn, conn.RemoteAddr())
-	
 	p.Server().StopForwarding()
 	
-	errs := make(chan error)
 	fin := make(chan struct{}) // close-only
-	go Init(p, srv, true, errs, fin)
+	go Init(p, srv, true, fin)
 	<-fin
 	
 	p.SetServer(srv)

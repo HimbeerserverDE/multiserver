@@ -216,3 +216,9 @@ multiserver.register_chatcommand("p_revoke", {
 		return "Privileges updated."
 	end,
 })
+
+multiserver.register_on_redirect_done(function(id, newsrv, success)
+	if not success then
+		multiserver.chat_send_player(id, "Could not connect you to " .. newsrv .. "!")
+	end
+end)

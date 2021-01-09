@@ -14,6 +14,7 @@ func InitLua() {
 	// redirect
 	addLuaFunc(redirect, "redirect")
 	addLuaFunc(getServers, "get_servers")
+	addLuaFunc(registerOnRedirectDone, "register_on_redirect_done")
 	// chatmessage
 	addLuaFunc(registerChatCommand, "register_chatcommand")
 	addLuaFunc(registerOnChatMessage, "register_on_chatmessage")

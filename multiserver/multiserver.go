@@ -4,6 +4,7 @@ import (
 	"net"
 	"log"
 	"fmt"
+	"time"
 	
 	"github.com/HimbeerserverDE/multiserver"
 )
@@ -67,9 +68,27 @@ func main() {
 		}
 		srv := multiserver.Connect(conn, conn.RemoteAddr())
 		
-		errs := make(chan error)
+		if srv == nil {
+			data := []byte{
+				uint8(0x00), uint8(0x0A),
+				uint8(0x09), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+			}
+			
+			_, err := clt.Send(multiserver.Pkt{Data: data, ChNo: 0, Unrel: false})
+			if err != nil {
+				log.Print(err)
+			}
+			
+			time.Sleep(250 * time.Millisecond)
+			
+			clt.SendDisco(0, true)
+			clt.Close()
+			
+			continue
+		}
+		
 		fin := make(chan struct{}) // close-only
-		go multiserver.Init(srv, clt, false, errs, fin)
+		go multiserver.Init(srv, clt, false, fin)
 		
 		go func() {
 			<-fin
