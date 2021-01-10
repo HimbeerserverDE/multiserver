@@ -1,3 +1,4 @@
 multiserver/multiserver
 multiserver/config/multiserver.yml
 multiserver/storage/auth.sqlite
+multiserver/storage/plugin_storage.sqlite
