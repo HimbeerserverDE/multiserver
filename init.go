@@ -509,3 +509,8 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 		}
 	}
 }
+
+func InitMultiserver() {
+	aoIDs = make(map[PeerID]map[uint16]bool)
+	loadConfig()
+}

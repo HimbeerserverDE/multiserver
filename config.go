@@ -19,7 +19,7 @@ force_default_server: true
 `)
 
 // LoadConfig loads the configuration file
-func LoadConfig() error {
+func loadConfig() error {
 	os.Mkdir("config", 0775)
 
 	_, err := os.Stat("config/multiserver.yml")
