@@ -10,7 +10,14 @@ func luaGetConfKey(L *lua.LState) int {
 	if v == nil {
 		L.Push(lua.LNil)
 	} else {
-		L.Push(lua.LString(v.(string)))
+		switch v.(type) {
+		case bool:
+			L.Push(lua.LBool(v.(bool)))
+		case int:
+			L.Push(lua.LNumber(v.(int)))
+		case string:
+			L.Push(lua.LString(v.(string)))
+		}
 	}
 
 	return 1

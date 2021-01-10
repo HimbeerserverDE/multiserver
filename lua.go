@@ -41,6 +41,11 @@ func InitLua() {
 	addLuaFunc(checkPlayerPrivs, "check_player_privs")
 	// config
 	addLuaFunc(luaGetConfKey, "get_conf_key")
+	// storage
+	addLuaFunc(setStorageKey, "set_storage_key")
+	addLuaFunc(getStorageKey, "get_storage_key")
+	// after
+	addLuaFunc(luaAfter, "after")
 }
 
 func CloseLua() {

@@ -21,10 +21,16 @@ func main() {
 		log.Fatal(err)
 		return
 	}
+	
+	defaultSrv := multiserver.GetConfKey("default_server")
+	if defaultSrv == nil || fmt.Sprintf("%T", defaultSrv) != "string" {
+		log.Fatal("Default server name not set or not a string")
+		return
+	}
 
-	lobbyaddr := multiserver.GetConfKey("servers:lobby:address")
-	if lobbyaddr == nil || fmt.Sprintf("%T", lobbyaddr) != "string" {
-		log.Fatal("Lobby server address not set or not a string")
+	defaultSrvAddr := multiserver.GetConfKey("servers:" + defaultSrv.(string) + ":address")
+	if defaultSrvAddr == nil || fmt.Sprintf("%T", defaultSrvAddr) != "string" {
+		log.Fatal("Default server address not set or not a string")
 		return
 	}
 
@@ -34,7 +40,7 @@ func main() {
 		return
 	}
 
-	srvaddr, err := net.ResolveUDPAddr("udp", lobbyaddr.(string))
+	srvaddr, err := net.ResolveUDPAddr("udp", defaultSrvAddr.(string))
 	if err != nil {
 		log.Fatal(err)
 		return

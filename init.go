@@ -224,9 +224,6 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 				// Process data
 				p2.username = pkt.Data[11:]
 
-				// Lua Callback
-				processJoin(p2.ID())
-
 				// Send HELLO
 				data := make([]byte, 13+len(p2.username))
 				data[0] = uint8(0x00)

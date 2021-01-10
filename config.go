@@ -14,6 +14,8 @@ player_limit: -1
 servers:
   lobby:
     address: "127.0.0.1:30000"
+default_server: lobby
+force_default_server: true
 `)
 
 // LoadConfig loads the configuration file
