@@ -5,7 +5,6 @@ import (
 	"log"
 	"strings"
 	"time"
-
 	"github.com/yuin/gopher-lua"
 )
 

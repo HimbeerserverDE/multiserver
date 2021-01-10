@@ -1,8 +1,6 @@
 package multiserver
 
-import (
-	"github.com/yuin/gopher-lua"
-)
+import "github.com/yuin/gopher-lua"
 
 func luaGetConfKey(L *lua.LState) int {
 	key := L.ToString(1)

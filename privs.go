@@ -2,8 +2,8 @@ package multiserver
 
 import (
 	"database/sql"
-	_ "github.com/mattn/go-sqlite3"
 	"strings"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 // encodePrivs encodes priv map into DB-ready string

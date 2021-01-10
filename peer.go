@@ -115,9 +115,6 @@ func (p *Peer) Forward() bool { return p.forward }
 // StopForwarding tells the Proxy func to stop
 func (p *Peer) StopForwarding() { p.forward = false }
 
-// StartForwarding makes forwarding possible again
-func (p *Peer) StartForwarding() { p.forward = true }
-
 // Server returns the Peer this Peer is connected to
 // if this Peer is not a server
 func (p *Peer) Server() *Peer { return p.srv }

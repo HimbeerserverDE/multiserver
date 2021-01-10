@@ -3,7 +3,6 @@ package multiserver
 import (
 	"encoding/binary"
 	"log"
-
 	"github.com/yuin/gopher-lua"
 )
 

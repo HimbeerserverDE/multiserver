@@ -7,7 +7,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var Config map[interface{}]interface{}
+var config map[interface{}]interface{}
 
 var defaultConfig []byte = []byte(`host: "0.0.0.0:33000"
 player_limit: -1
@@ -30,9 +30,9 @@ func LoadConfig() error {
 		return err
 	}
 
-	Config = make(map[interface{}]interface{})
+	config = make(map[interface{}]interface{})
 
-	err = yaml.Unmarshal(data, &Config)
+	err = yaml.Unmarshal(data, &config)
 	if err != nil {
 		return err
 	}
@@ -43,7 +43,7 @@ func LoadConfig() error {
 // GetKey returns a key in the configuration
 func GetConfKey(key string) interface{} {
 	keys := strings.Split(key, ":")
-	c := Config
+	c := config
 	for i := 0; i < len(keys)-1; i++ {
 		if c[keys[i]] == nil {
 			return nil

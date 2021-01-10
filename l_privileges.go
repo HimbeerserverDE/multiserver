@@ -2,7 +2,6 @@ package multiserver
 
 import (
 	"log"
-
 	"github.com/yuin/gopher-lua"
 )
 
