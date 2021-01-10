@@ -184,6 +184,9 @@ func (l *Listener) processNetPkt(pkt netPkt) error {
 }
 
 func (l *Listener) GetPeerByID(id PeerID) *Peer {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	
 	return l.id2peer[id].Peer
 }
 

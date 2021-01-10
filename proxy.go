@@ -39,7 +39,7 @@ func Proxy(src, dst *Peer) {
 		}
 		// Active object remove add
 		if pkt.Data[0] == uint8(0x00) && pkt.Data[1] == uint8(0x31) && src.IsSrv() {
-			processAORmAdd(dst, pkt.Data)
+			pkt.Data = processAORmAdd(dst, pkt.Data)
 		}
 
 		// Forward

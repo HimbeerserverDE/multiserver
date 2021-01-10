@@ -65,7 +65,6 @@ func (p *Peer) Redirect(newsrv string) error {
 	<-ack
 
 	aoIDs[p.ID()] = make(map[uint16]bool)
-	p.initAoReceived = false
 
 	p.Server().StopForwarding()
 

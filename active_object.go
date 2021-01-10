@@ -8,7 +8,7 @@ func InitAOMap() {
 	aoIDs = make(map[PeerID]map[uint16]bool)
 }
 
-func processAORmAdd(p *Peer, data []byte) {
+func processAORmAdd(p *Peer, data []byte) []byte {
 	countRm := binary.BigEndian.Uint16(data[2:4])
 	aoRm := make([]uint16, countRm)
 	aoRmI := 0
@@ -26,9 +26,18 @@ func processAORmAdd(p *Peer, data []byte) {
 		si := j + 6 + uint32(countRm)*2
 		initDataLen := binary.BigEndian.Uint32(data[3+si : 7+si])
 
-		if data[2+si] == uint8(0x65) && !p.initAoReceived {
-			p.initAoReceived = true
+		namelen := binary.BigEndian.Uint16(data[8+si : 10+si])
+		name := data[10+si:10+si+uint32(namelen)]
+		if string(name) == string(p.username) {
+			if p.initAoReceived {
+				binary.BigEndian.PutUint16(data[4+countRm*2 : 6+countRm*2], countAdd - 1)
+				data = append(data[:si], data[7+si+initDataLen:]...)
+			} else {
+				p.initAoReceived = true
+			}
+			
 			j += 7 + initDataLen
+			
 			continue
 		}
 
@@ -48,4 +57,6 @@ func processAORmAdd(p *Peer, data []byte) {
 	for i := range aoRm {
 		aoIDs[p.ID()][aoRm[i]] = false
 	}
+	
+	return data
 }
