@@ -36,7 +36,7 @@ func decodeVerifierAndSalt(src string) ([]byte, []byte, error) {
 // It returns said database
 func initAuthDB() (*sql.DB, error) {
 	os.Mkdir("storage", 0775)
-	
+
 	db, err := sql.Open("sqlite3", "storage/auth.sqlite")
 	if err != nil {
 		return nil, err

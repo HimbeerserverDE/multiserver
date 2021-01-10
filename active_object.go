@@ -35,9 +35,9 @@ func processAORmAdd(p *Peer, data []byte) []byte {
 			} else {
 				p.initAoReceived = true
 			}
-			
+
 			j += 7 + initDataLen
-			
+
 			continue
 		}
 

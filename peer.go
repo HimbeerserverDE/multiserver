@@ -287,6 +287,6 @@ func Connect(conn net.PacketConn, addr net.Addr) *Peer {
 func GetPeerCount() int {
 	connectedPeersMu.RLock()
 	defer connectedPeersMu.RUnlock()
-	
+
 	return connectedPeers
 }

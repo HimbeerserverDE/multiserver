@@ -21,12 +21,12 @@ force_default_server: true
 // LoadConfig loads the configuration file
 func LoadConfig() error {
 	os.Mkdir("config", 0775)
-	
+
 	_, err := os.Stat("config/multiserver.yml")
 	if os.IsNotExist(err) {
 		ioutil.WriteFile("config/multiserver.yml", defaultConfig, 0664)
 	}
-	
+
 	data, err := ioutil.ReadFile("config/multiserver.yml")
 	if err != nil {
 		return err
