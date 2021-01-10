@@ -14,6 +14,7 @@ var ErrServerUnreachable = errors.New("server is unreachable")
 var passPhrase []byte = []byte("jK7BPRoxM9ffwh7Z")
 
 var connectedPeers int = 0
+var connectedPeersMu sync.RWMutex
 
 const (
 	// ConnTimeout is the amount of time after no packets being received
@@ -62,9 +63,12 @@ type Peer struct {
 
 	forward bool
 
-	srv *Peer
+	srvMu sync.RWMutex
+	srv   *Peer
 
 	initAoReceived bool
+
+	redirectMu sync.Mutex
 }
 
 type pktchan struct {
@@ -117,11 +121,21 @@ func (p *Peer) StopForwarding() { p.forward = false }
 
 // Server returns the Peer this Peer is connected to
 // if this Peer is not a server
-func (p *Peer) Server() *Peer { return p.srv }
+func (p *Peer) Server() *Peer {
+	p.srvMu.RLock()
+	defer p.srvMu.RUnlock()
+
+	return p.srv
+}
 
 // SetServer sets the Peer this Peer is connected to
 // if this Peer is not a server
-func (p *Peer) SetServer(s *Peer) { p.srv = s }
+func (p *Peer) SetServer(s *Peer) {
+	p.srvMu.Lock()
+	defer p.srvMu.Unlock()
+
+	p.srv = s
+}
 
 // Recv receives a packet from the Peer
 // You should keep calling this until it returns ErrClosed
@@ -271,5 +285,8 @@ func Connect(conn net.PacketConn, addr net.Addr) *Peer {
 }
 
 func GetPeerCount() int {
+	connectedPeersMu.RLock()
+	defer connectedPeersMu.RUnlock()
+	
 	return connectedPeers
 }

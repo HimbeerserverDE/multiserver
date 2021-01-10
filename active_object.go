@@ -48,6 +48,7 @@ func processAORmAdd(p *Peer, data []byte) []byte {
 		j += 7 + initDataLen
 	}
 
+	p.redirectMu.Lock()
 	for i := range aoAdd {
 		if aoAdd[i] != 0 {
 			aoIDs[p.ID()][aoAdd[i]] = true
@@ -57,6 +58,7 @@ func processAORmAdd(p *Peer, data []byte) []byte {
 	for i := range aoRm {
 		aoIDs[p.ID()][aoRm[i]] = false
 	}
-	
+	p.redirectMu.Unlock()
+
 	return data
 }

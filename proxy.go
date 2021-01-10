@@ -19,7 +19,10 @@ func Proxy(src, dst *Peer) {
 				log.Print(msg)
 
 				if !src.IsSrv() {
+					connectedPeersMu.Lock()
 					connectedPeers--
+					connectedPeersMu.Unlock()
+
 					processLeave(src.ID())
 				}
 

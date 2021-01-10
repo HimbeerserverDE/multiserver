@@ -21,7 +21,7 @@ func main() {
 		log.Fatal(err)
 		return
 	}
-	
+
 	defaultSrv := multiserver.GetConfKey("default_server")
 	if defaultSrv == nil || fmt.Sprintf("%T", defaultSrv) != "string" {
 		log.Fatal("Default server name not set or not a string")

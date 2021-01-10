@@ -14,6 +14,9 @@ var ErrAlreadyConnected = errors.New("already connected to server")
 // Redirect closes the connection to srv1
 // and redirects the client to srv2
 func (p *Peer) Redirect(newsrv string) error {
+	p.redirectMu.Lock()
+	defer p.redirectMu.Unlock()
+
 	defer processRedirectDone(p, newsrv)
 
 	straddr := GetConfKey("servers:" + newsrv + ":address")

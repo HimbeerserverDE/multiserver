@@ -48,7 +48,10 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 					log.Print(msg)
 
 					if !p2.IsSrv() {
+						connectedPeersMu.Lock()
 						connectedPeers--
+						connectedPeersMu.Unlock()
+
 						processLeave(p2.ID())
 					}
 
@@ -208,7 +211,10 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 					log.Print(msg)
 
 					if !p2.IsSrv() {
+						connectedPeersMu.Lock()
 						connectedPeers--
+						connectedPeersMu.Unlock()
+
 						processLeave(p2.ID())
 					}
 
