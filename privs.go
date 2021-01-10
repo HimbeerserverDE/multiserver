@@ -38,7 +38,9 @@ func decodePrivs(s string) map[string]bool {
 	r := make(map[string]bool)
 
 	for i := range ps {
-		r[ps[i]] = true
+		if ps[i] != "" {
+			r[ps[i]] = true
+		}
 	}
 
 	return r

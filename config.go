@@ -24,7 +24,7 @@ func LoadConfig() error {
 	
 	_, err := os.Stat("config/multiserver.yml")
 	if os.IsNotExist(err) {
-		ioutil.WriteFile("config/multiserver.yml", defaultConfig, 0775)
+		ioutil.WriteFile("config/multiserver.yml", defaultConfig, 0664)
 	}
 	
 	data, err := ioutil.ReadFile("config/multiserver.yml")
