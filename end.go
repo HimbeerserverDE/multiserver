@@ -31,11 +31,10 @@ func End(crash, reconnect bool) {
 	i := PeerIDCltMin
 	l.mu.Lock()
 	for l.id2peer[i].Peer != nil {
-		ack, err := l.id2peer[i].Send(Pkt{Data: data})
+		_, err := l.id2peer[i].Send(Pkt{Data: data})
 		if err != nil {
 			log.Print(err)
 		}
-		<-ack
 
 		l.id2peer[i].SendDisco(0, true)
 		l.id2peer[i].Close()
