@@ -10,7 +10,7 @@ func init() {
 		signalChan := make(chan os.Signal, 1)
 		signal.Notify(signalChan, os.Interrupt)
 		<-signalChan
-		
+
 		End(false, false)
 	}()
 }

@@ -230,7 +230,7 @@ func chatSendAll(L *lua.LState) int {
 }
 
 func narrow(b []byte) []byte {
-	if len(b) % 2 != 0 {
+	if len(b)%2 != 0 {
 		return nil
 	}
 
@@ -249,7 +249,7 @@ func wider(b []byte) []byte {
 	e := utf16.Encode([]rune(string(b)))
 
 	for i := range e {
-		binary.BigEndian.PutUint16(r[i*2 : 2 + i*2], e[i])
+		binary.BigEndian.PutUint16(r[i*2:2+i*2], e[i])
 	}
 
 	return r

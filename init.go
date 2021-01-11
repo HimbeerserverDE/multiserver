@@ -108,7 +108,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 					data[1] = uint8(0x50)
 					binary.BigEndian.PutUint16(data[2:4], uint16(len(s)))
 					copy(data[4:4+len(s)], s)
-					binary.BigEndian.PutUint16(data[4+len(s) : 6+len(s)], uint16(len(v)))
+					binary.BigEndian.PutUint16(data[4+len(s):6+len(s)], uint16(len(v)))
 					copy(data[6+len(s):6+len(s)+len(v)], v)
 					data[6+len(s)+len(v)] = uint8(0)
 
