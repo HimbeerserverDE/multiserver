@@ -31,7 +31,7 @@ func End(crash, reconnect bool) {
 	i := PeerIDCltMin
 	l.mu.Lock()
 	for l.id2peer[i].Peer != nil {
-		ack, err := l.id2peer[i].Send(Pkt{Data: data, ChNo: 0, Unrel: false})
+		ack, err := l.id2peer[i].Send(Pkt{Data: data})
 		if err != nil {
 			log.Print(err)
 		}

@@ -5,7 +5,13 @@ import (
 	"encoding/base64"
 	"os"
 	"strings"
+
 	_ "github.com/mattn/go-sqlite3"
+)
+
+const (
+	AuthMechSRP      = 0x00000002
+	AuthMechFirstSRP = 0x00000004
 )
 
 // encodeVerifierAndSalt encodes SRP verifier and salt into DB-ready string

@@ -5,12 +5,11 @@ import (
 	"log"
 	"net"
 	"time"
+
 	"github.com/HimbeerserverDE/multiserver"
 )
 
 func main() {
-	multiserver.InitMultiserver()
-
 	multiserver.InitLua()
 	defer multiserver.CloseLua()
 
@@ -77,7 +76,7 @@ func main() {
 				uint8(0x09), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
 			}
 
-			_, err := clt.Send(multiserver.Pkt{Data: data, ChNo: 0, Unrel: false})
+			_, err := clt.Send(multiserver.Pkt{Data: data})
 			if err != nil {
 				log.Print(err)
 			}

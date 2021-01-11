@@ -7,6 +7,7 @@ import (
 	"log"
 	"strings"
 	"time"
+
 	"github.com/HimbeerserverDE/srp"
 )
 
@@ -64,7 +65,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 
 			switch cmd := binary.BigEndian.Uint16(pkt.Data[0:2]); cmd {
 			case 0x02:
-				if pkt.Data[10]&2 > 0 {
+				if pkt.Data[10]&AuthMechSRP > 0 {
 					// Compute and send SRP_BYTES_A
 					_, _, err := srp.NewClient([]byte(strings.ToLower(string(p.username))), passPhrase)
 					if err != nil {
@@ -88,7 +89,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 					copy(data[4:4+len(p.srp_A)], p.srp_A)
 					data[4+len(p.srp_A)] = uint8(1)
 
-					ack, err := p2.Send(Pkt{Data: data, ChNo: 1, Unrel: false})
+					ack, err := p2.Send(Pkt{Data: data, ChNo: 1})
 					if err != nil {
 						log.Print(err)
 						continue
@@ -107,11 +108,11 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 					data[1] = uint8(0x50)
 					binary.BigEndian.PutUint16(data[2:4], uint16(len(s)))
 					copy(data[4:4+len(s)], s)
-					binary.BigEndian.PutUint16(data[4+len(s):6+len(s)], uint16(len(v)))
+					binary.BigEndian.PutUint16(data[4+len(s) : 6+len(s)], uint16(len(v)))
 					copy(data[6+len(s):6+len(s)+len(v)], v)
 					data[6+len(s)+len(v)] = uint8(0)
 
-					ack, err := p2.Send(Pkt{Data: data, ChNo: 1, Unrel: false})
+					ack, err := p2.Send(Pkt{Data: data, ChNo: 1})
 					if err != nil {
 						log.Print(err)
 						continue
@@ -140,7 +141,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 				binary.BigEndian.PutUint16(data[2:4], uint16(len(M)))
 				copy(data[4:], M)
 
-				ack, err := p2.Send(Pkt{Data: data, ChNo: 1, Unrel: false})
+				ack, err := p2.Send(Pkt{Data: data, ChNo: 1})
 				if err != nil {
 					log.Print(err)
 					continue
@@ -155,7 +156,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 					uint8(0x09), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
 				}
 
-				ack, err := p.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
+				ack, err := p.Send(Pkt{Data: data})
 				if err != nil {
 					log.Print(err)
 				}
@@ -166,7 +167,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 				return
 			case 0x03:
 				// Auth succeeded
-				ack, err := p2.Send(Pkt{Data: []byte{uint8(0), uint8(0x11), uint8(0), uint8(0)}, ChNo: 1, Unrel: false})
+				ack, err := p2.Send(Pkt{Data: []byte{uint8(0), uint8(0x11), uint8(0), uint8(0)}, ChNo: 1})
 				if err != nil {
 					log.Print(err)
 					continue
@@ -189,7 +190,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 				binary.BigEndian.PutUint16(data[6:8], uint16(len(v)))
 				copy(data[8:], v)
 
-				ack, err := p2.Send(Pkt{Data: data, ChNo: 1, Unrel: false})
+				ack, err := p2.Send(Pkt{Data: data, ChNo: 1})
 				if err != nil {
 					log.Print(err)
 					continue
@@ -267,7 +268,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 				binary.BigEndian.PutUint16(data[11:13], uint16(len(p2.username)))
 				copy(data[13:], p2.username)
 
-				ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
+				ack, err := p2.Send(Pkt{Data: data})
 				if err != nil {
 					log.Print(err)
 					continue
@@ -285,7 +286,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 						uint8(0x01), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
 					}
 
-					ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
+					ack, err := p2.Send(Pkt{Data: data})
 					if err != nil {
 						log.Print(err)
 						continue
@@ -342,7 +343,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 					uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x02),
 				}
 
-				ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
+				ack, err := p2.Send(Pkt{Data: data})
 				if err != nil {
 					log.Print(err)
 					continue
@@ -419,7 +420,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 				binary.BigEndian.PutUint16(data[4+len(s):6+len(s)], uint16(len(B)))
 				copy(data[6+len(s):6+len(s)+len(B)], B)
 
-				ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
+				ack, err := p2.Send(Pkt{Data: data})
 				if err != nil {
 					log.Print(err)
 					continue
@@ -437,7 +438,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 						uint8(0x01), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
 					}
 
-					ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
+					ack, err := p2.Send(Pkt{Data: data})
 					if err != nil {
 						log.Print(err)
 						continue
@@ -472,7 +473,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 						uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x02),
 					}
 
-					ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
+					ack, err := p2.Send(Pkt{Data: data})
 					if err != nil {
 						log.Print(err)
 						continue
@@ -492,7 +493,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 						uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
 					}
 
-					ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
+					ack, err := p2.Send(Pkt{Data: data})
 					if err != nil {
 						log.Print(err)
 						continue
@@ -510,7 +511,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 	}
 }
 
-func InitMultiserver() {
+func init() {
 	aoIDs = make(map[PeerID]map[uint16]bool)
 	loadConfig()
 }

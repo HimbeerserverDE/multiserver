@@ -61,7 +61,7 @@ func (p *Peer) Redirect(newsrv string) error {
 	}
 	binary.BigEndian.PutUint16(data[i:2+i], uint16(0))
 
-	ack, err := p.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
+	ack, err := p.Send(Pkt{Data: data})
 	if err != nil {
 		return err
 	}

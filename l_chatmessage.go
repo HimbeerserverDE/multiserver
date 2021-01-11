@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 	"unicode/utf16"
+
 	"github.com/yuin/gopher-lua"
 )
 
@@ -130,7 +131,7 @@ func processChatMessage(peerid PeerID, msg []byte) bool {
 					data[11+len(wstr)] = uint8(0x00)
 					binary.BigEndian.PutUint32(data[12+len(wstr):16+len(wstr)], uint32(time.Now().Unix()))
 
-					ack, err := GetListener().GetPeerByID(peerid).Send(Pkt{Data: data, ChNo: 0, Unrel: false})
+					ack, err := GetListener().GetPeerByID(peerid).Send(Pkt{Data: data})
 					if err != nil {
 						log.Print(err)
 					}
@@ -182,7 +183,7 @@ func chatSendPlayer(L *lua.LState) int {
 	data[11+len(wstr)] = uint8(0x00)
 	binary.BigEndian.PutUint32(data[12+len(wstr):16+len(wstr)], uint32(time.Now().Unix()))
 
-	ack, err := p.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
+	ack, err := p.Send(Pkt{Data: data})
 	if err != nil {
 		log.Print(err)
 		return 0
@@ -215,7 +216,7 @@ func chatSendAll(L *lua.LState) int {
 
 	i := PeerIDCltMin
 	for l.id2peer[i].Peer != nil {
-		ack, err := l.id2peer[i].Send(Pkt{Data: data, ChNo: 0, Unrel: false})
+		ack, err := l.id2peer[i].Send(Pkt{Data: data})
 		if err != nil {
 			log.Print(err)
 			return 0

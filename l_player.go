@@ -3,6 +3,7 @@ package multiserver
 import (
 	"encoding/binary"
 	"log"
+
 	"github.com/yuin/gopher-lua"
 )
 
@@ -104,7 +105,7 @@ func kickPlayer(L *lua.LState) int {
 	copy(data[5:5+len(msg)], msg)
 	data[5+len(msg)] = uint8(0x00)
 
-	ack, err := p.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
+	ack, err := p.Send(Pkt{Data: data})
 	if err != nil {
 		log.Print(err)
 	}

@@ -3,6 +3,7 @@ package multiserver
 import (
 	"database/sql"
 	"strings"
+
 	_ "github.com/mattn/go-sqlite3"
 )
 

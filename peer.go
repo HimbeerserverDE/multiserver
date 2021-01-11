@@ -26,11 +26,6 @@ const (
 	PingTimeout = 5 * time.Second
 )
 
-const (
-	AuthMechSRP      = 0x00000002
-	AuthMechFirstSRP = 0x00000004
-)
-
 // A Peer is a connection to a client or server
 type Peer struct {
 	conn net.PacketConn
@@ -246,7 +241,7 @@ func Connect(conn net.PacketConn, addr net.Addr) *Peer {
 	go readNetPkts(conn, pkts, srv.errs)
 	go srv.processNetPkts(pkts)
 
-	ack, err := srv.Send(Pkt{Data: []byte{uint8(0), uint8(0)}, ChNo: 0, Unrel: false})
+	ack, err := srv.Send(Pkt{Data: []byte{uint8(0), uint8(0)}})
 	if err != nil {
 		log.Print(err)
 	}

@@ -138,7 +138,7 @@ func (l *Listener) processNetPkt(pkt netPkt) error {
 				uint8(0x06), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
 			}
 
-			_, err := clt.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
+			_, err := clt.Send(Pkt{Data: data})
 			if err != nil {
 				return err
 			}
