@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 	"time"
+	"unicode/utf16"
 	"github.com/yuin/gopher-lua"
 )
 
@@ -228,20 +229,26 @@ func chatSendAll(L *lua.LState) int {
 }
 
 func narrow(b []byte) []byte {
-	var r []byte
-	for i := range b {
-		if b[i] != uint8(0x00) {
-			r = append(r, b[i])
-		}
+	if len(b) % 2 != 0 {
+		return nil
 	}
 
-	return r
+	e := make([]uint16, len(b)/2)
+
+	for i := 0; i < len(b); i += 2 {
+		e[i/2] = binary.BigEndian.Uint16(b[i : 2+i])
+	}
+
+	return []byte(string(utf16.Decode(e)))
 }
 
 func wider(b []byte) []byte {
-	var r []byte
-	for i := range b {
-		r = append(r, uint8(0x00), b[i])
+	r := make([]byte, len(b)*2)
+
+	e := utf16.Encode([]rune(string(b)))
+
+	for i := range e {
+		binary.BigEndian.PutUint16(r[i*2 : 2 + i*2], e[i])
 	}
 
 	return r
