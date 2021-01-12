@@ -1,10 +1,3 @@
-local admin = multiserver.get_conf_key("admin")
-if admin and admin ~= "" then
-	local adminprivs = multiserver.get_player_privs(admin)
-	adminprivs.privs = true
-	multiserver.set_player_privs(admin, adminprivs)
-end
-
 multiserver.register_chatcommand("send", {
 	privs = {send = true},
 	func = function(id, param)
