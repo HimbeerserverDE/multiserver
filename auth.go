@@ -3,10 +3,9 @@ package multiserver
 import (
 	"database/sql"
 	"encoding/base64"
+	_ "github.com/mattn/go-sqlite3"
 	"os"
 	"strings"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 const (

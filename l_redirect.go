@@ -1,9 +1,8 @@
 package multiserver
 
 import (
-	"log"
-
 	"github.com/yuin/gopher-lua"
+	"log"
 )
 
 var redirectDoneHandlers []*lua.LFunction
@@ -11,7 +10,6 @@ var redirectDoneHandlers []*lua.LFunction
 func registerOnRedirectDone(L *lua.LState) int {
 	f := L.ToFunction(1)
 	redirectDoneHandlers = append(redirectDoneHandlers, f)
-
 	return 0
 }
 
@@ -22,7 +20,6 @@ func processRedirectDone(p *Peer, newsrv string) {
 	for server := range servers {
 		if GetConfKey("servers:"+server.(string)+":address") == p.Server().Addr().String() {
 			srv = server.(string)
-
 			break
 		}
 	}
@@ -32,7 +29,6 @@ func processRedirectDone(p *Peer, newsrv string) {
 	for i := range redirectDoneHandlers {
 		if err := l.CallByParam(lua.P{Fn: redirectDoneHandlers[i], NRet: 0, Protect: true}, lua.LNumber(p.ID()), lua.LString(newsrv), lua.LBool(success)); err != nil {
 			log.Print(err)
-
 			End(true, true)
 		}
 	}

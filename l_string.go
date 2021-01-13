@@ -1,9 +1,8 @@
 package multiserver
 
 import (
-	"strings"
-
 	"github.com/yuin/gopher-lua"
+	"strings"
 )
 
 func luaStringSplit(L *lua.LState) int {

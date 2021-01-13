@@ -1,10 +1,9 @@
 package multiserver
 
 import (
+	"github.com/yuin/gopher-lua"
 	"log"
 	"time"
-
-	"github.com/yuin/gopher-lua"
 )
 
 func luaAfter(L *lua.LState) int {
@@ -17,7 +16,6 @@ func luaAfter(L *lua.LState) int {
 
 		if err := L.CallByParam(lua.P{Fn: f, NRet: 0, Protect: true}, arg); err != nil {
 			log.Print(err)
-
 			End(true, true)
 		}
 	}()

@@ -28,20 +28,15 @@ func End(crash, reconnect bool) {
 	}
 	data[6] = uint8(0x00)
 
-	i := PeerIDCltMin
-	l.mu.Lock()
-	for l.id2peer[i].Peer != nil {
-		_, err := l.id2peer[i].Send(Pkt{Data: data})
+	for _, clt := range l.addr2peer {
+		_, err := clt.Send(Pkt{Data: data})
 		if err != nil {
 			log.Print(err)
 		}
 
-		l.id2peer[i].SendDisco(0, true)
-		l.id2peer[i].Close()
-
-		i++
+		clt.SendDisco(0, true)
+		clt.Close()
 	}
-	l.mu.Unlock()
 
 	time.Sleep(time.Second)
 

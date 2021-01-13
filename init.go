@@ -4,11 +4,10 @@ import (
 	"crypto/subtle"
 	"encoding/binary"
 	"errors"
+	"github.com/HimbeerserverDE/srp"
 	"log"
 	"strings"
 	"time"
-
-	"github.com/HimbeerserverDE/srp"
 )
 
 var ErrAuthFailed = errors.New("authentication failure")
@@ -256,12 +255,10 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 				if pwd == "" {
 					// New player
 					p2.authMech = AuthMechFirstSRP
-
 					binary.BigEndian.PutUint32(data[7:11], uint32(AuthMechFirstSRP))
 				} else {
 					// Existing player
 					p2.authMech = AuthMechSRP
-
 					binary.BigEndian.PutUint32(data[7:11], uint32(AuthMechSRP))
 				}
 

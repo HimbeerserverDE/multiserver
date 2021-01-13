@@ -45,7 +45,7 @@ func (p *Peer) Redirect(newsrv string) error {
 
 	// Remove active objects
 	len := 0
-	for _ = range aoIDs[p.ID()] {
+	for range aoIDs[p.ID()] {
 		len++
 	}
 

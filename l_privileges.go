@@ -1,9 +1,8 @@
 package multiserver
 
 import (
-	"log"
-
 	"github.com/yuin/gopher-lua"
+	"log"
 )
 
 func getPlayerPrivs(L *lua.LState) int {
@@ -14,18 +13,14 @@ func getPlayerPrivs(L *lua.LState) int {
 	db, err := initAuthDB()
 	if err != nil {
 		log.Print(err)
-
 		L.Push(lua.LNil)
-
 		return 1
 	}
 
 	eprivs, err := readPrivItem(db, name)
 	if err != nil {
 		log.Print(err)
-
 		L.Push(lua.LNil)
-
 		return 1
 	}
 
@@ -61,14 +56,12 @@ func setPlayerPrivs(L *lua.LState) int {
 	db, err := initAuthDB()
 	if err != nil {
 		log.Print(err)
-
 		return 0
 	}
 
 	err = modPrivItem(db, name, ps)
 	if err != nil {
 		log.Print(err)
-
 		return 0
 	}
 
@@ -82,18 +75,14 @@ func checkPlayerPrivs(L *lua.LState) int {
 	db, err := initAuthDB()
 	if err != nil {
 		log.Print(err)
-
 		L.Push(lua.LBool(false))
-
 		return 1
 	}
 
 	eprivs, err := readPrivItem(db, name)
 	if err != nil {
 		log.Print(err)
-
 		L.Push(lua.LBool(false))
-
 		return 1
 	}
 

@@ -2,12 +2,11 @@ package multiserver
 
 import (
 	"encoding/binary"
+	"github.com/yuin/gopher-lua"
 	"log"
 	"strings"
 	"time"
 	"unicode/utf16"
-
-	"github.com/yuin/gopher-lua"
 )
 
 type chatCommand struct {
@@ -41,7 +40,6 @@ func registerChatCommand(L *lua.LState) int {
 func registerOnChatMessage(L *lua.LState) int {
 	f := L.ToFunction(1)
 	chatMessageHandlers = append(chatMessageHandlers, f)
-
 	return 0
 }
 
@@ -146,7 +144,6 @@ func processChatMessage(peerid PeerID, msg []byte) bool {
 		for i := range chatMessageHandlers {
 			if err := l.CallByParam(lua.P{Fn: chatMessageHandlers[i], NRet: 1, Protect: true}, lua.LNumber(peerid), lua.LString(s)); err != nil {
 				log.Print(err)
-
 				End(true, true)
 			}
 			if b, ok := l.Get(-1).(lua.LBool); ok {

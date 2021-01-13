@@ -2,9 +2,8 @@ package multiserver
 
 import (
 	"encoding/binary"
-	"log"
-
 	"github.com/yuin/gopher-lua"
+	"log"
 )
 
 var joinHandlers []*lua.LFunction
@@ -13,14 +12,12 @@ var leaveHandlers []*lua.LFunction
 func registerOnJoinPlayer(L *lua.LState) int {
 	f := L.ToFunction(1)
 	joinHandlers = append(joinHandlers, f)
-
 	return 0
 }
 
 func registerOnLeavePlayer(L *lua.LState) int {
 	f := L.ToFunction(1)
 	leaveHandlers = append(leaveHandlers, f)
-
 	return 0
 }
 
@@ -28,7 +25,6 @@ func processJoin(peerid PeerID) {
 	for i := range joinHandlers {
 		if err := l.CallByParam(lua.P{Fn: joinHandlers[i], NRet: 0, Protect: true}, lua.LNumber(peerid)); err != nil {
 			log.Print(err)
-
 			End(true, true)
 		}
 	}
@@ -38,7 +34,6 @@ func processLeave(peerid PeerID) {
 	for i := range leaveHandlers {
 		if err := l.CallByParam(lua.P{Fn: leaveHandlers[i], NRet: 0, Protect: true}, lua.LNumber(peerid)); err != nil {
 			log.Print(err)
-
 			End(true, true)
 		}
 	}
@@ -67,9 +62,7 @@ func luaGetPeerID(L *lua.LState) int {
 	for l.id2peer[i].Peer != nil {
 		if string(l.id2peer[i].username) == name {
 			found = true
-
 			L.Push(lua.LNumber(i))
-
 			break
 		}
 
@@ -126,7 +119,6 @@ func getCurrentServer(L *lua.LState) int {
 	for server := range servers {
 		if GetConfKey("servers:"+server.(string)+":address") == p.Server().Addr().String() {
 			L.Push(lua.LString(server.(string)))
-
 			break
 		}
 	}
@@ -155,7 +147,6 @@ func getConnectedPlayers(L *lua.LState) int {
 	i := PeerIDCltMin
 	for l.id2peer[i].Peer != nil {
 		r.Append(lua.LNumber(i))
-
 		i++
 	}
 

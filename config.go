@@ -1,11 +1,10 @@
 package multiserver
 
 import (
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"strings"
-
-	"gopkg.in/yaml.v2"
 )
 
 var config map[interface{}]interface{}
