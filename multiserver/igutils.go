@@ -21,7 +21,7 @@ func cmdSend(p *multiserver.Peer, param string) {
 		p.SendChatMsg("Usage: #send <playername> <servername>")
 		return
 	}
-	
+
 	servers := multiserver.GetConfKey("servers").(map[interface{}]interface{})
 	if servers[tosrv] == nil {
 		p.SendChatMsg("Unknown servername " + tosrv)
@@ -58,86 +58,89 @@ func init() {
 	privs["sendcurrent"] = make(map[string]bool)
 	privs["sendcurrent"]["send"] = true
 
+	privs["sendall"] = make(map[string]bool)
+	privs["sendall"]["send"] = true
+
 	multiserver.RegisterChatCommand("send", privs["send"], cmdSend)
 
 	multiserver.RegisterChatCommand("sendcurrent", privs["sendcurrent"],
-	func(p *multiserver.Peer, param string) {
-		if param == "" {
-			p.SendChatMsg("Usage: #sendcurrent <servername>")
-			return
-		}
-
-		servers := multiserver.GetConfKey("servers").(map[interface{}]interface{})
-		if servers[param] == nil {
-			p.SendChatMsg("Unknown servername " + param)
-		}
-
-		var srv string
-		for server := range servers {
-			if multiserver.GetConfKey("servers:"+server.(string)+":address") == p.Server().Addr().String() {
-				srv = server.(string)
-				break
+		func(p *multiserver.Peer, param string) {
+			if param == "" {
+				p.SendChatMsg("Usage: #sendcurrent <servername>")
+				return
 			}
-		}
 
-		if srv == param {
-			p.SendChatMsg("All targets are already connected to this server!")
-			return
-		}
+			servers := multiserver.GetConfKey("servers").(map[interface{}]interface{})
+			if servers[param] == nil {
+				p.SendChatMsg("Unknown servername " + param)
+			}
 
-		p.Redirect(param)
-		peers := multiserver.GetListener().GetPeers()
-		for i := range peers {
-			var psrv string
+			var srv string
 			for server := range servers {
-				if multiserver.GetConfKey("servers:"+server.(string)+":address") == peers[i].Server().Addr().String() {
-					psrv = server.(string)
+				if multiserver.GetConfKey("servers:"+server.(string)+":address") == p.Server().Addr().String() {
+					srv = server.(string)
 					break
 				}
 			}
 
-			if psrv == srv {
-				peers[i].Redirect(param)
+			if srv == param {
+				p.SendChatMsg("All targets are already connected to this server!")
+				return
 			}
-		}
-	})
 
-	multiserver.RegisterChatCommand("sendall", nil,
-	func(p *multiserver.Peer, param string) {
-		if param == "" {
-			p.SendChatMsg("Usage: #sendall <servername>")
-			return
-		}
-
-		servers := multiserver.GetConfKey("servers").(map[interface{}]interface{})
-		if servers[param] == nil {
-			p.SendChatMsg("Unknown servername " + param)
-		}
-
-		var srv string
-		for server := range servers {
-			if multiserver.GetConfKey("servers:"+server.(string)+":address") == p.Server().Addr().String() {
-				srv = server.(string)
-				break
-			}
-		}
-
-		if srv != param {
 			p.Redirect(param)
-		}
-		peers := multiserver.GetListener().GetPeers()
-		for i := range peers {
-			var psrv string
+			peers := multiserver.GetListener().GetPeers()
+			for i := range peers {
+				var psrv string
+				for server := range servers {
+					if multiserver.GetConfKey("servers:"+server.(string)+":address") == peers[i].Server().Addr().String() {
+						psrv = server.(string)
+						break
+					}
+				}
+
+				if psrv == srv {
+					peers[i].Redirect(param)
+				}
+			}
+		})
+
+	multiserver.RegisterChatCommand("sendall", privs["sendall"],
+		func(p *multiserver.Peer, param string) {
+			if param == "" {
+				p.SendChatMsg("Usage: #sendall <servername>")
+				return
+			}
+
+			servers := multiserver.GetConfKey("servers").(map[interface{}]interface{})
+			if servers[param] == nil {
+				p.SendChatMsg("Unknown servername " + param)
+			}
+
+			var srv string
 			for server := range servers {
-				if multiserver.GetConfKey("servers:"+server.(string)+":address") == peers[i].Server().Addr().String() {
-					psrv = server.(string)
+				if multiserver.GetConfKey("servers:"+server.(string)+":address") == p.Server().Addr().String() {
+					srv = server.(string)
 					break
 				}
 			}
 
-			if psrv != param {
-				peers[i].Redirect(param)
+			if srv != param {
+				p.Redirect(param)
 			}
-		}
-	})
+			peers := multiserver.GetListener().GetPeers()
+			for i := range peers {
+				var psrv string
+				for server := range servers {
+					if multiserver.GetConfKey("servers:"+server.(string)+":address") == peers[i].Server().Addr().String() {
+						psrv = server.(string)
+						break
+					}
+				}
+
+				if psrv != param {
+					peers[i].Redirect(param)
+				}
+			}
+		})
 }
