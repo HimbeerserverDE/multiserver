@@ -61,6 +61,9 @@ func init() {
 	privs["sendall"] = make(map[string]bool)
 	privs["sendall"]["send"] = true
 
+	privs["alert"] = make(map[string]bool)
+	privs["alert"]["alert"] = true
+
 	multiserver.RegisterChatCommand("send", privs["send"], cmdSend)
 
 	multiserver.RegisterChatCommand("sendcurrent", privs["sendcurrent"],
@@ -88,7 +91,7 @@ func init() {
 				return
 			}
 
-			p.Redirect(param)
+			go p.Redirect(param)
 			peers := multiserver.GetListener().GetPeers()
 			for i := range peers {
 				var psrv string
@@ -100,7 +103,7 @@ func init() {
 				}
 
 				if psrv == srv {
-					peers[i].Redirect(param)
+					go peers[i].Redirect(param)
 				}
 			}
 		})
@@ -126,7 +129,7 @@ func init() {
 			}
 
 			if srv != param {
-				p.Redirect(param)
+				go p.Redirect(param)
 			}
 			peers := multiserver.GetListener().GetPeers()
 			for i := range peers {
@@ -139,8 +142,13 @@ func init() {
 				}
 
 				if psrv != param {
-					peers[i].Redirect(param)
+					go peers[i].Redirect(param)
 				}
 			}
+		})
+
+	multiserver.RegisterChatCommand("alert", privs["alert"],
+		func(p *multiserver.Peer, param string) {
+			multiserver.ChatSendAll("[ALERT] " + param)
 		})
 }

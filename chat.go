@@ -141,7 +141,7 @@ func ChatSendAll(msg string) {
 	defer l.mu.Unlock()
 
 	for i := range l.addr2peer {
-		l.addr2peer[i].SendChatMsg(msg)
+		go l.addr2peer[i].SendChatMsg(msg)
 	}
 }
 
