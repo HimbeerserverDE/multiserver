@@ -15,11 +15,6 @@ func InitLua() {
 	addLuaFunc(redirect, "redirect")
 	addLuaFunc(getServers, "get_servers")
 	addLuaFunc(registerOnRedirectDone, "register_on_redirect_done")
-	// chatmessage
-	addLuaFunc(registerChatCommand, "register_chatcommand")
-	addLuaFunc(registerOnChatMessage, "register_on_chatmessage")
-	addLuaFunc(chatSendPlayer, "chat_send_player")
-	addLuaFunc(chatSendAll, "chat_send_all")
 	// player
 	addLuaFunc(getPlayerName, "get_player_name")
 	addLuaFunc(luaGetPeerID, "get_peer_id")

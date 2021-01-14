@@ -138,3 +138,50 @@ func init() {
 		modPrivItem(db, admin.(string), newprivs)
 	}
 }
+
+func (p *Peer) getPrivs() (map[string]bool, error) {
+	db, err := initAuthDB()
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+
+	eprivs, err := readPrivItem(db, string(p.username))
+	if err != nil {
+		return nil, err
+	}
+
+	return decodePrivs(eprivs), nil
+}
+
+func (p *Peer) setPrivs(privs map[string]bool) error {
+	db, err := initAuthDB()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	err = modPrivItem(db, string(p.username), encodePrivs(privs))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Peer) checkPrivs(req map[string]bool) (bool, error) {
+	privs, err := p.getPrivs()
+	if err != nil {
+		return false, err
+	}
+
+	allow := true
+	for priv := range req {
+		if req[priv] && !privs[priv] {
+			allow = false
+			break
+		}
+	}
+
+	return allow, nil
+}
