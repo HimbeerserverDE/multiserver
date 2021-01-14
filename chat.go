@@ -16,7 +16,7 @@ type chatCommand struct {
 var chatCommands map[string]chatCommand
 var onChatMsg    []func(*Peer, string) bool
 
-func registerChatCommand(name string, privs map[string]bool, function func(*Peer, string)) {
+func RegisterChatCommand(name string, privs map[string]bool, function func(*Peer, string)) {
 	chatCommands[name] = chatCommand{privs: privs, function: function}
 }
 
@@ -81,7 +81,7 @@ func processChatMessage(p *Peer, pkt Pkt) bool {
 	}
 }
 
-func (p *Peer) sendChatMsg(msg string) {
+func (p *Peer) SendChatMsg(msg string) {
 	wstr := wider([]byte(msg))
 
 	data := make([]byte, 16+len(wstr))
@@ -106,7 +106,7 @@ func (p *Peer) sendChatMsg(msg string) {
 	<-ack
 }
 
-func chatSendAll(msg string) {
+func ChatSendAll(msg string) {
 	l := GetListener()
 	l.mu.Lock()
 	defer l.mu.Unlock()
