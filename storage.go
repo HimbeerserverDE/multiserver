@@ -12,7 +12,7 @@ import (
 func InitStorageDB() (*sql.DB, error) {
 	os.Mkdir("storage", 0775)
 
-	db, err := sql.Open("sqlite3", "storage/_storage.sqlite")
+	db, err := sql.Open("sqlite3", "storage/storage.sqlite")
 	if err != nil {
 		return nil, err
 	}
