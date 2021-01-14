@@ -1,10 +1,6 @@
 package multiserver
 
-import (
-	
-)
-
-var onJoinPlayer  []func(*Peer)
+var onJoinPlayer []func(*Peer)
 var onLeavePlayer []func(*Peer)
 
 func RegisterOnJoinPlayer(function func(*Peer)) {
@@ -17,12 +13,12 @@ func RegisterOnLeavePlayer(function func(*Peer)) {
 
 func processJoin(p *Peer) {
 	for i := range onJoinPlayer {
-		onJoinPlayer[i]()
+		onJoinPlayer[i](p)
 	}
 }
 
 func processLeave(p *Peer) {
 	for i := range onLeavePlayer {
-		onLeavePlayer[i]()
+		onLeavePlayer[i](p)
 	}
 }

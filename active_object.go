@@ -4,7 +4,7 @@ import "encoding/binary"
 
 var aoIDs map[PeerID]map[uint16]bool
 
-func processAORmAdd(p *Peer, data []byte) []byte {
+func processAoRmAdd(p *Peer, data []byte) []byte {
 	countRm := binary.BigEndian.Uint16(data[2:4])
 	aoRm := make([]uint16, countRm)
 	aoRmI := 0

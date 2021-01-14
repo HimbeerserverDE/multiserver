@@ -14,7 +14,7 @@ type chatCommand struct {
 }
 
 var chatCommands map[string]chatCommand
-var onChatMsg    []func(*Peer, string) bool
+var onChatMsg []func(*Peer, string) bool
 
 func RegisterChatCommand(name string, privs map[string]bool, function func(*Peer, string)) {
 	chatCommands[name] = chatCommand{privs: privs, function: function}
@@ -112,7 +112,7 @@ func ChatSendAll(msg string) {
 	defer l.mu.Unlock()
 
 	for i := range l.addr2peer {
-		l.addr2peer[i].sendChatMsg(msg)
+		l.addr2peer[i].SendChatMsg(msg)
 	}
 }
 

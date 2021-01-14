@@ -10,15 +10,6 @@ import (
 )
 
 func main() {
-	multiserver.InitLua()
-	defer multiserver.CloseLua()
-
-	err := multiserver.LoadPlugins()
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-
 	defaultSrv := multiserver.GetConfKey("default_server")
 	if defaultSrv == nil || fmt.Sprintf("%T", defaultSrv) != "string" {
 		log.Fatal("Default server name not set or not a string")
