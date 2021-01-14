@@ -121,6 +121,19 @@ func (p *Peer) Server() *Peer {
 	return p.srv
 }
 
+// ServerName returns the name of the Peer this Peer is connected to
+// if this Peer is not a server
+func (p *Peer) ServerName() string {
+	servers := GetConfKey("servers").(map[interface{}]interface{})
+	for server := range servers {
+		if GetConfKey("servers:"+server.(string)+":address") == p.Server().Addr().String() {
+			return server.(string)
+		}
+	}
+
+	return ""
+}
+
 // SetServer sets the Peer this Peer is connected to
 // if this Peer is not a server
 func (p *Peer) SetServer(s *Peer) {

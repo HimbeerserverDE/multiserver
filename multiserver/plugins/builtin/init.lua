@@ -1,33 +1,3 @@
-multiserver.register_chatcommand("server", {
-	privs = {},
-	func = function(id, param)
-		if not param or param == "" then
-			local r = ""
-			for server, addr in pairs(multiserver.get_servers()) do
-				r = r .. server .. " "
-			end
-			return "Current server: " .. multiserver.get_current_server(id) .. " | All servers: " .. r
-		else
-			if multiserver.get_current_server(id) == param then
-				return "You are already connected to this server!"
-			end
-			
-			local reqprivs = {}
-			local reqpriv = multiserver.get_conf_key("servers:" .. param .. ":priv")
-			if reqpriv then
-				reqprivs[reqpriv] = true
-			end
-			
-			if not multiserver.check_player_privs(multiserver.get_player_name(id), reqprivs) then
-				return "You do not have permission to join this server! Required privilege: " .. reqpriv
-			end
-			
-			multiserver.redirect(id, param)
-			return "Redirecting you to " .. param .. "."
-		end
-	end,
-})
-
 multiserver.register_chatcommand("find", {
 	privs = {find = true},
 	func = function(id, param)
