@@ -100,13 +100,13 @@ func processChatMessage(p *Peer, pkt Pkt) bool {
 		return true
 	} else {
 		// Regular message
-		forward := true
+		noforward := false
 		for i := range onChatMsg {
 			if onChatMsg[i](p, s) {
-				forward = false
+				noforward = true
 			}
 		}
-		return forward
+		return noforward
 	}
 }
 
