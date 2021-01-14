@@ -106,6 +106,10 @@ func (p *Peer) TimedOut() bool {
 	}
 }
 
+// Username returns the username of the Peer
+// if this peer is not a server
+func (p *Peer) Username() string { return string(p.username) }
+
 // Forward reports whether the Proxy func should continue or stop
 func (p *Peer) Forward() bool { return p.forward }
 

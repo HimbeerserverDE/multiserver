@@ -41,7 +41,7 @@ func cmdSend(p *multiserver.Peer, param string) {
 		p.SendChatMsg(name + " is already connected to this server!")
 	}
 
-	p2.Redirect(tosrv)
+	go p2.Redirect(tosrv)
 }
 
 func init() {
@@ -334,4 +334,46 @@ func init() {
 
 			p.SendChatMsg("Privileges updated.")
 		})
+
+	multiserver.RegisterOnRedirectDone(func(p *multiserver.Peer, newsrv string, success bool) {
+		if success {
+			db, err := multiserver.InitStorageDB()
+			if err != nil {
+				log.Print(err)
+				return
+			}
+			defer db.Close()
+
+			err = multiserver.ModOrAddStorageItem(db, "server:"+p.Username(), newsrv)
+			if err != nil {
+				log.Print(err)
+				return
+			}
+		} else {
+			p.SendChatMsg("Could not connect you to " + newsrv + "!")
+		}
+	})
+
+	multiserver.RegisterOnJoinPlayer(func(p *multiserver.Peer) {
+		forceDefaultServer := multiserver.GetConfKey("force_default_server")
+		if forceDefaultServer == nil || !forceDefaultServer.(bool) {
+			db, err := multiserver.InitStorageDB()
+			if err != nil {
+				log.Print(err)
+				return
+			}
+			defer db.Close()
+
+			srv, err := multiserver.ReadStorageItem(db, "server:"+p.Username())
+			if err != nil {
+				log.Print(err)
+				return
+			}
+
+			if srv == "" {
+				srv = multiserver.GetConfKey("default_server").(string)
+			}
+			go p.Redirect(srv)
+		}
+	})
 }

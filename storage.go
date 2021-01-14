@@ -6,10 +6,10 @@ import (
 	"os"
 )
 
-// initStorageDB opens_storage.sqlite
+// InitStorageDB opens_storage.sqlite
 // and creates the required tables if they don't exist
 // It returns said database
-func initStorageDB() (*sql.DB, error) {
+func InitStorageDB() (*sql.DB, error) {
 	os.Mkdir("storage", 0775)
 
 	db, err := sql.Open("sqlite3", "storage/_storage.sqlite")
@@ -34,10 +34,10 @@ func initStorageDB() (*sql.DB, error) {
 	return db, nil
 }
 
-// modOrAddStorageItem updates a storage DB entry
+// ModOrAddStorageItem updates a storage DB entry
 // and inserts it if it doesn't exist
-func modOrAddStorageItem(db *sql.DB, key, value string) error {
-	deleteStorageItem(db, key)
+func ModOrAddStorageItem(db *sql.DB, key, value string) error {
+	DeleteStorageItem(db, key)
 
 	sql_addStorageItem := `INSERT INTO storage (
 		key,
@@ -62,8 +62,8 @@ func modOrAddStorageItem(db *sql.DB, key, value string) error {
 	return nil
 }
 
-// readStorageItem selects and reads a storage DB entry
-func readStorageItem(db *sql.DB, key string) (string, error) {
+// ReadStorageItem selects and reads a storage DB entry
+func ReadStorageItem(db *sql.DB, key string) (string, error) {
 	sql_readStorageItem := `SELECT value FROM storage WHERE key = ?;`
 
 	stmt, err := db.Prepare(sql_readStorageItem)
@@ -86,8 +86,8 @@ func readStorageItem(db *sql.DB, key string) (string, error) {
 	return r, nil
 }
 
-// deleteStorageItem deletes a storage DB entry
-func deleteStorageItem(db *sql.DB, key string) error {
+// DeleteStorageItem deletes a storage DB entry
+func DeleteStorageItem(db *sql.DB, key string) error {
 	sql_deleteStorageItem := `DELETE FROM storage WHERE key = ?;`
 
 	stmt, err := db.Prepare(sql_deleteStorageItem)
