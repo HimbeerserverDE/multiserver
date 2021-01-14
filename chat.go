@@ -67,6 +67,35 @@ func processChatMessage(p *Peer, pkt Pkt) bool {
 		}
 
 		// Callback
+		// Existance check
+		if chatCommands[params[0]].function == nil {
+			str := "Unknown command " + params[0] + "."
+			wstr := wider([]byte(str))
+
+			data := make([]byte, 16+len(wstr))
+			data[0] = uint8(0x00)
+			data[1] = uint8(ToClientChatMessage)
+			data[2] = uint8(0x01)
+			data[3] = uint8(0x00)
+			data[4] = uint8(0x00)
+			data[5] = uint8(0x00)
+			binary.BigEndian.PutUint16(data[6:8], uint16(len(str)))
+			copy(data[8:8+len(wstr)], wstr)
+			data[8+len(wstr)] = uint8(0x00)
+			data[9+len(wstr)] = uint8(0x00)
+			data[10+len(wstr)] = uint8(0x00)
+			data[11+len(wstr)] = uint8(0x00)
+			binary.BigEndian.PutUint32(data[12+len(wstr):16+len(wstr)], uint32(time.Now().Unix()))
+
+			ack, err := p.Send(Pkt{Data: data})
+			if err != nil {
+				log.Print(err)
+			}
+			<-ack
+
+			return true
+		}
+
 		chatCommands[params[0]].function(p, strings.Join(params[1:], " "))
 		return true
 	} else {
