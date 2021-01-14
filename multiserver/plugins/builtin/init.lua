@@ -1,10 +1,3 @@
-multiserver.register_chatcommand("end", {
-	privs = {end_proxy = true},
-	func = function(id, param)
-		multiserver.request_end(false)
-	end,
-})
-
 multiserver.register_chatcommand("p_privs", {
 	privs = {},
 	func = function(id, param)

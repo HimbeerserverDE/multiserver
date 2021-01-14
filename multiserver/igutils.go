@@ -63,7 +63,10 @@ func init() {
 	privs["find"]["find"] = true
 
 	privs["addr"] = make(map[string]bool)
-	privs["addr"]["addr"] = false
+	privs["addr"]["addr"] = true
+
+	privs["end"] = make(map[string]bool)
+	privs["end"]["end"] = true
 
 	multiserver.RegisterChatCommand("send", privs["send"], cmdSend)
 
@@ -207,5 +210,10 @@ func init() {
 			} else {
 				p.SendChatMsg(param + "'s address is " + p2.Addr().String())
 			}
+		})
+
+	multiserver.RegisterChatCommand("end", privs["end"],
+		func(p *multiserver.Peer, param string) {
+			go multiserver.End(false, false)
 		})
 }
