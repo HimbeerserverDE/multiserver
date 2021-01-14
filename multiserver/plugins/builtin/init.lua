@@ -1,37 +1,3 @@
-multiserver.register_chatcommand("find", {
-	privs = {find = true},
-	func = function(id, param)
-		if not param or param == "" then
-			return "Usage: /find <playername>"
-		end
-		
-		local peerid = multiserver.get_peer_id(param)
-		if peerid then
-			return param .. " is connected to server " .. multiserver.get_current_server(peerid) .. "."
-		else
-			return param .. " is not online."
-		end
-	end,
-})
-
-multiserver.register_chatcommand("ip", {
-	privs = {ip = true},
-	func = function(id, param)
-		if not param or param == "" then
-			return "Usage: /ip <playername>"
-		end
-		
-		local peerid = multiserver.get_peer_id(param)
-		if peerid then
-			local addr = multiserver.get_player_address(peerid)
-			addr = multiserver.split(addr, ":")[1]
-			return param .. "'s IP address is " .. addr
-		else
-			return param .. " is not online."
-		end
-	end,
-})
-
 multiserver.register_chatcommand("end", {
 	privs = {end_proxy = true},
 	func = function(id, param)

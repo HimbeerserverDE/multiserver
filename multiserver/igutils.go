@@ -60,7 +60,10 @@ func init() {
 	privs["alert"]["alert"] = true
 
 	privs["find"] = make(map[string]bool)
-	privs["find"]["find"] = false
+	privs["find"]["find"] = true
+
+	privs["addr"] = make(map[string]bool)
+	privs["addr"]["addr"] = false
 
 	multiserver.RegisterChatCommand("send", privs["send"], cmdSend)
 
@@ -188,6 +191,21 @@ func init() {
 			} else {
 				srv := p2.ServerName()
 				p.SendChatMsg(param + " is connected to server " + srv + ".")
+			}
+		})
+
+	multiserver.RegisterChatCommand("addr", privs["addr"],
+		func(p *multiserver.Peer, param string) {
+			if param == "" {
+				p.SendChatMsg("Usage: #ip <playername>")
+				return
+			}
+
+			p2 := multiserver.GetListener().GetPeerByName(param)
+			if p2 == nil {
+				p.SendChatMsg(param + " is not online.")
+			} else {
+				p.SendChatMsg(param + "'s address is " + p2.Addr().String())
 			}
 		})
 }
