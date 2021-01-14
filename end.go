@@ -13,11 +13,11 @@ func End(crash, reconnect bool) {
 
 	data := make([]byte, 7)
 	data[0] = uint8(0x00)
-	data[1] = uint8(0x0A)
+	data[1] = uint8(ToClientAccessDenied)
 	if crash {
-		data[2] = uint8(0x0C)
+		data[2] = uint8(AccessDeniedCrash)
 	} else {
-		data[2] = uint8(0x0B)
+		data[2] = uint8(AccessDeniedShutdown)
 	}
 	data[3] = uint8(0x00)
 	data[4] = uint8(0x00)

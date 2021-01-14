@@ -52,7 +52,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 						connectedPeers--
 						connectedPeersMu.Unlock()
 
-						processLeave(p2.ID())
+						processLeave(p2)
 					}
 
 					return
@@ -63,7 +63,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 			}
 
 			switch cmd := binary.BigEndian.Uint16(pkt.Data[0:2]); cmd {
-			case 0x02:
+			case ToClientHello:
 				if pkt.Data[10]&AuthMechSRP > 0 {
 					// Compute and send SRP_BYTES_A
 					_, _, err := srp.NewClient([]byte(strings.ToLower(string(p.username))), passPhrase)
@@ -83,7 +83,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 
 					data := make([]byte, 5+len(p.srp_A))
 					data[0] = uint8(0x00)
-					data[1] = uint8(0x51)
+					data[1] = uint8(ToServerSrpBytesA)
 					binary.BigEndian.PutUint16(data[2:4], uint16(len(p.srp_A)))
 					copy(data[4:4+len(p.srp_A)], p.srp_A)
 					data[4+len(p.srp_A)] = uint8(1)
@@ -104,7 +104,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 
 					data := make([]byte, 7+len(s)+len(v))
 					data[0] = uint8(0x00)
-					data[1] = uint8(0x50)
+					data[1] = uint8(ToServerFirstSrp)
 					binary.BigEndian.PutUint16(data[2:4], uint16(len(s)))
 					copy(data[4:4+len(s)], s)
 					binary.BigEndian.PutUint16(data[4+len(s):6+len(s)], uint16(len(v)))
@@ -118,7 +118,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 					}
 					<-ack
 				}
-			case 0x60:
+			case ToClientSrpBytesSB:
 				// Compute and send SRP_BYTES_M
 				lenS := binary.BigEndian.Uint16(pkt.Data[2:4])
 				s := pkt.Data[4 : lenS+4]
@@ -136,7 +136,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 
 				data := make([]byte, 4+len(M))
 				data[0] = uint8(0x00)
-				data[1] = uint8(0x52)
+				data[1] = uint8(ToServerSrpBytesM)
 				binary.BigEndian.PutUint16(data[2:4], uint16(len(M)))
 				copy(data[4:], M)
 
@@ -146,13 +146,13 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 					continue
 				}
 				<-ack
-			case 0x0A:
+			case ToClientAccessDenied:
 				// Auth failed for some reason
 				log.Print(ErrAuthFailed)
 
 				data := []byte{
-					uint8(0x00), uint8(0x0A),
-					uint8(0x09), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+					uint8(0x00), uint8(ToClientAccessDenied),
+					uint8(AccessDeniedServerFail), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
 				}
 
 				ack, err := p.Send(Pkt{Data: data})
@@ -164,9 +164,9 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 				p.SendDisco(0, true)
 				p.Close()
 				return
-			case 0x03:
+			case ToClientAuthAccept:
 				// Auth succeeded
-				ack, err := p2.Send(Pkt{Data: []byte{uint8(0), uint8(0x11), uint8(0), uint8(0)}, ChNo: 1})
+				ack, err := p2.Send(Pkt{Data: []byte{uint8(0), uint8(ToServerInit2), uint8(0), uint8(0)}, ChNo: 1})
 				if err != nil {
 					log.Print(err)
 					continue
@@ -176,7 +176,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 				if !ignMedia {
 					return
 				}
-			case 0x2A:
+			case ToClientCsmRestrictionFlags:
 				// Definitions sent (by server)
 				if !ignMedia {
 					continue
@@ -185,7 +185,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 				v := []byte("5.4.0-dev-dd5a732fa")
 
 				data := make([]byte, 8+len(v))
-				copy(data[0:6], []byte{uint8(0), uint8(0x43), uint8(5), uint8(4), uint8(0), uint8(0)})
+				copy(data[0:6], []byte{uint8(0), uint8(ToServerClientReady), uint8(5), uint8(4), uint8(0), uint8(0)})
 				binary.BigEndian.PutUint16(data[6:8], uint16(len(v)))
 				copy(data[8:], v)
 
@@ -215,7 +215,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 						connectedPeers--
 						connectedPeersMu.Unlock()
 
-						processLeave(p2.ID())
+						processLeave(p2)
 					}
 
 					return
@@ -226,17 +226,36 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 			}
 
 			switch cmd := binary.BigEndian.Uint16(pkt.Data[0:2]); cmd {
-			case 0x02:
+			case ToServerInit:
 				// Process data
 				p2.username = pkt.Data[11:]
 
 				// Send HELLO
 				data := make([]byte, 13+len(p2.username))
 				data[0] = uint8(0x00)
-				data[1] = uint8(0x02)
+				data[1] = uint8(ToClientHello)
 				data[2] = uint8(0x1c)
 				binary.BigEndian.PutUint16(data[3:5], uint16(0x0000))
 				binary.BigEndian.PutUint16(data[5:7], uint16(0x0027))
+
+				// Check if user is already connected
+				if IsOnline(string(p2.username)) {
+					data := []byte{
+						uint8(0x00), uint8(ToClientAccessDenied),
+						uint8(AccessDeniedAlreadyConnected), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+					}
+
+					ack, err := p2.Send(Pkt{Data: data})
+					if err != nil {
+						log.Print(err)
+						continue
+					}
+					<-ack
+
+					p2.SendDisco(0, true)
+					p2.Close()
+					return
+				}
 
 				db, err := initAuthDB()
 				if err != nil {
@@ -271,7 +290,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 					continue
 				}
 				<-ack
-			case 0x50:
+			case ToServerFirstSrp:
 				// Process data
 				// Make sure the client is allowed to use AuthMechFirstSRP
 				if p2.authMech != AuthMechFirstSRP {
@@ -279,8 +298,8 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 
 					// Send ACCESS_DENIED
 					data := []byte{
-						uint8(0x00), uint8(0x0A),
-						uint8(0x01), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+						uint8(0x00), uint8(ToClientAccessDenied),
+						uint8(AccessDeniedUnexpectedData), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
 					}
 
 					ack, err := p2.Send(Pkt{Data: data})
@@ -326,7 +345,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 
 				// Send AUTH_ACCEPT
 				data := []byte{
-					uint8(0x00), uint8(0x03),
+					uint8(0x00), uint8(ToClientAuthAccept),
 					// Position stuff
 					uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
 					uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
@@ -337,7 +356,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 					// Send interval
 					uint8(0x3D), uint8(0xB8), uint8(0x51), uint8(0xEC),
 					// Sudo mode mechs
-					uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x02),
+					uint8(0x00), uint8(0x00), uint8(0x00), uint8(AuthMechSRP),
 				}
 
 				ack, err := p2.Send(Pkt{Data: data})
@@ -350,7 +369,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 				// Connect to Minetest server
 				fin2 := make(chan struct{}) // close-only
 				Init(p2, p, ignMedia, fin2)
-			case 0x51:
+			case ToServerSrpBytesA:
 				// Process data
 				// Make sure the client is allowed to use AuthMechSRP
 				if p2.authMech != AuthMechSRP {
@@ -358,8 +377,8 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 
 					// Send ACCESS_DENIED
 					data := []byte{
-						uint8(0x00), uint8(0x0A),
-						uint8(0x01), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+						uint8(0x00), uint8(ToClientAccessDenied),
+						uint8(AccessDeniedUnexpectedData), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
 					}
 
 					ack, err := p2.Send(Pkt{Data: data, ChNo: 0, Unrel: false})
@@ -411,7 +430,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 				// Send SRP_BYTES_S_B
 				data := make([]byte, 6+len(s)+len(B))
 				data[0] = uint8(0x00)
-				data[1] = uint8(0x60)
+				data[1] = uint8(ToClientSrpBytesSB)
 				binary.BigEndian.PutUint16(data[2:4], uint16(len(s)))
 				copy(data[4:4+len(s)], s)
 				binary.BigEndian.PutUint16(data[4+len(s):6+len(s)], uint16(len(B)))
@@ -423,7 +442,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 					continue
 				}
 				<-ack
-			case 0x52:
+			case ToServerSrpBytesM:
 				// Process data
 				// Make sure the client is allowed to use AuthMechSRP
 				if p2.authMech != AuthMechSRP {
@@ -431,8 +450,8 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 
 					// Send ACCESS_DENIED
 					data := []byte{
-						uint8(0x00), uint8(0x0A),
-						uint8(0x01), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+						uint8(0x00), uint8(ToClientAccessDenied),
+						uint8(AccessDeniedUnexpectedData), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
 					}
 
 					ack, err := p2.Send(Pkt{Data: data})
@@ -456,7 +475,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 					// Password is correct
 					// Send AUTH_ACCEPT
 					data := []byte{
-						uint8(0x00), uint8(0x03),
+						uint8(0x00), uint8(ToClientAuthAccept),
 						// Position stuff
 						uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
 						uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
@@ -467,7 +486,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 						// Send interval
 						uint8(0x3D), uint8(0xB8), uint8(0x51), uint8(0xEC),
 						// Sudo mode mechs
-						uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x02),
+						uint8(0x00), uint8(0x00), uint8(0x00), uint8(AuthMechSRP),
 					}
 
 					ack, err := p2.Send(Pkt{Data: data})
@@ -486,8 +505,8 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 
 					// Send ACCESS_DENIED
 					data := []byte{
-						uint8(0x00), uint8(0x0A),
-						uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+						uint8(0x00), uint8(ToClientAccessDenied),
+						uint8(AccessDeniedWrongPassword), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
 					}
 
 					ack, err := p2.Send(Pkt{Data: data})
@@ -501,7 +520,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 					p2.Close()
 					return
 				}
-			case 0x11:
+			case ToServerInit2:
 				return
 			}
 		}

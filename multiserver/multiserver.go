@@ -10,15 +10,6 @@ import (
 )
 
 func main() {
-	multiserver.InitLua()
-	defer multiserver.CloseLua()
-
-	err := multiserver.LoadPlugins()
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-
 	defaultSrv := multiserver.GetConfKey("default_server")
 	if defaultSrv == nil || fmt.Sprintf("%T", defaultSrv) != "string" {
 		log.Fatal("Default server name not set or not a string")
@@ -72,8 +63,8 @@ func main() {
 
 		if srv == nil {
 			data := []byte{
-				uint8(0x00), uint8(0x0A),
-				uint8(0x09), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+				uint8(0x00), uint8(multiserver.ToClientAccessDenied),
+				uint8(multiserver.AccessDeniedServerFail), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
 			}
 
 			_, err := clt.Send(multiserver.Pkt{Data: data})

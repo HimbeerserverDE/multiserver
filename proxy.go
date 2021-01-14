@@ -23,7 +23,7 @@ func Proxy(src, dst *Peer) {
 					connectedPeers--
 					connectedPeersMu.Unlock()
 
-					processLeave(src.ID())
+					processLeave(src)
 				}
 
 				break
@@ -34,19 +34,8 @@ func Proxy(src, dst *Peer) {
 		}
 
 		// Process
-		// Chat message
-		if pkt.Data[0] == uint8(0x00) && pkt.Data[1] == uint8(0x32) && !src.IsSrv() {
-			if processChatMessage(src.ID(), pkt.Data) {
-				continue
-			}
-		}
-		// Active object remove add
-		if pkt.Data[0] == uint8(0x00) && pkt.Data[1] == uint8(0x31) && src.IsSrv() {
-			pkt.Data = processAORmAdd(dst, pkt.Data)
-		}
-		// Client ready
-		if pkt.Data[0] == uint8(0x00) && pkt.Data[1] == uint8(0x43) && !src.IsSrv() {
-			go processJoin(src.ID())
+		if processPktCommand(src, dst, &pkt) {
+			continue
 		}
 
 		// Forward

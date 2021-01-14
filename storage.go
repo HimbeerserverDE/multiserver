@@ -6,13 +6,13 @@ import (
 	"os"
 )
 
-// initPluginStorageDB opens plugin_storage.sqlite
+// InitStorageDB opens_storage.sqlite
 // and creates the required tables if they don't exist
 // It returns said database
-func initPluginStorageDB() (*sql.DB, error) {
+func InitStorageDB() (*sql.DB, error) {
 	os.Mkdir("storage", 0775)
 
-	db, err := sql.Open("sqlite3", "storage/plugin_storage.sqlite")
+	db, err := sql.Open("sqlite3", "storage/storage.sqlite")
 	if err != nil {
 		return nil, err
 	}
@@ -34,12 +34,12 @@ func initPluginStorageDB() (*sql.DB, error) {
 	return db, nil
 }
 
-// modOrAddPluginStorageItem updates a plugin storage DB entry
+// ModOrAddStorageItem updates a storage DB entry
 // and inserts it if it doesn't exist
-func modOrAddPluginStorageItem(db *sql.DB, key, value string) error {
-	deletePluginStorageItem(db, key)
+func ModOrAddStorageItem(db *sql.DB, key, value string) error {
+	DeleteStorageItem(db, key)
 
-	sql_addPluginStorageItem := `INSERT INTO storage (
+	sql_addStorageItem := `INSERT INTO storage (
 		key,
 		value
 	) VALUES (
@@ -48,7 +48,7 @@ func modOrAddPluginStorageItem(db *sql.DB, key, value string) error {
 	);
 	`
 
-	stmt, err := db.Prepare(sql_addPluginStorageItem)
+	stmt, err := db.Prepare(sql_addStorageItem)
 	if err != nil {
 		return err
 	}
@@ -62,11 +62,11 @@ func modOrAddPluginStorageItem(db *sql.DB, key, value string) error {
 	return nil
 }
 
-// readPluginStorageItem selects and reads a plugin storage DB entry
-func readPluginStorageItem(db *sql.DB, key string) (string, error) {
-	sql_readPluginStorageItem := `SELECT value FROM storage WHERE key = ?;`
+// ReadStorageItem selects and reads a storage DB entry
+func ReadStorageItem(db *sql.DB, key string) (string, error) {
+	sql_readStorageItem := `SELECT value FROM storage WHERE key = ?;`
 
-	stmt, err := db.Prepare(sql_readPluginStorageItem)
+	stmt, err := db.Prepare(sql_readStorageItem)
 	if err != nil {
 		return "", err
 	}
@@ -86,11 +86,11 @@ func readPluginStorageItem(db *sql.DB, key string) (string, error) {
 	return r, nil
 }
 
-// deletePluginStorageItem deletes a plugin storage DB entry
-func deletePluginStorageItem(db *sql.DB, key string) error {
-	sql_deletePluginStorageItem := `DELETE FROM storage WHERE key = ?;`
+// DeleteStorageItem deletes a storage DB entry
+func DeleteStorageItem(db *sql.DB, key string) error {
+	sql_deleteStorageItem := `DELETE FROM storage WHERE key = ?;`
 
-	stmt, err := db.Prepare(sql_deletePluginStorageItem)
+	stmt, err := db.Prepare(sql_deleteStorageItem)
 	if err != nil {
 		return err
 	}

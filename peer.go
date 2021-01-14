@@ -11,8 +11,6 @@ import (
 
 var ErrServerUnreachable = errors.New("server is unreachable")
 
-var passPhrase []byte = []byte("jK7BPRoxM9ffwh7Z")
-
 var connectedPeers int = 0
 var connectedPeersMu sync.RWMutex
 
@@ -108,6 +106,10 @@ func (p *Peer) TimedOut() bool {
 	}
 }
 
+// Username returns the username of the Peer
+// if this peer is not a server
+func (p *Peer) Username() string { return string(p.username) }
+
 // Forward reports whether the Proxy func should continue or stop
 func (p *Peer) Forward() bool { return p.forward }
 
@@ -121,6 +123,19 @@ func (p *Peer) Server() *Peer {
 	defer p.srvMu.RUnlock()
 
 	return p.srv
+}
+
+// ServerName returns the name of the Peer this Peer is connected to
+// if this Peer is not a server
+func (p *Peer) ServerName() string {
+	servers := GetConfKey("servers").(map[interface{}]interface{})
+	for server := range servers {
+		if GetConfKey("servers:"+server.(string)+":address") == p.Server().Addr().String() {
+			return server.(string)
+		}
+	}
+
+	return ""
 }
 
 // SetServer sets the Peer this Peer is connected to

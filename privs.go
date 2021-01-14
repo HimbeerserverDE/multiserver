@@ -115,6 +115,53 @@ func readPrivItem(db *sql.DB, name string) (string, error) {
 	return r, nil
 }
 
+func (p *Peer) GetPrivs() (map[string]bool, error) {
+	db, err := initAuthDB()
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+
+	eprivs, err := readPrivItem(db, string(p.username))
+	if err != nil {
+		return nil, err
+	}
+
+	return decodePrivs(eprivs), nil
+}
+
+func (p *Peer) SetPrivs(privs map[string]bool) error {
+	db, err := initAuthDB()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	err = modPrivItem(db, string(p.username), encodePrivs(privs))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Peer) CheckPrivs(req map[string]bool) (bool, error) {
+	privs, err := p.GetPrivs()
+	if err != nil {
+		return false, err
+	}
+
+	allow := true
+	for priv := range req {
+		if req[priv] && !privs[priv] {
+			allow = false
+			break
+		}
+	}
+
+	return allow, nil
+}
+
 func init() {
 	admin := GetConfKey("admin")
 	if admin != nil || fmt.Sprintf("%T", admin) == "string" {

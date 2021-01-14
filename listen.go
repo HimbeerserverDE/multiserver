@@ -134,8 +134,8 @@ func (l *Listener) processNetPkt(pkt netPkt) error {
 
 		if GetPeerCount() >= maxPeers && maxPeers > -1 {
 			data := []byte{
-				uint8(0x00), uint8(0x0A),
-				uint8(0x06), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+				uint8(0x00), uint8(ToClientAccessDenied),
+				uint8(AccessDeniedTooManyUsers), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
 			}
 
 			_, err := clt.Send(Pkt{Data: data})
@@ -183,11 +183,27 @@ func (l *Listener) processNetPkt(pkt netPkt) error {
 	return nil
 }
 
-func (l *Listener) GetPeerByID(id PeerID) *Peer {
+func (l *Listener) GetPeerByName(name string) *Peer {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	return l.id2peer[id].Peer
+	for i := range l.addr2peer {
+		if string(l.addr2peer[i].username) == name {
+			return l.addr2peer[i].Peer
+		}
+	}
+	return nil
+}
+
+func (l *Listener) GetPeers() []*Peer {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	var r []*Peer
+	for i := range l.addr2peer {
+		r = append(r, l.addr2peer[i].Peer)
+	}
+	return r
 }
 
 func SetListener(l *Listener) {

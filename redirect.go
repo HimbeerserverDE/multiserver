@@ -11,6 +11,30 @@ import (
 var ErrServerDoesNotExist = errors.New("server doesn't exist")
 var ErrAlreadyConnected = errors.New("already connected to server")
 
+var onRedirectDone []func(*Peer, string, bool)
+
+func RegisterOnRedirectDone(function func(*Peer, string, bool)) {
+	onRedirectDone = append(onRedirectDone, function)
+}
+
+func processRedirectDone(p *Peer, newsrv string) {
+	var srv string
+
+	servers := GetConfKey("servers").(map[interface{}]interface{})
+	for server := range servers {
+		if GetConfKey("servers:"+server.(string)+":address") == p.Server().Addr().String() {
+			srv = server.(string)
+			break
+		}
+	}
+
+	success := srv == newsrv
+
+	for i := range onRedirectDone {
+		onRedirectDone[i](p, newsrv, success)
+	}
+}
+
 // Redirect closes the connection to srv1
 // and redirects the client to srv2
 func (p *Peer) Redirect(newsrv string) error {
@@ -51,7 +75,7 @@ func (p *Peer) Redirect(newsrv string) error {
 
 	data := make([]byte, 6+len*2)
 	data[0] = uint8(0x00)
-	data[1] = uint8(0x31)
+	data[1] = uint8(ToClientActiveObjectRemoveAdd)
 	binary.BigEndian.PutUint16(data[2:4], uint16(len))
 	i := 4
 	for ao := range aoIDs[p.ID()] {
