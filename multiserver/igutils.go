@@ -68,6 +68,12 @@ func init() {
 	privs["end"] = make(map[string]bool)
 	privs["end"]["end"] = true
 
+	privs["grant"] = make(map[string]bool)
+	privs["grant"]["privs"] = true
+
+	privs["revoke"] = make(map[string]bool)
+	privs["revoke"]["privs"] = true
+
 	multiserver.RegisterChatCommand("send", privs["send"], cmdSend)
 
 	multiserver.RegisterChatCommand("sendcurrent", privs["sendcurrent"],
@@ -167,7 +173,7 @@ func init() {
 				allow, err := p.CheckPrivs(reqprivs)
 				if err != nil {
 					log.Print(err)
-					p.SendChatMsg("An internal error occured while trying to check your privileges.")
+					p.SendChatMsg("An internal error occured while attempting to check your privileges.")
 					return
 				}
 
@@ -215,5 +221,117 @@ func init() {
 	multiserver.RegisterChatCommand("end", privs["end"],
 		func(p *multiserver.Peer, param string) {
 			go multiserver.End(false, false)
+		})
+
+	multiserver.RegisterChatCommand("privs", nil,
+		func(p *multiserver.Peer, param string) {
+			var r string
+
+			name := param
+			var p2 *multiserver.Peer
+			if name == "" {
+				p2 = p
+				r += "Your privileges: "
+			} else {
+				p2 = multiserver.GetListener().GetPeerByName(name)
+				r += name + "'s privileges: "
+			}
+
+			if name != "" && !multiserver.IsOnline(name) {
+				p.SendChatMsg(name + " is not online.")
+				return
+			}
+
+			privs, err := p2.GetPrivs()
+			if err != nil {
+				log.Print(err)
+				p.SendChatMsg("An internal error occured while attempting to get the privileges.")
+				return
+			}
+
+			var privnames []string
+			for k, v := range privs {
+				if v {
+					privnames = append(privnames, k)
+				}
+			}
+
+			p.SendChatMsg(r + strings.Join(privnames, " "))
+		})
+
+	multiserver.RegisterChatCommand("grant", privs["grant"],
+		func(p *multiserver.Peer, param string) {
+			name := strings.Split(param, " ")[0]
+			var privnames string
+			var p2 *multiserver.Peer
+			if len(strings.Split(param, " ")) < 2 {
+				p2 = p
+				privnames = name
+			} else {
+				p2 = multiserver.GetListener().GetPeerByName(name)
+				privnames = strings.Split(param, " ")[1]
+			}
+
+			if len(strings.Split(param, " ")) >= 2 && !multiserver.IsOnline(name) {
+				p.SendChatMsg(name + " is not online.")
+				return
+			}
+
+			privs, err := p2.GetPrivs()
+			if err != nil {
+				log.Print(err)
+				p.SendChatMsg("An internal error occured while attempting to get the privileges.")
+				return
+			}
+			splitprivs := strings.Split(strings.Replace(privnames, " ", "", -1), ",")
+			for i := range splitprivs {
+				privs[splitprivs[i]] = true
+			}
+			err = p2.SetPrivs(privs)
+			if err != nil {
+				log.Print(err)
+				p.SendChatMsg("An internal error occured while attempting to get the privileges.")
+				return
+			}
+
+			p.SendChatMsg("Privileges updated.")
+		})
+
+	multiserver.RegisterChatCommand("revoke", privs["revoke"],
+		func(p *multiserver.Peer, param string) {
+			name := strings.Split(param, " ")[0]
+			var privnames string
+			var p2 *multiserver.Peer
+			if len(strings.Split(param, " ")) < 2 {
+				p2 = p
+				privnames = name
+			} else {
+				p2 = multiserver.GetListener().GetPeerByName(name)
+				privnames = strings.Split(param, " ")[1]
+			}
+
+			if len(strings.Split(param, " ")) >= 2 && !multiserver.IsOnline(name) {
+				p.SendChatMsg(name + " is not online.")
+				return
+			}
+
+			privs, err := p2.GetPrivs()
+			if err != nil {
+				log.Print(err)
+				p.SendChatMsg("An internal error occured while attempting to get the privileges.")
+				return
+			}
+			splitprivs := strings.Split(strings.Replace(privnames, " ", "", -1), ",")
+			for i := range splitprivs {
+				privs[splitprivs[i]] = false
+			}
+			err = p2.SetPrivs(privs)
+			if err != nil {
+				log.Print(err)
+				p.SendChatMsg("An internal error occured while attempting to set the privileges.")
+				return
+			}
+
+			p.SendChatMsg("Privileges updated.")
 		})
 }
