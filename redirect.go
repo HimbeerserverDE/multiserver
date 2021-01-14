@@ -75,7 +75,7 @@ func (p *Peer) Redirect(newsrv string) error {
 
 	data := make([]byte, 6+len*2)
 	data[0] = uint8(0x00)
-	data[1] = uint8(0x31)
+	data[1] = uint8(ToClientActiveObjectRemoveAdd)
 	binary.BigEndian.PutUint16(data[2:4], uint16(len))
 	i := 4
 	for ao := range aoIDs[p.ID()] {

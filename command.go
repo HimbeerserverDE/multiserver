@@ -1,8 +1,6 @@
 package multiserver
 
-import (
-	"encoding/binary"
-)
+import "encoding/binary"
 
 const (
 	ToClientHello                 = 0x02

@@ -63,8 +63,8 @@ func main() {
 
 		if srv == nil {
 			data := []byte{
-				uint8(0x00), uint8(0x0A),
-				uint8(0x09), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+				uint8(0x00), uint8(multiserver.ToClientAccessDenied),
+				uint8(multiserver.AccessDeniedServerFail), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
 			}
 
 			_, err := clt.Send(multiserver.Pkt{Data: data})

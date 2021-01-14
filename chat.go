@@ -170,3 +170,7 @@ func wider(b []byte) []byte {
 
 	return r
 }
+
+func init() {
+	chatCommands = make(map[string]chatCommand)
+}
