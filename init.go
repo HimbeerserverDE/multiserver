@@ -52,7 +52,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 						connectedPeers--
 						connectedPeersMu.Unlock()
 
-						processLeave(p2.ID())
+						processLeave(p2)
 					}
 
 					return
@@ -215,7 +215,7 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 						connectedPeers--
 						connectedPeersMu.Unlock()
 
-						processLeave(p2.ID())
+						processLeave(p2)
 					}
 
 					return
