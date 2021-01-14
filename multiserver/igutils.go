@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"github.com/HimbeerserverDE/multiserver"
+	"log"
 	"strings"
 )
 
@@ -150,5 +152,59 @@ func init() {
 	multiserver.RegisterChatCommand("alert", privs["alert"],
 		func(p *multiserver.Peer, param string) {
 			multiserver.ChatSendAll("[ALERT] " + param)
+		})
+
+	multiserver.RegisterChatCommand("server", nil,
+		func(p *multiserver.Peer, param string) {
+			if param == "" {
+				var srv, r string
+				servers := multiserver.GetConfKey("servers").(map[interface{}]interface{})
+				for server := range servers {
+					if multiserver.GetConfKey("servers:"+server.(string)+":address") == p.Server().Addr().String() {
+						srv = server.(string)
+					}
+					r += server.(string) + " "
+				}
+				p.SendChatMsg("Current server: " + srv + " | All servers: " + r)
+			} else {
+				var srv string
+				servers := multiserver.GetConfKey("servers").(map[interface{}]interface{})
+				for server := range servers {
+					if multiserver.GetConfKey("servers:"+server.(string)+":address") == p.Server().Addr().String() {
+						srv = server.(string)
+					}
+				}
+
+				if srv == param {
+					p.SendChatMsg("You are already connected to this server!")
+					return
+				}
+
+				if servers[param] == nil {
+					p.SendChatMsg("Unknown servername " + param)
+					return
+				}
+
+				reqprivs := make(map[string]bool)
+				reqpriv := multiserver.GetConfKey("servers:" + param + ":priv")
+				if reqpriv != nil && fmt.Sprintf("%T", reqpriv) == "string" {
+					reqprivs[reqpriv.(string)] = true
+				}
+
+				allow, err := p.CheckPrivs(reqprivs)
+				if err != nil {
+					log.Print(err)
+					p.SendChatMsg("An internal error occured while trying to check your privileges.")
+					return
+				}
+
+				if !allow {
+					p.SendChatMsg("You do not have permission to join this server! Required privilege: " + reqpriv.(string))
+					return
+				}
+
+				go p.Redirect(param)
+				p.SendChatMsg("Redirecting you to " + param + ".")
+			}
 		})
 }

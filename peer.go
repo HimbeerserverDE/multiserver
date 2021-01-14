@@ -11,8 +11,6 @@ import (
 
 var ErrServerUnreachable = errors.New("server is unreachable")
 
-var passPhrase []byte = []byte("jK7BPRoxM9ffwh7Z")
-
 var connectedPeers int = 0
 var connectedPeersMu sync.RWMutex
 

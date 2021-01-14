@@ -13,6 +13,8 @@ const (
 	AuthMechFirstSRP = 0x00000004
 )
 
+var passPhrase []byte = []byte("jK7BPRoxM9ffwh7Z")
+
 // encodeVerifierAndSalt encodes SRP verifier and salt into DB-ready string
 func encodeVerifierAndSalt(s, v []byte) string {
 	return base64.StdEncoding.EncodeToString(s) + "#" + base64.StdEncoding.EncodeToString(v)

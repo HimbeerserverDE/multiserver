@@ -1,10 +1,3 @@
-multiserver.register_chatcommand("alert", {
-	privs = {alert = true},
-	func = function(id, param)
-		multiserver.chat_send_all("[ALERT] " .. param)
-	end,
-})
-
 multiserver.register_chatcommand("server", {
 	privs = {},
 	func = function(id, param)

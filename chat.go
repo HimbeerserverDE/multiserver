@@ -32,7 +32,7 @@ func processChatMessage(p *Peer, pkt Pkt) bool {
 		params := strings.Split(s, " ")
 
 		// Priv check
-		allow, err := p.checkPrivs(chatCommands[params[0]].privs)
+		allow, err := p.CheckPrivs(chatCommands[params[0]].privs)
 		if err != nil {
 			log.Print(err)
 			return true

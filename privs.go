@@ -139,7 +139,7 @@ func init() {
 	}
 }
 
-func (p *Peer) getPrivs() (map[string]bool, error) {
+func (p *Peer) GetPrivs() (map[string]bool, error) {
 	db, err := initAuthDB()
 	if err != nil {
 		return nil, err
@@ -154,7 +154,7 @@ func (p *Peer) getPrivs() (map[string]bool, error) {
 	return decodePrivs(eprivs), nil
 }
 
-func (p *Peer) setPrivs(privs map[string]bool) error {
+func (p *Peer) SetPrivs(privs map[string]bool) error {
 	db, err := initAuthDB()
 	if err != nil {
 		return err
@@ -169,8 +169,8 @@ func (p *Peer) setPrivs(privs map[string]bool) error {
 	return nil
 }
 
-func (p *Peer) checkPrivs(req map[string]bool) (bool, error) {
-	privs, err := p.getPrivs()
+func (p *Peer) CheckPrivs(req map[string]bool) (bool, error) {
+	privs, err := p.GetPrivs()
 	if err != nil {
 		return false, err
 	}
