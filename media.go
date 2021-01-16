@@ -304,7 +304,7 @@ func init() {
 	media = make(map[string]*mediaFile)
 	detachedinvs = make(map[string][][]byte)
 
-	clt := &Peer{username: []byte("HimbeerserverDE")}
+	clt := &Peer{username: []byte("media")}
 
 	servers := GetConfKey("servers").(map[interface{}]interface{})
 	for server := range servers {
