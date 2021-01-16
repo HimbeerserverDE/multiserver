@@ -68,15 +68,15 @@ func (p *Peer) Redirect(newsrv string) error {
 	}
 
 	// Remove active objects
-	len := 0
+	aolen := 0
 	for range aoIDs[p.ID()] {
-		len++
+		aolen++
 	}
 
-	data := make([]byte, 6+len*2)
+	data := make([]byte, 6+aolen*2)
 	data[0] = uint8(0x00)
 	data[1] = uint8(ToClientActiveObjectRemoveAdd)
-	binary.BigEndian.PutUint16(data[2:4], uint16(len))
+	binary.BigEndian.PutUint16(data[2:4], uint16(aolen))
 	i := 4
 	for ao := range aoIDs[p.ID()] {
 		binary.BigEndian.PutUint16(data[i:2+i], ao)
@@ -84,6 +84,21 @@ func (p *Peer) Redirect(newsrv string) error {
 		i += 2
 	}
 	binary.BigEndian.PutUint16(data[i:2+i], uint16(0))
+
+	if len(detachedinvs[newsrv]) > 0 {
+		for i := range detachedinvs[newsrv] {
+			data := make([]byte, 2+len(detachedinvs[newsrv][i]))
+			data[0] = uint8(0x00)
+			data[1] = uint8(ToClientDetachedInventory)
+			copy(data[2:], detachedinvs[newsrv][i])
+
+			ack, err := p.Send(Pkt{Data: data})
+			if err != nil {
+				return err
+			}
+			<-ack
+		}
+	}
 
 	ack, err := p.Send(Pkt{Data: data})
 	if err != nil {
