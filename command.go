@@ -1,6 +1,11 @@
 package multiserver
 
-import "encoding/binary"
+import (
+	"crypto/subtle"
+	"encoding/binary"
+	"github.com/HimbeerserverDE/srp"
+	"log"
+)
 
 const (
 	ToClientHello                 = 0x02
@@ -120,8 +125,129 @@ func processPktCommand(src, dst *Peer, pkt *Pkt) bool {
 		case ToServerClientReady:
 			go processJoin(src)
 			return false
+		case ToServerFirstSrp:
+			if src.sudoMode {
+				src.sudoMode = false
+
+				// This is a password change, save verifier and salt
+				lenS := binary.BigEndian.Uint16(pkt.Data[2:4])
+				s := pkt.Data[4 : 4+lenS]
+
+				lenV := binary.BigEndian.Uint16(pkt.Data[4+lenS : 6+lenS])
+				v := pkt.Data[6+lenS : 6+lenS+lenV]
+
+				pwd := encodeVerifierAndSalt(s, v)
+
+				db, err := initAuthDB()
+				if err != nil {
+					log.Print(err)
+					return true
+				}
+
+				err = modAuthItem(db, string(src.username), pwd)
+				if err != nil {
+					log.Print(err)
+					return true
+				}
+
+				db.Close()
+			} else {
+				log.Print("User " + string(src.username) + " at " + src.Addr().String() + " did not enter sudo mode before attempting to change the password")
+			}
+			return true
+		case ToServerSrpBytesA:
+			if !src.sudoMode {
+				lenA := binary.BigEndian.Uint16(pkt.Data[2:4])
+				A := pkt.Data[4 : 4+lenA]
+
+				db, err := initAuthDB()
+				if err != nil {
+					log.Print(err)
+					return true
+				}
+
+				pwd, err := readAuthItem(db, string(src.username))
+				if err != nil {
+					log.Print(err)
+					return true
+				}
+
+				db.Close()
+
+				s, v, err := decodeVerifierAndSalt(pwd)
+				if err != nil {
+					log.Print(err)
+					return true
+				}
+
+				B, _, K, err := srp.Handshake(A, v)
+				if err != nil {
+					log.Print(err)
+					return true
+				}
+
+				src.srp_s = s
+				src.srp_A = A
+				src.srp_B = B
+				src.srp_K = K
+
+				// Send SRP_BYTES_S_B
+				data := make([]byte, 6+len(s)+len(B))
+				data[0] = uint8(0x00)
+				data[1] = uint8(ToClientSrpBytesSB)
+				binary.BigEndian.PutUint16(data[2:4], uint16(len(s)))
+				copy(data[4:4+len(s)], s)
+				binary.BigEndian.PutUint16(data[4+len(s):6+len(s)], uint16(len(B)))
+				copy(data[6+len(s):6+len(s)+len(B)], B)
+
+				ack, err := src.Send(Pkt{Data: data})
+				if err != nil {
+					log.Print(err)
+					return true
+				}
+				<-ack
+			}
+			return true
+		case ToServerSrpBytesM:
+			if !src.sudoMode {
+				lenM := binary.BigEndian.Uint16(pkt.Data[2:4])
+				M := pkt.Data[4 : 4+lenM]
+
+				M2 := srp.CalculateM(src.username, src.srp_s, src.srp_A, src.srp_B, src.srp_K)
+
+				if subtle.ConstantTimeCompare(M, M2) == 1 {
+					// Password is correct
+					// Enter sudo mode
+					src.sudoMode = true
+
+					// Send ACCEPT_SUDO_MODE
+					data := []byte{uint8(0x00), uint8(ToClientAcceptSudoMode)}
+
+					ack, err := src.Send(Pkt{Data: data})
+					if err != nil {
+						log.Print(err)
+						return true
+					}
+					<-ack
+				} else {
+					// Client supplied wrong password
+					log.Print("User " + string(src.username) + " at " + src.Addr().String() + " supplied wrong password for sudo mode")
+
+					// Send DENY_SUDO_MODE
+					data := []byte{uint8(0x00), uint8(ToClientDenySudoMode)}
+
+					ack, err := src.Send(Pkt{Data: data})
+					if err != nil {
+						log.Print(err)
+						return true
+					}
+					<-ack
+				}
+			}
+			return true
 		default:
 			return false
 		}
 	}
+	return false
 }
