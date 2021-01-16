@@ -1,9 +1,11 @@
 package multiserver
 
 import (
+	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
 	_ "github.com/mattn/go-sqlite3"
+	"log"
 	"os"
 	"strings"
 )
@@ -13,7 +15,8 @@ const (
 	AuthMechFirstSRP = 0x00000004
 )
 
-var passPhrase []byte = []byte("jK7BPRoxM9ffwh7Z")
+// var passPhrase []byte = []byte("jK7BPRoxM9ffwh7Z")
+var passPhrase []byte
 
 // encodeVerifierAndSalt encodes SRP verifier and salt into DB-ready string
 func encodeVerifierAndSalt(s, v []byte) string {
@@ -135,4 +138,39 @@ func readAuthItem(db *sql.DB, name string) (string, error) {
 	}
 
 	return r, nil
+}
+
+func init() {
+	db, err := InitStorageDB()
+	if err != nil {
+		log.Print(err)
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	pwd, err := ReadStorageItem(db, "auth:passphrase")
+	if err != nil {
+		log.Print(err)
+		os.Exit(1)
+	}
+
+	if pwd == "" {
+		passPhrase = make([]byte, 16)
+		_, err := rand.Read(passPhrase)
+		if err != nil {
+			log.Print(err)
+			os.Exit(1)
+		}
+
+		// Save the passphrase for future use
+		// This passphrase should not be changed unless you delete
+		// the auth databases on the minetest servers
+		err = ModOrAddStorageItem(db, "auth:passphrase", string(passPhrase))
+		if err != nil {
+			log.Print(err)
+			os.Exit(1)
+		}
+	} else {
+		passPhrase = []byte(pwd)
+	}
 }
