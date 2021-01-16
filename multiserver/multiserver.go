@@ -81,7 +81,7 @@ func main() {
 		}
 
 		fin := make(chan struct{}) // close-only
-		go multiserver.Init(srv, clt, false, fin)
+		go multiserver.Init(srv, clt, true, false, fin)
 
 		go func() {
 			<-fin

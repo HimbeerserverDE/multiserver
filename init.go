@@ -14,8 +14,7 @@ var ErrAuthFailed = errors.New("authentication failure")
 
 // Init authenticates to the server srv
 // and finishes the initialisation process if ignMedia is true
-// This doesn't support AUTH_MECHANISM_FIRST_SRP yet
-func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
+func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan struct{}) {
 	defer close(fin)
 
 	if p2.ID() == PeerIDSrv {
@@ -149,6 +148,10 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 			case ToClientAccessDenied:
 				// Auth failed for some reason
 				log.Print(ErrAuthFailed)
+
+				if noAccessDenied {
+					return
+				}
 
 				data := []byte{
 					uint8(0x00), uint8(ToClientAccessDenied),
@@ -365,10 +368,6 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 					continue
 				}
 				<-ack
-
-				// Connect to Minetest server
-				fin2 := make(chan struct{}) // close-only
-				Init(p2, p, ignMedia, fin2)
 			case ToServerSrpBytesA:
 				// Process data
 				// Make sure the client is allowed to use AuthMechSRP
@@ -495,10 +494,6 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 						continue
 					}
 					<-ack
-
-					// Connect to Minetest server
-					fin2 := make(chan struct{}) // close-only
-					Init(p2, p, ignMedia, fin2)
 				} else {
 					// Client supplied wrong password
 					log.Print("User " + string(p2.username) + " at " + p2.Addr().String() + " supplied wrong password")
@@ -521,6 +516,12 @@ func Init(p, p2 *Peer, ignMedia bool, fin chan struct{}) {
 					return
 				}
 			case ToServerInit2:
+				p2.announceMedia()
+			case ToServerRequestMedia:
+				p2.sendMedia(pkt.Data[2:])
+			case ToServerClientReady:
+				fin2 := make(chan struct{}) // close-only
+				Init(p2, p, ignMedia, noAccessDenied, fin2)
 				return
 			}
 		}

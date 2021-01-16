@@ -96,7 +96,7 @@ func (p *Peer) Redirect(newsrv string) error {
 	p.Server().StopForwarding()
 
 	fin := make(chan struct{}) // close-only
-	go Init(p, srv, true, fin)
+	go Init(p, srv, true, false, fin)
 	<-fin
 
 	p.SetServer(srv)
