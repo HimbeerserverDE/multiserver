@@ -9,7 +9,7 @@ Go 1.15 or higher is required
 `cd ~/go/src/github.com/HimbeerserverDE/multiserver/multiserver`
 
 `go build`
-### Update
+### Updating
 `go get -u github.com/HimbeerserverDE/multiserver`
 
 `cd ~/go/src/github.com/HimbeerserverDE/multiserver/multiserver`
@@ -80,4 +80,9 @@ Description: Name of the minetest server new players are sent to
 ```
 Type: Boolean
 Description: If this is false known players are sent to the last server they were connected to, not to the default server
+```
+> `admin`
+```
+Type: String
+Description: The "privs" privilege is granted to the player with this name on startup
 ```
