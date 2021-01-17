@@ -135,7 +135,26 @@ func init() {
 			}
 		})
 
+	multiserver.RegisterServerChatCommand("send",
+		func(p *multiserver.Peer, param string) {
+			if param == "" {
+				return
+			}
+
+			servers := multiserver.GetConfKey("servers").(map[interface{}]interface{})
+			if servers[param] == nil {
+				return
+			}
+
+			go p.Redirect(param)
+		})
+
 	multiserver.RegisterChatCommand("alert", privs["alert"],
+		func(p *multiserver.Peer, param string) {
+			multiserver.ChatSendAll("[ALERT] " + param)
+		})
+
+	multiserver.RegisterServerChatCommand("alert",
 		func(p *multiserver.Peer, param string) {
 			multiserver.ChatSendAll("[ALERT] " + param)
 		})

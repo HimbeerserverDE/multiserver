@@ -16,12 +16,23 @@ type chatCommand struct {
 var chatCommands map[string]chatCommand
 var onChatMsg []func(*Peer, string) bool
 
+var serverChatCommands map[string]func(*Peer, string)
+var onServerChatMsg []func(*Peer, string) bool
+
 func RegisterChatCommand(name string, privs map[string]bool, function func(*Peer, string)) {
 	chatCommands[name] = chatCommand{privs: privs, function: function}
 }
 
-func registerOnChatMessage(function func(*Peer, string) bool) {
+func RegisterOnChatMessage(function func(*Peer, string) bool) {
 	onChatMsg = append(onChatMsg, function)
+}
+
+func RegisterServerChatCommand(name string, function func(*Peer, string)) {
+	serverChatCommands[name] = function
+}
+
+func RegisterOnServerChatMessage(function func(*Peer, string) bool) {
+	onServerChatMsg = append(onServerChatMsg, function)
 }
 
 func processChatMessage(p *Peer, pkt Pkt) bool {
@@ -110,6 +121,33 @@ func processChatMessage(p *Peer, pkt Pkt) bool {
 	}
 }
 
+func processServerChatMessage(p *Peer, pkt Pkt) bool {
+	s := string(narrow(pkt.Data[4:]))
+	if strings.HasPrefix(s, ":") {
+		// Server chat command
+		s = strings.Replace(s, ":", "", 1)
+		params := strings.Split(s, " ")
+
+		// Callback
+		// Existance check
+		if serverChatCommands[params[0]] == nil {
+			return true
+		}
+
+		serverChatCommands[params[0]](p, strings.Join(params[1:], " "))
+		return true
+	} else {
+		// Regular message
+		noforward := false
+		for i := range onServerChatMsg {
+			if onServerChatMsg[i](p, s) {
+				noforward = true
+			}
+		}
+		return noforward
+	}
+}
+
 func (p *Peer) SendChatMsg(msg string) {
 	wstr := wider([]byte(msg))
 
@@ -173,4 +211,5 @@ func wider(b []byte) []byte {
 
 func init() {
 	chatCommands = make(map[string]chatCommand)
+	serverChatCommands = make(map[string]func(*Peer, string))
 }

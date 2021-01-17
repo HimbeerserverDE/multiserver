@@ -115,6 +115,18 @@ func processPktCommand(src, dst *Peer, pkt *Pkt) bool {
 		case ToClientActiveObjectRemoveAdd:
 			pkt.Data = processAoRmAdd(dst, pkt.Data)
 			return false
+		case ToClientChatMessage:
+			namelen := binary.BigEndian.Uint16(pkt.Data[4:6])
+			msglen := binary.BigEndian.Uint16(pkt.Data[6+namelen : 8+namelen])
+			msg := pkt.Data[8+namelen:]
+
+			data := make([]byte, 4+msglen*2)
+			data[0] = uint8(0x00)
+			data[1] = uint8(ToServerChatMessage)
+			binary.BigEndian.PutUint16(data[2:4], uint16(msglen))
+			copy(data[4:], msg)
+
+			return processServerChatMessage(dst, Pkt{Data: data, ChNo: pkt.ChNo})
 		default:
 			return false
 		}

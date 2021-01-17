@@ -45,19 +45,19 @@ type Peer struct {
 	ping     *time.Ticker
 
 	username []byte
-	srp_s []byte
-	srp_A []byte
-	srp_a []byte
-	srp_B []byte
-	srp_K []byte
+	srp_s    []byte
+	srp_A    []byte
+	srp_a    []byte
+	srp_B    []byte
+	srp_K    []byte
 	authMech int
 	sudoMode bool
 
 	forward bool
 
 	redirectMu sync.Mutex
-	srvMu sync.RWMutex
-	srv   *Peer
+	srvMu      sync.RWMutex
+	srv        *Peer
 
 	initAoReceived bool
 }
