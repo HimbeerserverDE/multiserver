@@ -17,7 +17,7 @@ Go 1.15 or higher is required
 `go build`
 
 ## How to use
-**Note: This shouldn't be used with existing minetest servers without moving authentication data to the proxy! Not doing so can cause proxy <-> mt_server authentication to fail.**
+**Note: This shouldn't be used with existing minetest servers without moving authentication data (not the database files) to the proxy and then deleting the auth databases on the minetest servers! Not doing so can cause proxy <-> mt_server authentication to fail.**
 
 ### Running
 The `go build` command will create an executable file in `~/go/src/github.com/HimbeerserverDE/multiserver/multiserver/multiserver`.
