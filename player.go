@@ -8,10 +8,14 @@ var onlinePlayerMu sync.RWMutex
 var onJoinPlayer []func(*Peer)
 var onLeavePlayer []func(*Peer)
 
+// RegisterOnJoinPlayer registers a callback function that is called
+// when a TOSERVER_CLIENT_READY pkt is received from the Peer
 func RegisterOnJoinPlayer(function func(*Peer)) {
 	onJoinPlayer = append(onJoinPlayer, function)
 }
 
+// RegisterOnLeavePlayer registers a callback function that is called
+// when a client Peer disconnects
 func RegisterOnLeavePlayer(function func(*Peer)) {
 	onLeavePlayer = append(onLeavePlayer, function)
 }
@@ -36,6 +40,7 @@ func processLeave(p *Peer) {
 	}
 }
 
+// IsOnline reports if a player is connected
 func IsOnline(name string) bool {
 	onlinePlayerMu.RLock()
 	defer onlinePlayerMu.RUnlock()

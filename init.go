@@ -522,13 +522,9 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan struct{}) {
 			case ToServerClientReady:
 				fin2 := make(chan struct{}) // close-only
 				Init(p2, p, ignMedia, noAccessDenied, fin2)
+				go processJoin(p2)
 				return
 			}
 		}
 	}
-}
-
-func init() {
-	aoIDs = make(map[PeerID]map[uint16]bool)
-	loadConfig()
 }

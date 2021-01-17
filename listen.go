@@ -82,7 +82,7 @@ func (l *Listener) Accept() (*Peer, error) {
 // Addr returns the net.PacketConn the Listener is listening on
 func (l *Listener) Conn() net.PacketConn { return l.conn }
 
-var ErrOutOfPeerIDs = errors.New("out of peer ids")
+var ErrOutOfPeerIDs = errors.New("out of peer IDs")
 
 type cltPeer struct {
 	*Peer
@@ -183,18 +183,19 @@ func (l *Listener) processNetPkt(pkt netPkt) error {
 	return nil
 }
 
-func (l *Listener) GetPeerByName(name string) *Peer {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	for i := range l.addr2peer {
-		if string(l.addr2peer[i].username) == name {
-			return l.addr2peer[i].Peer
+// GetPeerByUsername returns the Peer that is using name for
+// authentication
+func (l *Listener) GetPeerByUsername(name string) *Peer {
+	peers := l.GetPeers()
+	for i := range peers {
+		if string(peers[i].username) == name {
+			return peers[i]
 		}
 	}
 	return nil
 }
 
+// GetPeers returns an array containing all connected client Peers
 func (l *Listener) GetPeers() []*Peer {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -206,10 +207,15 @@ func (l *Listener) GetPeers() []*Peer {
 	return r
 }
 
+// SetListener is used to make a listener available globally
+// This can only be done once
 func SetListener(l *Listener) {
-	listener = l
+	if listener == nil {
+		listener = l
+	}
 }
 
+// GetListener returns the global listener
 func GetListener() *Listener {
 	return listener
 }

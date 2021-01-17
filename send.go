@@ -221,7 +221,7 @@ func (p *Peer) sendRel(pkt rawPkt) (ack <-chan struct{}, err error) {
 	return ack, nil
 }
 
-// sendAck sends an ack for sn to the Peer
+// sendAck sends an ack packet for sn to the Peer
 func (p *Peer) sendAck(chno uint8, unrel bool, sn seqnum) (ack <-chan struct{}, err error) {
 	data := make([]byte, 1+1+2)
 	data[0] = uint8(rawTypeCtl)

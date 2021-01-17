@@ -140,14 +140,7 @@ func readAuthItem(db *sql.DB, name string) (string, error) {
 }
 
 func init() {
-	db, err := InitStorageDB()
-	if err != nil {
-		log.Print(err)
-		os.Exit(1)
-	}
-	defer db.Close()
-
-	pwd, err := ReadStorageItem(db, "auth:passphrase")
+	pwd, err := GetStorageKey("auth:passphrase")
 	if err != nil {
 		log.Print(err)
 		os.Exit(1)
@@ -164,7 +157,7 @@ func init() {
 		// Save the passphrase for future use
 		// This passphrase should not be changed unless you delete
 		// the auth databases on the minetest servers
-		err = ModOrAddStorageItem(db, "auth:passphrase", string(passPhrase))
+		err = SetStorageKey("auth:passphrase", string(passPhrase))
 		if err != nil {
 			log.Print(err)
 			os.Exit(1)

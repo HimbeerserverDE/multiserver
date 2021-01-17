@@ -8,6 +8,11 @@ import (
 	"unicode/utf16"
 )
 
+const (
+	ChatCommandPrefix       = "#"
+	ServerChatCommandPrefix = ":"
+)
+
 type chatCommand struct {
 	privs    map[string]bool
 	function func(*Peer, string)
@@ -19,27 +24,39 @@ var onChatMsg []func(*Peer, string) bool
 var serverChatCommands map[string]func(*Peer, string)
 var onServerChatMsg []func(*Peer, string) bool
 
+// RegisterChatCommand registers a callback function that is called
+// when a client executes the command and has the required privileges
 func RegisterChatCommand(name string, privs map[string]bool, function func(*Peer, string)) {
 	chatCommands[name] = chatCommand{privs: privs, function: function}
 }
 
+// RegisterOnChatMessage registers a callback function that is called
+// when a client sends a chat message
+// If a callback function returns true the message is not forwarded
+// to the minetest server
 func RegisterOnChatMessage(function func(*Peer, string) bool) {
 	onChatMsg = append(onChatMsg, function)
 }
 
+// RegisterServerChatCommand registers a callback function
+// that is called when a server executes the command
 func RegisterServerChatCommand(name string, function func(*Peer, string)) {
 	serverChatCommands[name] = function
 }
 
+// RegisterOnServerChatMessage registers a callback function
+// that is called when a server sends a chat message
+// If a callback function returns true the message is not forwarded
+// to the minetest clients
 func RegisterOnServerChatMessage(function func(*Peer, string) bool) {
 	onServerChatMsg = append(onServerChatMsg, function)
 }
 
 func processChatMessage(p *Peer, pkt Pkt) bool {
 	s := string(narrow(pkt.Data[4:]))
-	if strings.HasPrefix(s, "#") {
+	if strings.HasPrefix(s, ChatCommandPrefix) {
 		// Chat command
-		s = strings.Replace(s, "#", "", 1)
+		s = strings.Replace(s, ChatCommandPrefix, "", 1)
 		params := strings.Split(s, " ")
 
 		// Priv check
@@ -123,9 +140,9 @@ func processChatMessage(p *Peer, pkt Pkt) bool {
 
 func processServerChatMessage(p *Peer, pkt Pkt) bool {
 	s := string(narrow(pkt.Data[4:]))
-	if strings.HasPrefix(s, ":") {
+	if strings.HasPrefix(s, ServerChatCommandPrefix) {
 		// Server chat command
-		s = strings.Replace(s, ":", "", 1)
+		s = strings.Replace(s, ServerChatCommandPrefix, "", 1)
 		params := strings.Split(s, " ")
 
 		// Callback
@@ -148,7 +165,12 @@ func processServerChatMessage(p *Peer, pkt Pkt) bool {
 	}
 }
 
+// SendChatMsg sends a chat message to the Peer if it isn't a server
 func (p *Peer) SendChatMsg(msg string) {
+	if p.IsSrv() {
+		return
+	}
+
 	wstr := wider([]byte(msg))
 
 	data := make([]byte, 16+len(wstr))
@@ -173,13 +195,11 @@ func (p *Peer) SendChatMsg(msg string) {
 	<-ack
 }
 
+// ChatSendAll sends a chat message to all connected client Peers
 func ChatSendAll(msg string) {
-	l := GetListener()
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	for i := range l.addr2peer {
-		go l.addr2peer[i].SendChatMsg(msg)
+	peers := GetListener().GetPeers()
+	for i := range peers {
+		go peers[i].SendChatMsg(msg)
 	}
 }
 

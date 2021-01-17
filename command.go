@@ -134,9 +134,6 @@ func processPktCommand(src, dst *Peer, pkt *Pkt) bool {
 		switch cmd := binary.BigEndian.Uint16(pkt.Data[0:2]); cmd {
 		case ToServerChatMessage:
 			return processChatMessage(src, *pkt)
-		case ToServerClientReady:
-			go processJoin(src)
-			return false
 		case ToServerFirstSrp:
 			if src.sudoMode {
 				src.sudoMode = false

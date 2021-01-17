@@ -18,7 +18,6 @@ default_server: lobby
 force_default_server: true
 `)
 
-// LoadConfig loads the configuration file
 func loadConfig() error {
 	os.Mkdir("config", 0775)
 
@@ -42,7 +41,7 @@ func loadConfig() error {
 	return nil
 }
 
-// GetKey returns a key in the configuration
+// GetConfKey returns a key in the configuration
 func GetConfKey(key string) interface{} {
 	keys := strings.Split(key, ":")
 	c := config
@@ -54,4 +53,8 @@ func GetConfKey(key string) interface{} {
 	}
 
 	return c[keys[len(keys)-1]]
+}
+
+func init() {
+	loadConfig()
 }

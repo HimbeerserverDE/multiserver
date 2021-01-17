@@ -55,7 +55,7 @@ Description: Registers a callback for TOCLIENT_READY packets
 > `RegisterOnLeavePlayer(function func(*Peer))`
 ```
 function: Callback function for client disconnect events, arguments: client peer
-Description: Registers a callback function for Disco packets and timeouts
+Description: Registers a callback function for disconnect packets and timeouts
 ```
 > `IsOnline(name string) bool`
 ```
@@ -84,4 +84,60 @@ Description: Modifies an entry in the storage database
 db: Storage database handle
 key: Key to delete
 Description: Deletes an entry in the storage database
+```
+## Structs
+### Peer
+#### Methods
+> `Addr() net.Addr`
+```
+Description: Returns the address of the peer
+```
+> `Disco() <-chan struct{}`
+```
+Description: Returns a channel that is closed when the peer is closed
+```
+> `ID() PeerID`
+```
+Description: Returns the ID of the peer
+```
+> `IsSrv() bool`
+```
+Description: Reports whether the peer is a server
+```
+> `TimedOut() bool`
+```
+Description: Reports whether the peer has timed out
+```
+> `Username() string`
+```
+Description: Returns the username of the peer
+```
+> `Server() *Peer`
+```
+Description: Returns the peer this peer is connected to if it isn't a server
+```
+> `ServerName() string`
+```
+Description: Returns the name of the server this peer is connected to if this peer is not a server
+```
+> `Close() error`
+```
+Description: Closes the peer but does not send a disconnect packet
+```
+> `SendChatMsg(msg string)`
+```
+msg: Message to send
+Description: Sends msg to the peer
+```
+
+### Listener
+#### Methods
+> `GetPeerByName(name string) *Peer`
+```
+name: The username of the peer
+Description: Returns the peer with username name
+```
+> `GetPeers() []*Peer`
+```
+Description: Returns an array containing all connected client peers
 ```

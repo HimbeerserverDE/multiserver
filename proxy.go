@@ -2,6 +2,7 @@ package multiserver
 
 import "log"
 
+// Proxy processes and forwards packets from src to dst
 func Proxy(src, dst *Peer) {
 	for {
 		pkt, err := src.Recv()

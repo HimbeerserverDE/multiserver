@@ -1,3 +1,7 @@
+/*
+Package multiserver provides features for building a multi-server
+reverse proxy for the minetest network protocol
+*/
 package multiserver
 
 // protoID must be at the start of every network packet

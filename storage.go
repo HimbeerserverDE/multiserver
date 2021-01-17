@@ -6,10 +6,7 @@ import (
 	"os"
 )
 
-// InitStorageDB opens_storage.sqlite
-// and creates the required tables if they don't exist
-// It returns said database
-func InitStorageDB() (*sql.DB, error) {
+func initStorageDB() (*sql.DB, error) {
 	os.Mkdir("storage", 0775)
 
 	db, err := sql.Open("sqlite3", "storage/storage.sqlite")
@@ -34,10 +31,8 @@ func InitStorageDB() (*sql.DB, error) {
 	return db, nil
 }
 
-// ModOrAddStorageItem updates a storage DB entry
-// and inserts it if it doesn't exist
-func ModOrAddStorageItem(db *sql.DB, key, value string) error {
-	DeleteStorageItem(db, key)
+func modOrAddStorageItem(db *sql.DB, key, value string) error {
+	deleteStorageItem(db, key)
 
 	sql_addStorageItem := `INSERT INTO storage (
 		key,
@@ -62,8 +57,7 @@ func ModOrAddStorageItem(db *sql.DB, key, value string) error {
 	return nil
 }
 
-// ReadStorageItem selects and reads a storage DB entry
-func ReadStorageItem(db *sql.DB, key string) (string, error) {
+func readStorageItem(db *sql.DB, key string) (string, error) {
 	sql_readStorageItem := `SELECT value FROM storage WHERE key = ?;`
 
 	stmt, err := db.Prepare(sql_readStorageItem)
@@ -86,8 +80,7 @@ func ReadStorageItem(db *sql.DB, key string) (string, error) {
 	return r, nil
 }
 
-// DeleteStorageItem deletes a storage DB entry
-func DeleteStorageItem(db *sql.DB, key string) error {
+func deleteStorageItem(db *sql.DB, key string) error {
 	sql_deleteStorageItem := `DELETE FROM storage WHERE key = ?;`
 
 	stmt, err := db.Prepare(sql_deleteStorageItem)
@@ -102,4 +95,30 @@ func DeleteStorageItem(db *sql.DB, key string) error {
 	}
 
 	return nil
+}
+
+// SetStorageKey sets an entry in the storage database
+func SetStorageKey(key, value string) error {
+	db, err := initStorageDB()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	if value == "" {
+		return deleteStorageItem(db, key)
+	}
+
+	return modOrAddStorageItem(db, key, value)
+}
+
+// GetStorageKey gets an entry in the storage database
+func GetStorageKey(key string) (string, error) {
+	db, err := initStorageDB()
+	if err != nil {
+		return "", err
+	}
+	defer db.Close()
+
+	return readStorageItem(db, key)
 }

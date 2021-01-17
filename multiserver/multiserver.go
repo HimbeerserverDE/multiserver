@@ -1,3 +1,7 @@
+/*
+Multiserver is a multi-server minetest reverse proxy capable of
+media multiplexing
+*/
 package main
 
 import (

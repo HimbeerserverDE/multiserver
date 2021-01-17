@@ -115,6 +115,7 @@ func readPrivItem(db *sql.DB, name string) (string, error) {
 	return r, nil
 }
 
+// GetPrivs returns the privileges of the Peer
 func (p *Peer) GetPrivs() (map[string]bool, error) {
 	db, err := initAuthDB()
 	if err != nil {
@@ -130,6 +131,7 @@ func (p *Peer) GetPrivs() (map[string]bool, error) {
 	return decodePrivs(eprivs), nil
 }
 
+// SetPrivs sets the privileges for the Peer
 func (p *Peer) SetPrivs(privs map[string]bool) error {
 	db, err := initAuthDB()
 	if err != nil {
@@ -145,6 +147,7 @@ func (p *Peer) SetPrivs(privs map[string]bool) error {
 	return nil
 }
 
+// CheckPrivs reports if the Peer has all ofthe specified privileges
 func (p *Peer) CheckPrivs(req map[string]bool) (bool, error) {
 	privs, err := p.GetPrivs()
 	if err != nil {

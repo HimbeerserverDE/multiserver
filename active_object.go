@@ -58,3 +58,7 @@ func processAoRmAdd(p *Peer, data []byte) []byte {
 
 	return data
 }
+
+func init() {
+	aoIDs = make(map[PeerID]map[uint16]bool)
+}

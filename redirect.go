@@ -13,30 +13,21 @@ var ErrAlreadyConnected = errors.New("already connected to server")
 
 var onRedirectDone []func(*Peer, string, bool)
 
+// RegisterOnRedirectDone registers a callback function that is called
+// when the Peer.Redirect method exits
 func RegisterOnRedirectDone(function func(*Peer, string, bool)) {
 	onRedirectDone = append(onRedirectDone, function)
 }
 
 func processRedirectDone(p *Peer, newsrv string) {
-	var srv string
-
-	servers := GetConfKey("servers").(map[interface{}]interface{})
-	for server := range servers {
-		if GetConfKey("servers:"+server.(string)+":address") == p.Server().Addr().String() {
-			srv = server.(string)
-			break
-		}
-	}
-
-	success := srv == newsrv
+	success := p.ServerName() == newsrv
 
 	for i := range onRedirectDone {
 		onRedirectDone[i](p, newsrv, success)
 	}
 }
 
-// Redirect closes the connection to srv1
-// and redirects the client to srv2
+// Redirect sends the Peer to the minetest server named newsrv
 func (p *Peer) Redirect(newsrv string) error {
 	p.redirectMu.Lock()
 	defer p.redirectMu.Unlock()
@@ -108,7 +99,7 @@ func (p *Peer) Redirect(newsrv string) error {
 
 	aoIDs[p.ID()] = make(map[uint16]bool)
 
-	p.Server().StopForwarding()
+	p.Server().stopForwarding()
 
 	fin := make(chan struct{}) // close-only
 	go Init(p, srv, true, false, fin)

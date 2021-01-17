@@ -6,10 +6,9 @@ import (
 	"time"
 )
 
+// End disconnects (from) all Peers and stops the process
 func End(crash, reconnect bool) {
 	log.Print("Ending")
-
-	l := GetListener()
 
 	data := make([]byte, 7)
 	data[0] = uint8(0x00)
@@ -28,7 +27,8 @@ func End(crash, reconnect bool) {
 	}
 	data[6] = uint8(0x00)
 
-	for _, clt := range l.addr2peer {
+	peers := GetListener().GetPeers()
+	for _, clt := range peers {
 		_, err := clt.Send(Pkt{Data: data})
 		if err != nil {
 			log.Print(err)

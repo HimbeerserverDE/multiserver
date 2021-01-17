@@ -86,7 +86,7 @@ func (p *Peer) Addr() net.Addr { return p.addr }
 // Disco returns a channel that is closed when the Peer is closed
 func (p *Peer) Disco() <-chan struct{} { return p.disco }
 
-// ID returns the ID of the peer
+// ID returns the ID of the Peer
 func (p *Peer) ID() PeerID { return p.id }
 
 // IsSrv reports whether the Peer is a server
@@ -105,17 +105,17 @@ func (p *Peer) TimedOut() bool {
 }
 
 // Username returns the username of the Peer
-// if this peer is not a server
+// if it isn't a server
 func (p *Peer) Username() string { return string(p.username) }
 
 // Forward reports whether the Proxy func should continue or stop
 func (p *Peer) Forward() bool { return p.forward }
 
 // StopForwarding tells the Proxy func to stop
-func (p *Peer) StopForwarding() { p.forward = false }
+func (p *Peer) stopForwarding() { p.forward = false }
 
 // Server returns the Peer this Peer is connected to
-// if this Peer is not a server
+// if it isn't a server
 func (p *Peer) Server() *Peer {
 	p.srvMu.RLock()
 	defer p.srvMu.RUnlock()
@@ -292,6 +292,7 @@ func Connect(conn net.PacketConn, addr net.Addr) *Peer {
 	return srv
 }
 
+// GetPeerCount reports how many client Peers are connected
 func GetPeerCount() int {
 	connectedPeersMu.RLock()
 	defer connectedPeersMu.RUnlock()

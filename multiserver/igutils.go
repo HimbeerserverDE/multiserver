@@ -30,7 +30,7 @@ func cmdSend(p *multiserver.Peer, param string) {
 		return
 	}
 
-	p2 := multiserver.GetListener().GetPeerByName(name)
+	p2 := multiserver.GetListener().GetPeerByUsername(name)
 	if p2 == nil {
 		p.SendChatMsg(name + " is not online.")
 		return
@@ -97,15 +97,7 @@ func init() {
 			go p.Redirect(param)
 			peers := multiserver.GetListener().GetPeers()
 			for i := range peers {
-				var psrv string
-				for server := range servers {
-					if multiserver.GetConfKey("servers:"+server.(string)+":address") == peers[i].Server().Addr().String() {
-						psrv = server.(string)
-						break
-					}
-				}
-
-				if psrv == srv {
+				if peers[i].ServerName() == srv {
 					go peers[i].Redirect(param)
 				}
 			}
@@ -213,7 +205,7 @@ func init() {
 				return
 			}
 
-			p2 := multiserver.GetListener().GetPeerByName(param)
+			p2 := multiserver.GetListener().GetPeerByUsername(param)
 			if p2 == nil {
 				p.SendChatMsg(param + " is not online.")
 			} else {
@@ -229,7 +221,7 @@ func init() {
 				return
 			}
 
-			p2 := multiserver.GetListener().GetPeerByName(param)
+			p2 := multiserver.GetListener().GetPeerByUsername(param)
 			if p2 == nil {
 				p.SendChatMsg(param + " is not online.")
 			} else {
@@ -252,7 +244,7 @@ func init() {
 				p2 = p
 				r += "Your privileges: "
 			} else {
-				p2 = multiserver.GetListener().GetPeerByName(name)
+				p2 = multiserver.GetListener().GetPeerByUsername(name)
 				r += name + "'s privileges: "
 			}
 
@@ -287,7 +279,7 @@ func init() {
 				p2 = p
 				privnames = name
 			} else {
-				p2 = multiserver.GetListener().GetPeerByName(name)
+				p2 = multiserver.GetListener().GetPeerByUsername(name)
 				privnames = strings.Split(param, " ")[1]
 			}
 
@@ -325,7 +317,7 @@ func init() {
 				p2 = p
 				privnames = name
 			} else {
-				p2 = multiserver.GetListener().GetPeerByName(name)
+				p2 = multiserver.GetListener().GetPeerByUsername(name)
 				privnames = strings.Split(param, " ")[1]
 			}
 
@@ -356,14 +348,7 @@ func init() {
 
 	multiserver.RegisterOnRedirectDone(func(p *multiserver.Peer, newsrv string, success bool) {
 		if success {
-			db, err := multiserver.InitStorageDB()
-			if err != nil {
-				log.Print(err)
-				return
-			}
-			defer db.Close()
-
-			err = multiserver.ModOrAddStorageItem(db, "server:"+p.Username(), newsrv)
+			err := multiserver.SetStorageKey("server:"+p.Username(), newsrv)
 			if err != nil {
 				log.Print(err)
 				return
@@ -376,14 +361,7 @@ func init() {
 	multiserver.RegisterOnJoinPlayer(func(p *multiserver.Peer) {
 		forceDefaultServer := multiserver.GetConfKey("force_default_server")
 		if forceDefaultServer == nil || !forceDefaultServer.(bool) {
-			db, err := multiserver.InitStorageDB()
-			if err != nil {
-				log.Print(err)
-				return
-			}
-			defer db.Close()
-
-			srv, err := multiserver.ReadStorageItem(db, "server:"+p.Username())
+			srv, err := multiserver.GetStorageKey("server:" + p.Username())
 			if err != nil {
 				log.Print(err)
 				return
