@@ -59,17 +59,12 @@ func (p *Peer) Redirect(newsrv string) error {
 	}
 
 	// Remove active objects
-	aolen := 0
-	for range aoIDs[p.ID()] {
-		aolen++
-	}
-
-	data := make([]byte, 6+aolen*2)
+	data := make([]byte, 6+len(p.aoIDs)*2)
 	data[0] = uint8(0x00)
 	data[1] = uint8(ToClientActiveObjectRemoveAdd)
-	binary.BigEndian.PutUint16(data[2:4], uint16(aolen))
+	binary.BigEndian.PutUint16(data[2:4], uint16(len(p.aoIDs)))
 	i := 4
-	for ao := range aoIDs[p.ID()] {
+	for ao := range p.aoIDs {
 		binary.BigEndian.PutUint16(data[i:2+i], ao)
 
 		i += 2
@@ -97,7 +92,7 @@ func (p *Peer) Redirect(newsrv string) error {
 	}
 	<-ack
 
-	aoIDs[p.ID()] = make(map[uint16]bool)
+	p.aoIDs = make(map[uint16]bool)
 
 	p.Server().stopForwarding()
 

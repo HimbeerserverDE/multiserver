@@ -60,6 +60,7 @@ type Peer struct {
 	srv        *Peer
 
 	initAoReceived bool
+	aoIDs          map[uint16]bool
 }
 
 type pktchan struct {
@@ -224,7 +225,7 @@ func newPeer(conn net.PacketConn, addr net.Addr, id, idOfPeer PeerID) *Peer {
 	p.forward = true
 
 	if !p.IsSrv() {
-		aoIDs[p.ID()] = make(map[uint16]bool)
+		p.aoIDs = make(map[uint16]bool)
 	}
 
 	return p

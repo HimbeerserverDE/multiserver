@@ -2,8 +2,6 @@ package multiserver
 
 import "encoding/binary"
 
-var aoIDs map[PeerID]map[uint16]bool
-
 func processAoRmAdd(p *Peer, data []byte) []byte {
 	countRm := binary.BigEndian.Uint16(data[2:4])
 	aoRm := make([]uint16, countRm)
@@ -47,18 +45,14 @@ func processAoRmAdd(p *Peer, data []byte) []byte {
 	p.redirectMu.Lock()
 	for i := range aoAdd {
 		if aoAdd[i] != 0 {
-			aoIDs[p.ID()][aoAdd[i]] = true
+			p.aoIDs[aoAdd[i]] = true
 		}
 	}
 
 	for i := range aoRm {
-		aoIDs[p.ID()][aoRm[i]] = false
+		p.aoIDs[aoRm[i]] = false
 	}
 	p.redirectMu.Unlock()
 
 	return data
-}
-
-func init() {
-	aoIDs = make(map[PeerID]map[uint16]bool)
 }
