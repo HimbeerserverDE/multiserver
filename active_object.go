@@ -1,6 +1,8 @@
 package multiserver
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+)
 
 func processAoRmAdd(p *Peer, data []byte) []byte {
 	countRm := binary.BigEndian.Uint16(data[2:4])

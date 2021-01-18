@@ -2,7 +2,7 @@
 Minetest reverse proxy supporting multiple servers and media multiplexing
 
 ## Credits
-This project is based on and was made possible by [anon55555's RUDP package](https://github.com/anon55555/mt).
+This project was made possible by [anon55555's Minetest RUDP package](https://github.com/anon55555/mt/tree/master/rudp).
 
 ## Installation
 Go 1.15 or higher is required

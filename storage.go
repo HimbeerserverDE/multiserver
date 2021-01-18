@@ -2,8 +2,9 @@ package multiserver
 
 import (
 	"database/sql"
-	_ "github.com/mattn/go-sqlite3"
 	"os"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func initStorageDB() (*sql.DB, error) {

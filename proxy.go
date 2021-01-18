@@ -1,6 +1,10 @@
 package multiserver
 
-import "log"
+import (
+	"log"
+
+	"github.com/anon55555/mt/rudp"
+)
 
 // Proxy processes and forwards packets from src to dst
 func Proxy(src, dst *Peer) {
@@ -12,7 +16,7 @@ func Proxy(src, dst *Peer) {
 			break
 		}
 		if err != nil {
-			if err == ErrClosed {
+			if err == rudp.ErrClosed {
 				msg := src.Addr().String() + " disconnected"
 				if src.TimedOut() {
 					msg += " (timed out)"

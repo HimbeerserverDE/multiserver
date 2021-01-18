@@ -3,8 +3,10 @@ package multiserver
 import (
 	"crypto/subtle"
 	"encoding/binary"
-	"github.com/HimbeerserverDE/srp"
 	"log"
+
+	"github.com/HimbeerserverDE/srp"
+	"github.com/anon55555/mt/rudp"
 )
 
 const (
@@ -109,7 +111,7 @@ const (
 	AccessDeniedCrash
 )
 
-func processPktCommand(src, dst *Peer, pkt *Pkt) bool {
+func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 	if src.IsSrv() {
 		switch cmd := binary.BigEndian.Uint16(pkt.Data[0:2]); cmd {
 		case ToClientActiveObjectRemoveAdd:
@@ -126,7 +128,7 @@ func processPktCommand(src, dst *Peer, pkt *Pkt) bool {
 			binary.BigEndian.PutUint16(data[2:4], uint16(msglen))
 			copy(data[4:], msg)
 
-			return processServerChatMessage(dst, Pkt{Data: data, ChNo: pkt.ChNo})
+			return processServerChatMessage(dst, rudp.Pkt{Data: data, ChNo: pkt.ChNo})
 		default:
 			return false
 		}
@@ -209,7 +211,7 @@ func processPktCommand(src, dst *Peer, pkt *Pkt) bool {
 				binary.BigEndian.PutUint16(data[4+len(s):6+len(s)], uint16(len(B)))
 				copy(data[6+len(s):6+len(s)+len(B)], B)
 
-				ack, err := src.Send(Pkt{Data: data})
+				ack, err := src.Send(rudp.Pkt{Data: data})
 				if err != nil {
 					log.Print(err)
 					return true
@@ -232,7 +234,7 @@ func processPktCommand(src, dst *Peer, pkt *Pkt) bool {
 					// Send ACCEPT_SUDO_MODE
 					data := []byte{uint8(0x00), uint8(ToClientAcceptSudoMode)}
 
-					ack, err := src.Send(Pkt{Data: data})
+					ack, err := src.Send(rudp.Pkt{Data: data})
 					if err != nil {
 						log.Print(err)
 						return true
@@ -245,7 +247,7 @@ func processPktCommand(src, dst *Peer, pkt *Pkt) bool {
 					// Send DENY_SUDO_MODE
 					data := []byte{uint8(0x00), uint8(ToClientDenySudoMode)}
 
-					ack, err := src.Send(Pkt{Data: data})
+					ack, err := src.Send(rudp.Pkt{Data: data})
 					if err != nil {
 						log.Print(err)
 						return true

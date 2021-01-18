@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf16"
+
+	"github.com/anon55555/mt/rudp"
 )
 
 const (
@@ -52,7 +54,7 @@ func RegisterOnServerChatMessage(function func(*Peer, string) bool) {
 	onServerChatMsg = append(onServerChatMsg, function)
 }
 
-func processChatMessage(p *Peer, pkt Pkt) bool {
+func processChatMessage(p *Peer, pkt rudp.Pkt) bool {
 	s := string(narrow(pkt.Data[4:]))
 	if strings.HasPrefix(s, ChatCommandPrefix) {
 		// Chat command
@@ -85,7 +87,7 @@ func processChatMessage(p *Peer, pkt Pkt) bool {
 			data[11+len(wstr)] = uint8(0x00)
 			binary.BigEndian.PutUint32(data[12+len(wstr):16+len(wstr)], uint32(time.Now().Unix()))
 
-			ack, err := p.Send(Pkt{Data: data})
+			ack, err := p.Send(rudp.Pkt{Data: data})
 			if err != nil {
 				log.Print(err)
 			}
@@ -115,7 +117,7 @@ func processChatMessage(p *Peer, pkt Pkt) bool {
 			data[11+len(wstr)] = uint8(0x00)
 			binary.BigEndian.PutUint32(data[12+len(wstr):16+len(wstr)], uint32(time.Now().Unix()))
 
-			ack, err := p.Send(Pkt{Data: data})
+			ack, err := p.Send(rudp.Pkt{Data: data})
 			if err != nil {
 				log.Print(err)
 			}
@@ -138,7 +140,7 @@ func processChatMessage(p *Peer, pkt Pkt) bool {
 	}
 }
 
-func processServerChatMessage(p *Peer, pkt Pkt) bool {
+func processServerChatMessage(p *Peer, pkt rudp.Pkt) bool {
 	s := string(narrow(pkt.Data[4:]))
 	if strings.HasPrefix(s, ServerChatCommandPrefix) {
 		// Server chat command
@@ -188,7 +190,7 @@ func (p *Peer) SendChatMsg(msg string) {
 	data[11+len(wstr)] = uint8(0x00)
 	binary.BigEndian.PutUint32(data[12+len(wstr):16+len(wstr)], uint32(time.Now().Unix()))
 
-	ack, err := p.Send(Pkt{Data: data})
+	ack, err := p.Send(rudp.Pkt{Data: data})
 	if err != nil {
 		log.Print(err)
 	}
