@@ -232,7 +232,7 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 					src.sudoMode = true
 
 					// Send ACCEPT_SUDO_MODE
-					data := []byte{uint8(0x00), uint8(ToClientAcceptSudoMode)}
+					data := []byte{0, ToClientAcceptSudoMode}
 
 					ack, err := src.Send(rudp.Pkt{Data: data})
 					if err != nil {
@@ -245,7 +245,7 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 					log.Print("User " + string(src.username) + " at " + src.Addr().String() + " supplied wrong password for sudo mode")
 
 					// Send DENY_SUDO_MODE
-					data := []byte{uint8(0x00), uint8(ToClientDenySudoMode)}
+					data := []byte{0, ToClientDenySudoMode}
 
 					ack, err := src.Send(rudp.Pkt{Data: data})
 					if err != nil {

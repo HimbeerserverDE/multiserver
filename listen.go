@@ -56,8 +56,8 @@ func (l *Listener) Accept() (*Peer, error) {
 
 	if GetPeerCount() >= maxPeers {
 		data := []byte{
-			uint8(0x00), uint8(ToClientAccessDenied),
-			uint8(AccessDeniedTooManyUsers), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+			0, ToClientAccessDenied,
+			AccessDeniedTooManyUsers, 0, 0, 0, 0,
 		}
 
 		_, err := clt.Send(rudp.Pkt{Data: data})

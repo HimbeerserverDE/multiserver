@@ -62,8 +62,8 @@ func main() {
 		srv, err := multiserver.Connect(conn, conn.RemoteAddr())
 		if err != nil {
 			data := []byte{
-				uint8(0x00), uint8(multiserver.ToClientAccessDenied),
-				uint8(multiserver.AccessDeniedServerFail), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+				0, multiserver.ToClientAccessDenied,
+				multiserver.AccessDeniedServerFail, 0, 0, 0, 0,
 			}
 
 			_, err := clt.Send(rudp.Pkt{Data: data})

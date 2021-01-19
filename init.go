@@ -24,7 +24,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan struct{}) {
 		// INIT
 		data := make([]byte, 11+len(p.username))
 		data[0] = uint8(0x00)
-		data[1] = uint8(0x02)
+		data[1] = uint8(ToServerInit)
 		data[2] = uint8(0x1c)
 		binary.BigEndian.PutUint16(data[3:5], uint16(0x0000))
 		binary.BigEndian.PutUint16(data[5:7], uint16(0x0025))
@@ -156,8 +156,8 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan struct{}) {
 				}
 
 				data := []byte{
-					uint8(0x00), uint8(ToClientAccessDenied),
-					uint8(AccessDeniedServerFail), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+					0, ToClientAccessDenied,
+					AccessDeniedServerFail, 0, 0, 0, 0,
 				}
 
 				ack, err := p.Send(rudp.Pkt{Data: data})
@@ -171,7 +171,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan struct{}) {
 				return
 			case ToClientAuthAccept:
 				// Auth succeeded
-				ack, err := p2.Send(rudp.Pkt{Data: []byte{uint8(0), uint8(ToServerInit2), uint8(0), uint8(0)}, ChNo: 1})
+				ack, err := p2.Send(rudp.Pkt{Data: []byte{0, ToServerInit2, 0, 0}, ChNo: 1})
 				if err != nil {
 					log.Print(err)
 					continue
@@ -246,8 +246,8 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan struct{}) {
 				// Check if user is already connected
 				if IsOnline(string(p2.username)) {
 					data := []byte{
-						uint8(0x00), uint8(ToClientAccessDenied),
-						uint8(AccessDeniedAlreadyConnected), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+						0, ToClientAccessDenied,
+						AccessDeniedAlreadyConnected, 0, 0, 0, 0,
 					}
 
 					ack, err := p2.Send(rudp.Pkt{Data: data})
@@ -303,8 +303,8 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan struct{}) {
 
 					// Send ACCESS_DENIED
 					data := []byte{
-						uint8(0x00), uint8(ToClientAccessDenied),
-						uint8(AccessDeniedUnexpectedData), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+						0, ToClientAccessDenied,
+						AccessDeniedUnexpectedData, 0, 0, 0, 0,
 					}
 
 					ack, err := p2.Send(rudp.Pkt{Data: data})
@@ -350,18 +350,18 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan struct{}) {
 
 				// Send AUTH_ACCEPT
 				data := []byte{
-					uint8(0x00), uint8(ToClientAuthAccept),
+					0, ToClientAuthAccept,
 					// Position stuff
-					uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
-					uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
-					uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+					0, 0, 0, 0,
+					0, 0, 0, 0,
+					0, 0, 0, 0,
 					// Map seed
-					uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
-					uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+					0, 0, 0, 0,
+					0, 0, 0, 0,
 					// Send interval
-					uint8(0x3D), uint8(0xB8), uint8(0x51), uint8(0xEC),
+					0x3D, 0xB8, 0x51, 0xEC,
 					// Sudo mode mechs
-					uint8(0x00), uint8(0x00), uint8(0x00), uint8(AuthMechSRP),
+					0, 0, 0, AuthMechSRP,
 				}
 
 				ack, err := p2.Send(rudp.Pkt{Data: data})
@@ -378,8 +378,8 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan struct{}) {
 
 					// Send ACCESS_DENIED
 					data := []byte{
-						uint8(0x00), uint8(ToClientAccessDenied),
-						uint8(AccessDeniedUnexpectedData), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+						0, ToClientAccessDenied,
+						AccessDeniedUnexpectedData, 0, 0, 0, 0,
 					}
 
 					ack, err := p2.Send(rudp.Pkt{Data: data, ChNo: 0, Unrel: false})
@@ -451,8 +451,8 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan struct{}) {
 
 					// Send ACCESS_DENIED
 					data := []byte{
-						uint8(0x00), uint8(ToClientAccessDenied),
-						uint8(AccessDeniedUnexpectedData), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+						0, ToClientAccessDenied,
+						AccessDeniedUnexpectedData, 0, 0, 0, 0,
 					}
 
 					ack, err := p2.Send(rudp.Pkt{Data: data})
@@ -476,18 +476,18 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan struct{}) {
 					// Password is correct
 					// Send AUTH_ACCEPT
 					data := []byte{
-						uint8(0x00), uint8(ToClientAuthAccept),
+						0, ToClientAuthAccept,
 						// Position stuff
-						uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
-						uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
-						uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+						0, 0, 0, 0,
+						0, 0, 0, 0,
+						0, 0, 0, 0,
 						// Map seed
-						uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
-						uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+						0, 0, 0, 0,
+						0, 0, 0, 0,
 						// Send interval
-						uint8(0x3D), uint8(0xB8), uint8(0x51), uint8(0xEC),
+						0x3D, 0xB8, 0x51, 0xEC,
 						// Sudo mode mechs
-						uint8(0x00), uint8(0x00), uint8(0x00), uint8(AuthMechSRP),
+						0, 0, 0, AuthMechSRP,
 					}
 
 					ack, err := p2.Send(rudp.Pkt{Data: data})
@@ -502,8 +502,8 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan struct{}) {
 
 					// Send ACCESS_DENIED
 					data := []byte{
-						uint8(0x00), uint8(ToClientAccessDenied),
-						uint8(AccessDeniedWrongPassword), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
+						0, ToClientAccessDenied,
+						AccessDeniedWrongPassword, 0, 0, 0, 0,
 					}
 
 					ack, err := p2.Send(rudp.Pkt{Data: data})
