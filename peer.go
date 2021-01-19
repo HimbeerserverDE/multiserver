@@ -83,6 +83,8 @@ func (p *Peer) SetServer(s *Peer) {
 func Connect(conn net.PacketConn, addr net.Addr) (*Peer, error) {
 	srv := &Peer{Peer: rudp.Connect(conn, addr)}
 
+	srv.forward = true
+
 	ack, err := srv.Send(rudp.Pkt{Data: []byte{0, 0}})
 	if err != nil {
 		return nil, err
