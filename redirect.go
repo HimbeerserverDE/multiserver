@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net"
+
+	"github.com/anon55555/mt/rudp"
 )
 
 var ErrServerDoesNotExist = errors.New("server doesn't exist")
@@ -52,10 +54,10 @@ func (p *Peer) Redirect(newsrv string) error {
 	if err != nil {
 		return err
 	}
-	srv := Connect(conn, conn.RemoteAddr())
 
-	if srv == nil {
-		return ErrServerUnreachable
+	srv, err := Connect(conn, conn.RemoteAddr())
+	if err != nil {
+		return err
 	}
 
 	// Remove active objects
@@ -78,7 +80,7 @@ func (p *Peer) Redirect(newsrv string) error {
 			data[1] = uint8(ToClientDetachedInventory)
 			copy(data[2:], detachedinvs[newsrv][i])
 
-			ack, err := p.Send(Pkt{Data: data})
+			ack, err := p.Send(rudp.Pkt{Data: data})
 			if err != nil {
 				return err
 			}
@@ -86,7 +88,7 @@ func (p *Peer) Redirect(newsrv string) error {
 		}
 	}
 
-	ack, err := p.Send(Pkt{Data: data})
+	ack, err := p.Send(rudp.Pkt{Data: data})
 	if err != nil {
 		return err
 	}

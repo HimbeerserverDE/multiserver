@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/HimbeerserverDE/multiserver"
 	"log"
 	"strings"
+
+	"github.com/HimbeerserverDE/multiserver"
 )
 
 func cmdSend(p *multiserver.Peer, param string) {

@@ -6,6 +6,8 @@ import (
 	"log"
 	"net"
 	"os"
+
+	"github.com/anon55555/mt/rudp"
 )
 
 var media map[string]*mediaFile
@@ -30,7 +32,7 @@ func (p *Peer) fetchMedia() {
 	for {
 		pkt, err := p.Recv()
 		if err != nil {
-			if err == ErrClosed {
+			if err == rudp.ErrClosed {
 				return
 			}
 
@@ -95,7 +97,7 @@ func (p *Peer) fetchMedia() {
 				sj += 2 + len(rq[f])
 			}
 
-			_, err := p.Send(Pkt{Data: data, ChNo: 1})
+			_, err := p.Send(rudp.Pkt{Data: data, ChNo: 1})
 			if err != nil {
 				log.Print(err)
 				continue
@@ -141,7 +143,7 @@ func (p *Peer) announceMedia() {
 		data[1] = uint8(ToClientTooldef)
 		copy(data[2:], def)
 
-		ack, err := p.Send(Pkt{Data: data})
+		ack, err := p.Send(rudp.Pkt{Data: data})
 		if err != nil {
 			log.Print(err)
 			continue
@@ -155,7 +157,7 @@ func (p *Peer) announceMedia() {
 		data[1] = uint8(ToClientNodedef)
 		copy(data[2:], def)
 
-		ack, err := p.Send(Pkt{Data: data})
+		ack, err := p.Send(rudp.Pkt{Data: data})
 		if err != nil {
 			log.Print(err)
 			continue
@@ -169,7 +171,7 @@ func (p *Peer) announceMedia() {
 		data[1] = uint8(ToClientCraftitemdef)
 		copy(data[2:], def)
 
-		ack, err := p.Send(Pkt{Data: data})
+		ack, err := p.Send(rudp.Pkt{Data: data})
 		if err != nil {
 			log.Print(err)
 			continue
@@ -183,7 +185,7 @@ func (p *Peer) announceMedia() {
 		data[1] = uint8(ToClientItemdef)
 		copy(data[2:], def)
 
-		ack, err := p.Send(Pkt{Data: data})
+		ack, err := p.Send(rudp.Pkt{Data: data})
 		if err != nil {
 			log.Print(err)
 			continue
@@ -197,7 +199,7 @@ func (p *Peer) announceMedia() {
 		data[1] = uint8(ToClientDetachedInventory)
 		copy(data[2:], detachedinvs[srvname][i])
 
-		ack, err := p.Send(Pkt{Data: data})
+		ack, err := p.Send(rudp.Pkt{Data: data})
 		if err != nil {
 			log.Print(err)
 			continue
@@ -210,7 +212,7 @@ func (p *Peer) announceMedia() {
 	data[1] = uint8(ToClientMovement)
 	copy(data[2:], movement)
 
-	ack, err := p.Send(Pkt{Data: data})
+	ack, err := p.Send(rudp.Pkt{Data: data})
 	if err != nil {
 		log.Print(err)
 	}
@@ -221,7 +223,7 @@ func (p *Peer) announceMedia() {
 	data[1] = uint8(ToClientTimeOfDay)
 	copy(data[2:], timeofday)
 
-	ack, err = p.Send(Pkt{Data: data})
+	ack, err = p.Send(rudp.Pkt{Data: data})
 	if err != nil {
 		log.Print(err)
 	}
@@ -247,7 +249,7 @@ func (p *Peer) announceMedia() {
 	data[si] = uint8(0x00)
 	data[1+si] = uint8(0x00)
 
-	ack, err = p.Send(Pkt{Data: data})
+	ack, err = p.Send(rudp.Pkt{Data: data})
 	if err != nil {
 		log.Print(err)
 		return
@@ -290,7 +292,7 @@ func (p *Peer) sendMedia(rqdata []byte) {
 	data[sj] = uint8(0x00)
 	data[1+sj] = uint8(0x00)
 
-	ack, err := p.Send(Pkt{Data: data, ChNo: 2})
+	ack, err := p.Send(rudp.Pkt{Data: data, ChNo: 2})
 	if err != nil {
 		log.Print(err)
 		return
@@ -321,9 +323,10 @@ func init() {
 			log.Fatal(err)
 			os.Exit(1)
 		}
-		srv := Connect(conn, conn.RemoteAddr())
 
-		if srv == nil {
+		srv, err := Connect(conn, conn.RemoteAddr())
+		if err != nil {
+			log.Print(err)
 			continue
 		}
 

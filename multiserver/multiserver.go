@@ -10,6 +10,8 @@ import (
 	"net"
 	"time"
 
+	"github.com/anon55555/mt/rudp"
+
 	"github.com/HimbeerserverDE/multiserver"
 )
 
@@ -63,15 +65,15 @@ func main() {
 			log.Fatal(err)
 			return
 		}
-		srv := multiserver.Connect(conn, conn.RemoteAddr())
 
-		if srv == nil {
+		srv, err := multiserver.Connect(conn, conn.RemoteAddr())
+		if err != nil {
 			data := []byte{
 				uint8(0x00), uint8(multiserver.ToClientAccessDenied),
 				uint8(multiserver.AccessDeniedServerFail), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
 			}
 
-			_, err := clt.Send(multiserver.Pkt{Data: data})
+			_, err := clt.Send(rudp.Pkt{Data: data})
 			if err != nil {
 				log.Print(err)
 			}

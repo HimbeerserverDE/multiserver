@@ -4,6 +4,8 @@ import (
 	"log"
 	"os"
 	"time"
+
+	"github.com/anon55555/mt/rudp"
 )
 
 // End disconnects (from) all Peers and stops the process
@@ -29,7 +31,7 @@ func End(crash, reconnect bool) {
 
 	peers := GetListener().GetPeers()
 	for _, clt := range peers {
-		_, err := clt.Send(Pkt{Data: data})
+		_, err := clt.Send(rudp.Pkt{Data: data})
 		if err != nil {
 			log.Print(err)
 		}

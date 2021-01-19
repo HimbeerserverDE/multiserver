@@ -2,7 +2,7 @@
 Minetest reverse proxy supporting multiple servers and media multiplexing
 
 ## Credits
-This project is based on and was made possible by [anon55555's RUDP package](https://github.com/anon55555/mt).
+This project was made possible by [anon55555's Minetest RUDP package](https://github.com/anon55555/mt/tree/master/rudp).
 
 ## Installation
 Go 1.15 or higher is required
@@ -33,7 +33,6 @@ The configuration file is located in `WORKING_DIR/config/multiserver.yml`
 - Default config file
 ```yml
 host: "0.0.0.0:33000"
-player_limit: -1
 servers:
   lobby:
     address: "127.0.0.1:30000"
@@ -49,7 +48,7 @@ Description: The IP address and port the proxy will be running on
 > `player_limit`
 ```
 Type: Integer
-Description: Maximum number of concurrent connections, unlimited if the value is negative
+Description: Maximum number of concurrent connections, unlimited if not set
 ```
 > `servers`
 ```
