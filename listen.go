@@ -51,14 +51,12 @@ func (l *Listener) Accept() (*Peer, error) {
 
 	clt.aoIDs = make(map[uint16]bool)
 
-	connectedPeers++
-
 	maxPeers, ok := GetConfKey("player_limit").(int)
 	if !ok {
-		maxPeers = -1
+		maxPeers = int(^uint(0) >> 1)
 	}
 
-	if GetPeerCount() >= maxPeers && maxPeers > -1 {
+	if GetPeerCount() >= maxPeers {
 		data := []byte{
 			uint8(0x00), uint8(ToClientAccessDenied),
 			uint8(AccessDeniedTooManyUsers), uint8(0x00), uint8(0x00), uint8(0x00), uint8(0x00),
@@ -71,6 +69,7 @@ func (l *Listener) Accept() (*Peer, error) {
 
 		return nil, ErrPlayerLimitReached
 	}
+	connectedPeers++
 
 	return clt, nil
 }
