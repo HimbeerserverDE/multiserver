@@ -27,7 +27,7 @@ type Peer struct {
 	authMech int
 	sudoMode bool
 
-	forward bool
+	stopforward bool
 
 	redirectMu sync.Mutex
 	srvMu      sync.RWMutex
@@ -42,10 +42,10 @@ type Peer struct {
 func (p *Peer) Username() string { return string(p.username) }
 
 // Forward reports whether the Proxy func should continue or stop
-func (p *Peer) Forward() bool { return p.forward }
+func (p *Peer) Forward() bool { return !p.stopforward }
 
 // StopForwarding tells the Proxy func to stop
-func (p *Peer) stopForwarding() { p.forward = false }
+func (p *Peer) stopForwarding() { p.stopforward = true }
 
 // Server returns the Peer this Peer is connected to
 // if it isn't a server
@@ -82,8 +82,6 @@ func (p *Peer) SetServer(s *Peer) {
 // and closes conn when the Peer disconnects
 func Connect(conn net.PacketConn, addr net.Addr) (*Peer, error) {
 	srv := &Peer{Peer: rudp.Connect(conn, addr)}
-
-	srv.forward = true
 
 	ack, err := srv.Send(rudp.Pkt{Data: []byte{0, 0}})
 	if err != nil {
