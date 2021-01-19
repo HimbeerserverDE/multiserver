@@ -87,6 +87,7 @@ func init() {
 			servers := multiserver.GetConfKey("servers").(map[interface{}]interface{})
 			if servers[param] == nil {
 				p.SendChatMsg("Unknown servername " + param)
+				return
 			}
 
 			srv := p.ServerName()
@@ -114,6 +115,7 @@ func init() {
 			servers := multiserver.GetConfKey("servers").(map[interface{}]interface{})
 			if servers[param] == nil {
 				p.SendChatMsg("Unknown servername " + param)
+				return
 			}
 
 			srv := p.ServerName()
@@ -218,7 +220,7 @@ func init() {
 	multiserver.RegisterChatCommand("addr", privs["addr"],
 		func(p *multiserver.Peer, param string) {
 			if param == "" {
-				p.SendChatMsg("Usage: #ip <playername>")
+				p.SendChatMsg("Usage: #addr <playername>")
 				return
 			}
 
