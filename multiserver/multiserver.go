@@ -5,7 +5,6 @@ media multiplexing
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"time"
@@ -16,38 +15,33 @@ import (
 )
 
 func main() {
-	defaultSrv := multiserver.GetConfKey("default_server")
-	if defaultSrv == nil || fmt.Sprintf("%T", defaultSrv) != "string" {
+	defaultSrv, ok := multiserver.GetConfKey("default_server").(string)
+	if !ok {
 		log.Fatal("Default server name not set or not a string")
-		return
 	}
 
-	defaultSrvAddr := multiserver.GetConfKey("servers:" + defaultSrv.(string) + ":address")
-	if defaultSrvAddr == nil || fmt.Sprintf("%T", defaultSrvAddr) != "string" {
+	defaultSrvAddr, ok := multiserver.GetConfKey("servers:" + defaultSrv + ":address").(string)
+	if !ok {
 		log.Fatal("Default server address not set or not a string")
-		return
 	}
 
-	host := multiserver.GetConfKey("host")
-	if host == nil || fmt.Sprintf("%T", host) != "string" {
+	host, ok := multiserver.GetConfKey("host").(string)
+	if !ok {
 		log.Fatal("Host not set or not a string")
-		return
 	}
 
-	srvaddr, err := net.ResolveUDPAddr("udp", defaultSrvAddr.(string))
+	srvaddr, err := net.ResolveUDPAddr("udp", defaultSrvAddr)
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 
-	lc, err := net.ListenPacket("udp", host.(string))
+	lc, err := net.ListenPacket("udp", host)
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 	defer lc.Close()
 
-	log.Print("Listening on " + host.(string))
+	log.Print("Listening on " + host)
 
 	l := multiserver.Listen(lc)
 	multiserver.SetListener(l)
@@ -63,7 +57,6 @@ func main() {
 		conn, err := net.DialUDP("udp", nil, srvaddr)
 		if err != nil {
 			log.Fatal(err)
-			return
 		}
 
 		srv, err := multiserver.Connect(conn, conn.RemoteAddr())

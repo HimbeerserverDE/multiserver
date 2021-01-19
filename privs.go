@@ -2,7 +2,6 @@ package multiserver
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"strings"
 
@@ -167,15 +166,14 @@ func (p *Peer) CheckPrivs(req map[string]bool) (bool, error) {
 }
 
 func init() {
-	admin := GetConfKey("admin")
-	if admin != nil || fmt.Sprintf("%T", admin) == "string" {
+	if admin, ok := GetConfKey("admin").(string); ok {
 		db, err := initAuthDB()
 		if err != nil {
 			log.Print(err)
 			return
 		}
 
-		eprivs, err := readPrivItem(db, admin.(string))
+		eprivs, err := readPrivItem(db, admin)
 		if err != nil {
 			log.Print(err)
 			return
@@ -186,6 +184,6 @@ func init() {
 
 		newprivs := encodePrivs(privs)
 
-		modPrivItem(db, admin.(string), newprivs)
+		modPrivItem(db, admin, newprivs)
 	}
 }
