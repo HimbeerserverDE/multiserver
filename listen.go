@@ -47,8 +47,6 @@ func (l *Listener) Accept() (*Peer, error) {
 		l.mu.Unlock()
 	}()
 
-	clt.forward = true
-
 	clt.aoIDs = make(map[uint16]bool)
 
 	maxPeers, ok := GetConfKey("player_limit").(int)
