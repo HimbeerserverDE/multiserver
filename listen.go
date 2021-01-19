@@ -26,7 +26,7 @@ func Listen(conn net.PacketConn) *Listener {
 // You should keep calling this until it returns ErrClosed
 // so it doesn't leak a goroutine
 func (l *Listener) Accept() (*Peer, error) {
-	clt, err := l.Accept()
+	clt, err := l.Listener.Accept()
 	if err != nil {
 		return nil, err
 	}
