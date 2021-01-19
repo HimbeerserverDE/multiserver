@@ -19,7 +19,10 @@ type Listener struct {
 var listener *Listener
 
 func Listen(conn net.PacketConn) *Listener {
-	return &Listener{Listener: rudp.Listen(conn)}
+	return &Listener{
+		Listener: rudp.Listen(conn),
+		peers:    make(map[*Peer]struct{}),
+	}
 }
 
 // Accept waits for and returns a connecting Peer
