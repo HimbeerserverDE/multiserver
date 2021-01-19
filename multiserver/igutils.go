@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"strings"
 
@@ -179,9 +178,9 @@ func init() {
 				}
 
 				reqprivs := make(map[string]bool)
-				reqpriv := multiserver.GetConfKey("servers:" + param + ":priv")
-				if reqpriv != nil && fmt.Sprintf("%T", reqpriv) == "string" {
-					reqprivs[reqpriv.(string)] = true
+				reqpriv, ok := multiserver.GetConfKey("servers:" + param + ":priv").(string)
+				if ok {
+					reqprivs[reqpriv] = true
 				}
 
 				allow, err := p.CheckPrivs(reqprivs)
@@ -192,7 +191,7 @@ func init() {
 				}
 
 				if !allow {
-					p.SendChatMsg("You do not have permission to join this server! Required privilege: " + reqpriv.(string))
+					p.SendChatMsg("You do not have permission to join this server! Required privilege: " + reqpriv)
 					return
 				}
 

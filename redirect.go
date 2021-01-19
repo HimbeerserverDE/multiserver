@@ -3,7 +3,6 @@ package multiserver
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"log"
 	"net"
 
@@ -36,8 +35,8 @@ func (p *Peer) Redirect(newsrv string) error {
 
 	defer processRedirectDone(p, newsrv)
 
-	straddr := GetConfKey("servers:" + newsrv + ":address")
-	if straddr == nil || fmt.Sprintf("%T", straddr) != "string" {
+	straddr, ok := GetConfKey("servers:" + newsrv + ":address").(string)
+	if !ok {
 		return ErrServerDoesNotExist
 	}
 
@@ -45,7 +44,7 @@ func (p *Peer) Redirect(newsrv string) error {
 		return ErrAlreadyConnected
 	}
 
-	srvaddr, err := net.ResolveUDPAddr("udp", straddr.(string))
+	srvaddr, err := net.ResolveUDPAddr("udp", straddr)
 	if err != nil {
 		return err
 	}

@@ -2,10 +2,8 @@ package multiserver
 
 import (
 	"encoding/binary"
-	"fmt"
 	"log"
 	"net"
-	"os"
 
 	"github.com/anon55555/mt/rudp"
 )
@@ -130,12 +128,11 @@ func (p *Peer) fetchMedia() {
 }
 
 func (p *Peer) announceMedia() {
-	srvnamekey := GetConfKey("default_server")
-	if srvnamekey == nil || fmt.Sprintf("%T", srvnamekey) != "string" {
+	srvname, ok := GetConfKey("default_server").(string)
+	if !ok {
 		log.Print("Default server name not set or not a string")
 		return
 	}
-	srvname := srvnamekey.(string)
 
 	for _, def := range tooldefs {
 		data := make([]byte, 2+len(def))
@@ -315,13 +312,11 @@ func init() {
 		srvaddr, err := net.ResolveUDPAddr("udp", straddr.(string))
 		if err != nil {
 			log.Fatal(err)
-			os.Exit(1)
 		}
 
 		conn, err := net.DialUDP("udp", nil, srvaddr)
 		if err != nil {
 			log.Fatal(err)
-			os.Exit(1)
 		}
 
 		srv, err := Connect(conn, conn.RemoteAddr())
