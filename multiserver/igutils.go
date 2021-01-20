@@ -359,20 +359,4 @@ func init() {
 			p.SendChatMsg("Could not connect you to " + newsrv + "!")
 		}
 	})
-
-	multiserver.RegisterOnJoinPlayer(func(p *multiserver.Peer) {
-		forceDefaultServer := multiserver.GetConfKey("force_default_server")
-		if forceDefaultServer == nil || !forceDefaultServer.(bool) {
-			srv, err := multiserver.GetStorageKey("server:" + p.Username())
-			if err != nil {
-				log.Print(err)
-				return
-			}
-
-			if srv == "" {
-				srv = multiserver.GetConfKey("default_server").(string)
-			}
-			go p.Redirect(srv)
-		}
-	})
 }

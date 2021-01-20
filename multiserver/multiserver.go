@@ -79,11 +79,11 @@ func main() {
 			continue
 		}
 
-		fin := make(chan struct{}) // close-only
+		fin := make(chan *multiserver.Peer) // close-only
 		go multiserver.Init(srv, clt, true, false, fin)
 
 		go func() {
-			<-fin
+			srv = <-fin
 
 			clt.SetServer(srv)
 

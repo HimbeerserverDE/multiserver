@@ -127,6 +127,22 @@ func (p *Peer) fetchMedia() {
 	}
 }
 
+func (p *Peer) updateDetachedInvs(srvname string) {
+	for i := range detachedinvs[srvname] {
+		data := make([]byte, 2+len(detachedinvs[srvname][i]))
+		data[0] = uint8(0x00)
+		data[1] = uint8(ToClientDetachedInventory)
+		copy(data[2:], detachedinvs[srvname][i])
+
+		ack, err := p.Send(rudp.Pkt{Data: data})
+		if err != nil {
+			log.Print(err)
+			continue
+		}
+		<-ack
+	}
+}
+
 func (p *Peer) announceMedia() {
 	srvname, ok := GetConfKey("default_server").(string)
 	if !ok {
@@ -190,19 +206,7 @@ func (p *Peer) announceMedia() {
 		<-ack
 	}
 
-	for i := range detachedinvs[srvname] {
-		data := make([]byte, 2+len(detachedinvs[srvname][i]))
-		data[0] = uint8(0x00)
-		data[1] = uint8(ToClientDetachedInventory)
-		copy(data[2:], detachedinvs[srvname][i])
-
-		ack, err := p.Send(rudp.Pkt{Data: data})
-		if err != nil {
-			log.Print(err)
-			continue
-		}
-		<-ack
-	}
+	p.updateDetachedInvs(srvname)
 
 	data := make([]byte, 2+len(movement))
 	data[0] = uint8(0x00)
@@ -325,7 +329,7 @@ func init() {
 			continue
 		}
 
-		fin := make(chan struct{}) // close-only
+		fin := make(chan *Peer) // close-only
 		go Init(clt, srv, false, true, fin)
 		<-fin
 
