@@ -260,6 +260,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 
 					p2.SendDisco(0, true)
 					p2.Close()
+					fin <- p
 					return
 				}
 
@@ -317,6 +318,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 
 					p2.SendDisco(0, true)
 					p2.Close()
+					fin <- p
 					return
 				}
 
@@ -465,6 +467,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 
 					p2.SendDisco(0, true)
 					p2.Close()
+					fin <- p
 					return
 				}
 
@@ -516,6 +519,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 
 					p2.SendDisco(0, true)
 					p2.Close()
+					fin <- p
 					return
 				}
 			case ToServerInit2:

@@ -2,8 +2,12 @@ package multiserver
 
 import (
 	"encoding/binary"
+	"encoding/hex"
+	"io/ioutil"
 	"log"
 	"net"
+	"os"
+	"strings"
 
 	"github.com/anon55555/mt/rudp"
 )
@@ -70,7 +74,7 @@ func (p *Peer) fetchMedia() {
 				diglen := binary.BigEndian.Uint16(pkt.Data[2+si+namelen : 4+si+namelen])
 				digest := pkt.Data[4+si+namelen : 4+si+namelen+diglen]
 
-				if media[string(name)] == nil {
+				if media[string(name)] == nil && !isCached(string(name), digest) {
 					rq = append(rq, string(name))
 					media[string(name)] = &mediaFile{digest: digest}
 				}
@@ -301,11 +305,75 @@ func (p *Peer) sendMedia(rqdata []byte) {
 	<-ack
 }
 
+func loadMediaCache() error {
+	os.Mkdir("cache", 0775)
+
+	files, err := ioutil.ReadDir("cache")
+	if err != nil {
+		return err
+	}
+
+	for _, file := range files {
+		if !file.IsDir() {
+			meta := strings.Split(file.Name(), "#")
+			if len(meta) != 2 {
+				os.Remove("cache/" + file.Name())
+				continue
+			}
+
+			data, err := ioutil.ReadFile("cache/" + file.Name())
+			if err != nil {
+				continue
+			}
+
+			media[meta[0]] = &mediaFile{digest: stringToDigest(meta[1]), data: data}
+		}
+	}
+
+	return nil
+}
+
+func isCached(name string, digest []byte) bool {
+	os.Mkdir("cache", 0775)
+
+	_, err := os.Stat("cache/" + name + "#" + digestToString(digest))
+	if os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
+func updateMediaCache() {
+	os.Mkdir("cache", 0775)
+
+	for mfname, mfile := range media {
+		cfname := "cache/" + mfname + "#" + digestToString(mfile.digest)
+		_, err := os.Stat(cfname)
+		if os.IsNotExist(err) {
+			ioutil.WriteFile(cfname, mfile.data, 0664)
+		}
+	}
+}
+
+func digestToString(d []byte) string {
+	return hex.EncodeToString(d)
+}
+
+func stringToDigest(s string) []byte {
+	r, err := hex.DecodeString(s)
+	if err != nil {
+		return []byte{}
+	}
+	return r
+}
+
 func init() {
 	log.Print("Fetching media")
 
 	media = make(map[string]*mediaFile)
 	detachedinvs = make(map[string][][]byte)
+
+	loadMediaCache()
 
 	clt := &Peer{username: []byte("media")}
 
@@ -335,4 +403,6 @@ func init() {
 
 		srv.fetchMedia()
 	}
+
+	updateMediaCache()
 }

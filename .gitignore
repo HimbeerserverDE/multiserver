@@ -2,3 +2,4 @@ multiserver/multiserver
 multiserver/config/multiserver.yml
 multiserver/storage/auth.sqlite
 multiserver/storage/storage.sqlite
+multiserver/cache/*
