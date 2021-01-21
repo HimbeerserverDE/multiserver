@@ -333,6 +333,6 @@ func init() {
 		go Init(clt, srv, false, true, fin)
 		<-fin
 
-		go srv.fetchMedia()
+		srv.fetchMedia()
 	}
 }

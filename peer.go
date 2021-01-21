@@ -28,6 +28,7 @@ type Peer struct {
 	sudoMode bool
 
 	stopforward bool
+	forwardMu   sync.RWMutex
 
 	redirectMu sync.Mutex
 	srvMu      sync.RWMutex
@@ -42,10 +43,20 @@ type Peer struct {
 func (p *Peer) Username() string { return string(p.username) }
 
 // Forward reports whether the Proxy func should continue or stop
-func (p *Peer) Forward() bool { return !p.stopforward }
+func (p *Peer) Forward() bool {
+	p.forwardMu.RLock()
+	defer p.forwardMu.RUnlock()
 
-// StopForwarding tells the Proxy func to stop
-func (p *Peer) stopForwarding() { p.stopforward = true }
+	return !p.stopforward
+}
+
+// stopForwarding tells the Proxy func to stop
+func (p *Peer) stopForwarding() {
+	p.forwardMu.Lock()
+	defer p.forwardMu.Unlock()
+
+	p.stopforward = true
+}
 
 // Server returns the Peer this Peer is connected to
 // if it isn't a server
