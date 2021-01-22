@@ -234,6 +234,24 @@ func (p *Peer) announceMedia() {
 	}
 	<-ack
 
+	csmrf, ok := GetConfKey("csm_restriction_flags").(int)
+	if !ok {
+		csmrf = 0
+	}
+
+	data = make([]byte, 14)
+	data[0] = uint8(0x00)
+	data[1] = uint8(ToClientCsmRestrictionFlags)
+	binary.BigEndian.PutUint32(data[2:6], uint32(0))
+	binary.BigEndian.PutUint32(data[6:10], uint32(csmrf))
+	binary.BigEndian.PutUint32(data[10:], uint32(0))
+
+	ack, err = p.Send(rudp.Pkt{Data: data})
+	if err != nil {
+		log.Print(err)
+	}
+	<-ack
+
 	pktlen := 0
 	for f := range media {
 		pktlen += 4 + len(f) + len(media[f].digest)

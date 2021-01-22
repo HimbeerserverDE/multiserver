@@ -88,3 +88,16 @@ Description: If this is false known players are sent to the last server they wer
 Type: String
 Description: The "privs" privilege is granted to the player with this name on startup
 ```
+> `csm_restriction_flags`
+```
+Type: Unsigned integer
+Description: The CSM restriction flags, default is none
+* 0: No restrictions
+* 1: No CSM loading
+* 2: No chat message sending
+* 4: No itemdef reading
+* 8: No nodedef reading
+* 16: Limit node lookup
+* 32: No player info lookup
+* 63: All restrictions
+```
