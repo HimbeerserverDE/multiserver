@@ -4,6 +4,9 @@ Minetest reverse proxy supporting multiple servers and media multiplexing
 ## Credits
 This project was made possible by [anon55555's Minetest RUDP package](https://github.com/anon55555/mt/tree/master/rudp).
 
+## Modchannel RPC API
+There is a modchannel-based RPC API for minetest servers: [click here](https://github.com/HimbeerserverDE/multiserver_api).
+
 ## Installation
 Go 1.15 or higher is required
 
