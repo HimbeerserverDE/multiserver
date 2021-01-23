@@ -23,7 +23,6 @@ type chatCommand struct {
 var chatCommands map[string]chatCommand
 var onChatMsg []func(*Peer, string) bool
 
-var serverChatCommands map[string]func(*Peer, string)
 var onServerChatMsg []func(*Peer, string) bool
 
 // RegisterChatCommand registers a callback function that is called
@@ -38,12 +37,6 @@ func RegisterChatCommand(name string, privs map[string]bool, function func(*Peer
 // to the minetest server
 func RegisterOnChatMessage(function func(*Peer, string) bool) {
 	onChatMsg = append(onChatMsg, function)
-}
-
-// RegisterServerChatCommand registers a callback function
-// that is called when a server executes the command
-func RegisterServerChatCommand(name string, function func(*Peer, string)) {
-	serverChatCommands[name] = function
 }
 
 // RegisterOnServerChatMessage registers a callback function
@@ -142,29 +135,13 @@ func processChatMessage(p *Peer, pkt rudp.Pkt) bool {
 
 func processServerChatMessage(p *Peer, pkt rudp.Pkt) bool {
 	s := string(narrow(pkt.Data[4:]))
-	if strings.HasPrefix(s, ServerChatCommandPrefix) {
-		// Server chat command
-		s = strings.Replace(s, ServerChatCommandPrefix, "", 1)
-		params := strings.Split(s, " ")
-
-		// Callback
-		// Existance check
-		if serverChatCommands[params[0]] == nil {
-			return true
+	noforward := false
+	for i := range onServerChatMsg {
+		if onServerChatMsg[i](p, s) {
+			noforward = true
 		}
-
-		serverChatCommands[params[0]](p, strings.Join(params[1:], " "))
-		return true
-	} else {
-		// Regular message
-		noforward := false
-		for i := range onServerChatMsg {
-			if onServerChatMsg[i](p, s) {
-				noforward = true
-			}
-		}
-		return noforward
 	}
+	return noforward
 }
 
 // SendChatMsg sends a chat message to the Peer if it isn't a server
@@ -233,5 +210,4 @@ func wider(b []byte) []byte {
 
 func init() {
 	chatCommands = make(map[string]chatCommand)
-	serverChatCommands = make(map[string]func(*Peer, string))
 }

@@ -202,6 +202,8 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 				}
 				<-ack
 
+				go p2.joinRpc()
+
 				return
 			}
 		}

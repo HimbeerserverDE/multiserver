@@ -8,6 +8,29 @@ import (
 
 // Proxy processes and forwards packets from src to dst
 func Proxy(src, dst *Peer) {
+	if src == nil {
+		data := []byte{
+			0, ToClientAccessDenied,
+			AccessDeniedServerFail, 0, 0, 0, 0,
+		}
+
+		_, err := dst.Send(rudp.Pkt{Data: data})
+		if err != nil {
+			log.Print(err)
+		}
+
+		dst.SendDisco(0, true)
+		dst.Close()
+		processLeave(dst)
+
+		return
+	} else if dst == nil {
+		src.SendDisco(0, true)
+		src.Close()
+
+		return
+	}
+
 	for {
 		pkt, err := src.Recv()
 		if !src.Forward() {

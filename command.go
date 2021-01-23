@@ -59,8 +59,8 @@ const (
 	ToClientCloudParams           = 0x54
 	ToClientFadeSound             = 0x55
 	ToClientUpdatePlayerList      = 0x56
-	ToClientModchannelMsg         = 0x57
-	ToClientModchannelSignal      = 0x58
+	ToClientModChannelMsg         = 0x57
+	ToClientModChannelSignal      = 0x58
 	ToClientNodeMetaChanged       = 0x59
 	ToClientSetSun                = 0x5A
 	ToClientSetMoon               = 0x5B
@@ -73,9 +73,9 @@ const (
 const (
 	ToServerInit            = 0x02
 	ToServerInit2           = 0x11
-	ToServerModchannelJoin  = 0x17
-	ToServerModchannelLeave = 0x18
-	ToServerModchannelMsg   = 0x19
+	ToServerModChannelJoin  = 0x17
+	ToServerModChannelLeave = 0x18
+	ToServerModChannelMsg   = 0x19
 	ToServerPlayerPos       = 0x23
 	ToServerGotblocks       = 0x24
 	ToServerDeletedblocks   = 0x25
@@ -129,6 +129,24 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 			copy(data[4:], msg)
 
 			return processServerChatMessage(dst, rudp.Pkt{Data: data, ChNo: pkt.ChNo})
+		case ToClientModChannelSignal:
+			chlen := binary.BigEndian.Uint16(pkt.Data[3:5])
+			ch := string(pkt.Data[5:5+chlen])
+			if ch == rpcCh {
+				switch sig := pkt.Data[2]; sig {
+				case ModChSigJoinOk:
+					src.useRpc = true
+				case ModChSigSetState:
+					state := pkt.Data[5+chlen]
+					if state == ModChStateRO {
+						src.useRpc = false
+					}
+				}
+				return true
+			}
+			return false
+		case ToClientModChannelMsg:
+			return processRpc(src, dst, *pkt)
 		default:
 			return false
 		}

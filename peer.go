@@ -36,6 +36,8 @@ type Peer struct {
 
 	initAoReceived bool
 	aoIDs          map[uint16]bool
+
+	useRpc bool
 }
 
 // Username returns the username of the Peer
