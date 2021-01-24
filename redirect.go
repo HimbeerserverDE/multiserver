@@ -23,6 +23,17 @@ func RegisterOnRedirectDone(function func(*Peer, string, bool)) {
 func processRedirectDone(p *Peer, newsrv string) {
 	success := p.ServerName() == newsrv
 
+	successstr := "false"
+	if success {
+		successstr = "true"
+	}
+
+	rpcSrvMu.Lock()
+	for srv := range rpcSrvs {
+		srv.doRpc("->REDIRECTED " + string(p.username) + " " + newsrv + " " + successstr, "--")
+	}
+	rpcSrvMu.Unlock()
+
 	for i := range onRedirectDone {
 		onRedirectDone[i](p, newsrv, success)
 	}
