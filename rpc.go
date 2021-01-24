@@ -169,7 +169,7 @@ func startRpc() {
 			rpcSrvs[srv] = struct{}{}
 			rpcSrvMu.Unlock()
 
-			srv.joinRpc()
+			go srv.joinRpc()
 			go func() {
 				for {
 					pkt, err := srv.Recv()
@@ -209,7 +209,5 @@ func startRpc() {
 }
 
 func init() {
-	rpcSrvMu.Lock()
 	rpcSrvs = make(map[*Peer]struct{})
-	rpcSrvMu.Unlock()
 }
