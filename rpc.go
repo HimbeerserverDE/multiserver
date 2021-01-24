@@ -67,16 +67,16 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 		if !ok {
 			return true
 		}
-		src.doRpc("->DEFSRV "+defsrv, rq)
+		p.doRpc("->DEFSRV "+defsrv, rq)
 	case "<-GETPEERCNT":
 		cnt := strconv.Itoa(GetPeerCount())
-		src.doRpc("->PEERCNT "+cnt, rq)
+		p.doRpc("->PEERCNT "+cnt, rq)
 	case "<-ISONLINE":
 		online := "false"
 		if IsOnline(strings.Join(strings.Split(msg, " ")[2:], " ")) {
 			online = "true"
 		}
-		src.doRpc("->ISONLINE "+online, rq)
+		p.doRpc("->ISONLINE "+online, rq)
 	case "<-CHECKPRIVS":
 		name := strings.Split(msg, " ")[2]
 		privs := decodePrivs(strings.Join(strings.Split(msg, " ")[3:], " "))
@@ -87,14 +87,14 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 				hasprivs = "true"
 			}
 		}
-		src.doRpc("->HASPRIVS "+hasprivs, rq)
+		p.doRpc("->HASPRIVS "+hasprivs, rq)
 	case "<-GETSRV":
 		name := strings.Split(msg, " ")[2]
 		var srv string
 		if IsOnline(name) {
 			srv = GetListener().GetPeerByUsername(name).ServerName()
 		}
-		src.doRpc("->SRV "+srv, rq)
+		p.doRpc("->SRV "+srv, rq)
 	case "<-REDIRECT":
 		name := strings.Split(msg, " ")[2]
 		tosrv := strings.Split(msg, " ")[3]
@@ -107,7 +107,7 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 		if IsOnline(name) {
 			addr = GetListener().GetPeerByUsername(name).Addr().String()
 		}
-		src.doRpc("->ADDR "+addr, rq)
+		p.doRpc("->ADDR "+addr, rq)
 	}
 	return true
 }

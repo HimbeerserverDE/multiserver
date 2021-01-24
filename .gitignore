@@ -1,5 +1,5 @@
-multiserver/multiserver
-multiserver/config/multiserver.yml
-multiserver/storage/auth.sqlite
-multiserver/storage/storage.sqlite
-multiserver/cache/*
+multiserver
+config/multiserver.yml
+storage/auth.sqlite
+storage/storage.sqlite
+cache/*
