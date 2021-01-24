@@ -3,11 +3,9 @@ package main
 import (
 	"log"
 	"strings"
-
-	"github.com/HimbeerserverDE/multiserver"
 )
 
-func cmdSend(p *multiserver.Peer, param string) {
+func cmdSend(p *Peer, param string) {
 	if param == "" {
 		p.SendChatMsg("Usage: #send <playername> <servername>")
 		return
@@ -24,13 +22,13 @@ func cmdSend(p *multiserver.Peer, param string) {
 		return
 	}
 
-	servers := multiserver.GetConfKey("servers").(map[interface{}]interface{})
+	servers := GetConfKey("servers").(map[interface{}]interface{})
 	if servers[tosrv] == nil {
 		p.SendChatMsg("Unknown servername " + tosrv)
 		return
 	}
 
-	p2 := multiserver.GetListener().GetPeerByUsername(name)
+	p2 := GetListener().GetPeerByUsername(name)
 	if p2 == nil {
 		p.SendChatMsg(name + " is not online.")
 		return
@@ -74,16 +72,16 @@ func init() {
 	privs["revoke"] = make(map[string]bool)
 	privs["revoke"]["privs"] = true
 
-	multiserver.RegisterChatCommand("send", privs["send"], cmdSend)
+	RegisterChatCommand("send", privs["send"], cmdSend)
 
-	multiserver.RegisterChatCommand("sendcurrent", privs["sendcurrent"],
-		func(p *multiserver.Peer, param string) {
+	RegisterChatCommand("sendcurrent", privs["sendcurrent"],
+		func(p *Peer, param string) {
 			if param == "" {
 				p.SendChatMsg("Usage: #sendcurrent <servername>")
 				return
 			}
 
-			servers := multiserver.GetConfKey("servers").(map[interface{}]interface{})
+			servers := GetConfKey("servers").(map[interface{}]interface{})
 			if servers[param] == nil {
 				p.SendChatMsg("Unknown servername " + param)
 				return
@@ -96,7 +94,7 @@ func init() {
 			}
 
 			go p.Redirect(param)
-			peers := multiserver.GetListener().GetPeers()
+			peers := GetListener().GetPeers()
 			for i := range peers {
 				if peers[i].ServerName() == srv {
 					go peers[i].Redirect(param)
@@ -104,14 +102,14 @@ func init() {
 			}
 		})
 
-	multiserver.RegisterChatCommand("sendall", privs["sendall"],
-		func(p *multiserver.Peer, param string) {
+	RegisterChatCommand("sendall", privs["sendall"],
+		func(p *Peer, param string) {
 			if param == "" {
 				p.SendChatMsg("Usage: #sendall <servername>")
 				return
 			}
 
-			servers := multiserver.GetConfKey("servers").(map[interface{}]interface{})
+			servers := GetConfKey("servers").(map[interface{}]interface{})
 			if servers[param] == nil {
 				p.SendChatMsg("Unknown servername " + param)
 				return
@@ -121,7 +119,7 @@ func init() {
 			if srv != param {
 				go p.Redirect(param)
 			}
-			peers := multiserver.GetListener().GetPeers()
+			peers := GetListener().GetPeers()
 			for i := range peers {
 				if psrv := peers[i].ServerName(); psrv != param {
 					go peers[i].Redirect(param)
@@ -129,23 +127,23 @@ func init() {
 			}
 		})
 
-	multiserver.RegisterChatCommand("alert", privs["alert"],
-		func(p *multiserver.Peer, param string) {
-			multiserver.ChatSendAll("[ALERT] " + param)
+	RegisterChatCommand("alert", privs["alert"],
+		func(p *Peer, param string) {
+			ChatSendAll("[ALERT] " + param)
 		})
 
-	multiserver.RegisterChatCommand("server", nil,
-		func(p *multiserver.Peer, param string) {
+	RegisterChatCommand("server", nil,
+		func(p *Peer, param string) {
 			if param == "" {
 				var r string
-				servers := multiserver.GetConfKey("servers").(map[interface{}]interface{})
+				servers := GetConfKey("servers").(map[interface{}]interface{})
 				for server := range servers {
 					r += server.(string) + " "
 				}
 				srv := p.ServerName()
 				p.SendChatMsg("Current server: " + srv + " | All servers: " + r)
 			} else {
-				servers := multiserver.GetConfKey("servers").(map[interface{}]interface{})
+				servers := GetConfKey("servers").(map[interface{}]interface{})
 				srv := p.ServerName()
 
 				if srv == param {
@@ -159,7 +157,7 @@ func init() {
 				}
 
 				reqprivs := make(map[string]bool)
-				reqpriv, ok := multiserver.GetConfKey("servers:" + param + ":priv").(string)
+				reqpriv, ok := GetConfKey("servers:" + param + ":priv").(string)
 				if ok {
 					reqprivs[reqpriv] = true
 				}
@@ -181,14 +179,14 @@ func init() {
 			}
 		})
 
-	multiserver.RegisterChatCommand("find", privs["find"],
-		func(p *multiserver.Peer, param string) {
+	RegisterChatCommand("find", privs["find"],
+		func(p *Peer, param string) {
 			if param == "" {
 				p.SendChatMsg("Usage: #find <playername>")
 				return
 			}
 
-			p2 := multiserver.GetListener().GetPeerByUsername(param)
+			p2 := GetListener().GetPeerByUsername(param)
 			if p2 == nil {
 				p.SendChatMsg(param + " is not online.")
 			} else {
@@ -197,14 +195,14 @@ func init() {
 			}
 		})
 
-	multiserver.RegisterChatCommand("addr", privs["addr"],
-		func(p *multiserver.Peer, param string) {
+	RegisterChatCommand("addr", privs["addr"],
+		func(p *Peer, param string) {
 			if param == "" {
 				p.SendChatMsg("Usage: #addr <playername>")
 				return
 			}
 
-			p2 := multiserver.GetListener().GetPeerByUsername(param)
+			p2 := GetListener().GetPeerByUsername(param)
 			if p2 == nil {
 				p.SendChatMsg(param + " is not online.")
 			} else {
@@ -212,26 +210,26 @@ func init() {
 			}
 		})
 
-	multiserver.RegisterChatCommand("end", privs["end"],
-		func(p *multiserver.Peer, param string) {
-			go multiserver.End(false, false)
+	RegisterChatCommand("end", privs["end"],
+		func(p *Peer, param string) {
+			go End(false, false)
 		})
 
-	multiserver.RegisterChatCommand("privs", nil,
-		func(p *multiserver.Peer, param string) {
+	RegisterChatCommand("privs", nil,
+		func(p *Peer, param string) {
 			var r string
 
 			name := param
-			var p2 *multiserver.Peer
+			var p2 *Peer
 			if name == "" {
 				p2 = p
 				r += "Your privileges: "
 			} else {
-				p2 = multiserver.GetListener().GetPeerByUsername(name)
+				p2 = GetListener().GetPeerByUsername(name)
 				r += name + "'s privileges: "
 			}
 
-			if name != "" && !multiserver.IsOnline(name) {
+			if name != "" && !IsOnline(name) {
 				p.SendChatMsg(name + " is not online.")
 				return
 			}
@@ -253,20 +251,20 @@ func init() {
 			p.SendChatMsg(r + strings.Join(privnames, " "))
 		})
 
-	multiserver.RegisterChatCommand("grant", privs["grant"],
-		func(p *multiserver.Peer, param string) {
+	RegisterChatCommand("grant", privs["grant"],
+		func(p *Peer, param string) {
 			name := strings.Split(param, " ")[0]
 			var privnames string
-			var p2 *multiserver.Peer
+			var p2 *Peer
 			if len(strings.Split(param, " ")) < 2 {
 				p2 = p
 				privnames = name
 			} else {
-				p2 = multiserver.GetListener().GetPeerByUsername(name)
+				p2 = GetListener().GetPeerByUsername(name)
 				privnames = strings.Split(param, " ")[1]
 			}
 
-			if len(strings.Split(param, " ")) >= 2 && !multiserver.IsOnline(name) {
+			if len(strings.Split(param, " ")) >= 2 && !IsOnline(name) {
 				p.SendChatMsg(name + " is not online.")
 				return
 			}
@@ -291,20 +289,20 @@ func init() {
 			p.SendChatMsg("Privileges updated.")
 		})
 
-	multiserver.RegisterChatCommand("revoke", privs["revoke"],
-		func(p *multiserver.Peer, param string) {
+	RegisterChatCommand("revoke", privs["revoke"],
+		func(p *Peer, param string) {
 			name := strings.Split(param, " ")[0]
 			var privnames string
-			var p2 *multiserver.Peer
+			var p2 *Peer
 			if len(strings.Split(param, " ")) < 2 {
 				p2 = p
 				privnames = name
 			} else {
-				p2 = multiserver.GetListener().GetPeerByUsername(name)
+				p2 = GetListener().GetPeerByUsername(name)
 				privnames = strings.Split(param, " ")[1]
 			}
 
-			if len(strings.Split(param, " ")) >= 2 && !multiserver.IsOnline(name) {
+			if len(strings.Split(param, " ")) >= 2 && !IsOnline(name) {
 				p.SendChatMsg(name + " is not online.")
 				return
 			}
@@ -329,9 +327,9 @@ func init() {
 			p.SendChatMsg("Privileges updated.")
 		})
 
-	multiserver.RegisterOnRedirectDone(func(p *multiserver.Peer, newsrv string, success bool) {
+	RegisterOnRedirectDone(func(p *Peer, newsrv string, success bool) {
 		if success {
-			err := multiserver.SetStorageKey("server:"+p.Username(), newsrv)
+			err := SetStorageKey("server:"+p.Username(), newsrv)
 			if err != nil {
 				log.Print(err)
 				return
