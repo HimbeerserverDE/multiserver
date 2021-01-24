@@ -146,7 +146,7 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 			}
 			return false
 		case ToClientModChannelMsg:
-			return processRpc(src, dst, *pkt)
+			return processRpc(src, *pkt)
 		default:
 			return false
 		}
@@ -274,6 +274,55 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 				}
 			}
 			return true
+		case ToServerModChannelJoin:
+			ch := string(pkt.Data[4:])
+			if ch == rpcCh {
+				data := make([]byte, 5+len(rpcCh))
+				data[0] = uint8(0x00)
+				data[1] = uint8(ToClientModChannelSignal)
+				data[2] = uint8(ModChSigJoinFail)
+				binary.BigEndian.PutUint16(data[3:5], uint16(len(rpcCh)))
+				copy(data[5:], []byte(rpcCh))
+
+				ack, err := src.Send(rudp.Pkt{Data: data})
+				if err != nil {
+					log.Print(err)
+				}
+				<-ack
+
+				return true
+			}
+
+			src.modChs[ch] = true
+			return false
+		case ToServerModChannelLeave:
+			ch := string(pkt.Data[4:])
+			if ch == rpcCh {
+				data := make([]byte, 5+len(rpcCh))
+				data[0] = uint8(0x00)
+				data[1] = uint8(ToClientModChannelSignal)
+				data[2] = uint8(ModChSigLeaveFail)
+				binary.BigEndian.PutUint16(data[3:5], uint16(len(rpcCh)))
+				copy(data[5:], []byte(rpcCh))
+
+				ack, err := src.Send(rudp.Pkt{Data: data})
+				if err != nil {
+					log.Print(err)
+				}
+				<-ack
+
+				return true
+			}
+
+			src.modChs[ch] = false
+			return false
+		case ToServerModChannelMsg:
+			chlen := binary.BigEndian.Uint16(pkt.Data[2:4])
+			ch := string(pkt.Data[4 : 4+chlen])
+			if ch == rpcCh {
+				return true
+			}
+			return false
 		default:
 			return false
 		}

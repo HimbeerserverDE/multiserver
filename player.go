@@ -24,6 +24,12 @@ func processJoin(p *Peer) {
 	onlinePlayerMu.Lock()
 	defer onlinePlayerMu.Unlock()
 
+	rpcSrvMu.Lock()
+	for srv := range rpcSrvs {
+		srv.doRpc("->JOIN "+string(p.username), "--")
+	}
+	rpcSrvMu.Unlock()
+
 	onlinePlayers[string(p.username)] = true
 	for i := range onJoinPlayer {
 		onJoinPlayer[i](p)
@@ -33,6 +39,12 @@ func processJoin(p *Peer) {
 func processLeave(p *Peer) {
 	onlinePlayerMu.Lock()
 	defer onlinePlayerMu.Unlock()
+
+	rpcSrvMu.Lock()
+	for srv := range rpcSrvs {
+		srv.doRpc("->LEAVE "+string(p.username), "--")
+	}
+	rpcSrvMu.Unlock()
 
 	onlinePlayers[string(p.username)] = false
 	for i := range onLeavePlayer {

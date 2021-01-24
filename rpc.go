@@ -2,8 +2,11 @@ package main
 
 import (
 	"encoding/binary"
+	"log"
+	"net"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/anon55555/mt/rudp"
 )
@@ -25,6 +28,9 @@ const (
 	ModChStateRO
 )
 
+var rpcSrvMu sync.Mutex
+var rpcSrvs map[*Peer]struct{}
+
 func (p *Peer) joinRpc() {
 	data := make([]byte, 4+len(rpcCh))
 	data[0] = uint8(0x00)
@@ -39,7 +45,7 @@ func (p *Peer) joinRpc() {
 	<-ack
 }
 
-func processRpc(src, dst *Peer, pkt rudp.Pkt) bool {
+func processRpc(p *Peer, pkt rudp.Pkt) bool {
 	chlen := binary.BigEndian.Uint16(pkt.Data[2:4])
 	ch := string(pkt.Data[4 : 4+chlen])
 	senderlen := binary.BigEndian.Uint16(pkt.Data[4+chlen : 6+chlen])
@@ -126,4 +132,82 @@ func (p *Peer) doRpc(rpc, rq string) {
 		return
 	}
 	<-ack
+}
+
+func startRpc() {
+	servers := GetConfKey("servers").(map[interface{}]interface{})
+	for server := range servers {
+		clt := &Peer{username: []byte("rpc")}
+
+		straddr := GetConfKey("servers:" + server.(string) + ":address")
+
+		srvaddr, err := net.ResolveUDPAddr("udp", straddr.(string))
+		if err != nil {
+			log.Print(err)
+			continue
+		}
+
+		conn, err := net.DialUDP("udp", nil, srvaddr)
+		if err != nil {
+			log.Print(err)
+			continue
+		}
+
+		srv, err := Connect(conn, conn.RemoteAddr())
+		if err != nil {
+			log.Print(err)
+			continue
+		}
+
+		fin := make(chan *Peer) // close-only
+		go Init(clt, srv, true, true, fin)
+
+		go func() {
+			<-fin
+
+			rpcSrvMu.Lock()
+			rpcSrvs[srv] = struct{}{}
+			rpcSrvMu.Unlock()
+
+			go srv.joinRpc()
+			go func() {
+				for {
+					pkt, err := srv.Recv()
+					if err != nil {
+						if err == rudp.ErrClosed {
+							rpcSrvMu.Lock()
+							delete(rpcSrvs, srv)
+							rpcSrvMu.Unlock()
+							break
+						}
+
+						log.Print(err)
+					}
+
+					switch cmd := binary.BigEndian.Uint16(pkt.Data[0:2]); cmd {
+					case ToClientModChannelSignal:
+						chlen := binary.BigEndian.Uint16(pkt.Data[3:5])
+						ch := string(pkt.Data[5 : 5+chlen])
+						if ch == rpcCh {
+							switch sig := pkt.Data[2]; sig {
+							case ModChSigJoinOk:
+								srv.useRpc = true
+							case ModChSigSetState:
+								state := pkt.Data[5+chlen]
+								if state == ModChStateRO {
+									srv.useRpc = false
+								}
+							}
+						}
+					case ToClientModChannelMsg:
+						processRpc(srv, pkt)
+					}
+				}
+			}()
+		}()
+	}
+}
+
+func init() {
+	rpcSrvs = make(map[*Peer]struct{})
 }
