@@ -8,9 +8,13 @@ import (
 	"net"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/anon55555/mt/rudp"
 )
+
+// MediaRefetchInterval is the amount of time between media downloads
+const MediaRefetchInterval = 10 * time.Minute
 
 var media map[string]*mediaFile
 var tooldefs [][]byte
@@ -385,7 +389,7 @@ func stringToDigest(s string) []byte {
 	return r
 }
 
-func init() {
+func loadMedia() {
 	log.Print("Fetching media")
 
 	media = make(map[string]*mediaFile)
@@ -423,5 +427,19 @@ func init() {
 	}
 
 	updateMediaCache()
+}
+
+func init() {
+	loadMedia()
 	go startRpc()
+
+	go func() {
+		refetch := time.NewTicker(MediaRefetchInterval)
+		for {
+			select {
+			case <-refetch.C:
+				loadMedia()
+			}
+		}
+	}()
 }

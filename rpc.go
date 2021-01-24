@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/anon55555/mt/rudp"
 )
@@ -27,6 +28,8 @@ const (
 	ModChStateRW
 	ModChStateRO
 )
+
+const RpcReconnectInterval = 10 * time.Minute
 
 var rpcSrvMu sync.Mutex
 var rpcSrvs map[*Peer]struct{}
@@ -134,7 +137,7 @@ func (p *Peer) doRpc(rpc, rq string) {
 	<-ack
 }
 
-func startRpc() {
+func connectRpc() {
 	servers := GetConfKey("servers").(map[interface{}]interface{})
 	for server := range servers {
 		clt := &Peer{username: []byte("rpc")}
@@ -206,6 +209,104 @@ func startRpc() {
 			}()
 		}()
 	}
+}
+
+func startRpc() {
+	connectRpc()
+
+	go func() {
+		reconnect := time.NewTicker(RpcReconnectInterval)
+		for {
+			select {
+			case <-reconnect.C:
+				servers := GetConfKey("servers").(map[interface{}]interface{})
+				for server := range servers {
+					clt := &Peer{username: []byte("rpc")}
+
+					straddr := GetConfKey("servers:" + server.(string) + ":address")
+
+					var c bool
+
+					rpcSrvMu.Lock()
+					for rpcsrv := range rpcSrvs {
+						if rpcsrv.Addr().String() == straddr.(string) {
+							c = true
+						}
+					}
+					rpcSrvMu.Unlock()
+
+					if c {
+						continue
+					}
+
+					srvaddr, err := net.ResolveUDPAddr("udp", straddr.(string))
+					if err != nil {
+						log.Print(err)
+						continue
+					}
+
+					conn, err := net.DialUDP("udp", nil, srvaddr)
+					if err != nil {
+						log.Print(err)
+						continue
+					}
+
+					srv, err := Connect(conn, conn.RemoteAddr())
+					if err != nil {
+						log.Print(err)
+						continue
+					}
+
+					fin := make(chan *Peer) // close-only
+					go Init(clt, srv, true, true, fin)
+					
+					go func() {
+						<-fin
+
+						rpcSrvMu.Lock()
+						rpcSrvs[srv] = struct{}{}
+						rpcSrvMu.Unlock()
+
+						go srv.joinRpc()
+						go func() {
+							for {
+								pkt, err := srv.Recv()
+								if err != nil {
+									if err == rudp.ErrClosed {
+										rpcSrvMu.Lock()
+										delete(rpcSrvs, srv)
+										rpcSrvMu.Unlock()
+										break
+									}
+
+									log.Print(err)
+								}
+
+								switch cmd := binary.BigEndian.Uint16(pkt.Data[0:2]); cmd {
+								case ToClientModChannelSignal:
+									chlen := binary.BigEndian.Uint16(pkt.Data[3:5])
+									ch := string(pkt.Data[5 : 5+chlen])
+									if ch == rpcCh {
+										switch sig := pkt.Data[2]; sig {
+										case ModChSigJoinOk:
+											srv.useRpc = true
+										case ModChSigSetState:
+											state := pkt.Data[5+chlen]
+											if state == ModChStateRO {
+												srv.useRpc = false
+											}
+										}
+									}
+								case ToClientModChannelMsg:
+									processRpc(srv, pkt)
+								}
+							}
+						}()
+					}()
+				}
+			}
+		}
+	}()
 }
 
 func init() {

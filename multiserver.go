@@ -77,7 +77,7 @@ func main() {
 			continue
 		}
 
-		fin := make(chan *Peer) // close-only
+		fin := make(chan *Peer)
 		go Init(srv, clt, true, false, fin)
 
 		go func() {
