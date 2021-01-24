@@ -1,4 +1,4 @@
-package multiserver
+package main
 
 import (
 	"encoding/binary"
@@ -41,11 +41,11 @@ func (p *Peer) joinRpc() {
 
 func processRpc(src, dst *Peer, pkt rudp.Pkt) bool {
 	chlen := binary.BigEndian.Uint16(pkt.Data[2:4])
-	ch := string(pkt.Data[4:4+chlen])
-	senderlen := binary.BigEndian.Uint16(pkt.Data[4+chlen:6+chlen])
-	sender := string(pkt.Data[6+chlen:6+chlen+senderlen])
-	msglen := binary.BigEndian.Uint16(pkt.Data[6+chlen+senderlen:8+chlen+senderlen])
-	msg := string(pkt.Data[8+chlen+senderlen:8+chlen+senderlen+msglen])
+	ch := string(pkt.Data[4 : 4+chlen])
+	senderlen := binary.BigEndian.Uint16(pkt.Data[4+chlen : 6+chlen])
+	sender := string(pkt.Data[6+chlen : 6+chlen+senderlen])
+	msglen := binary.BigEndian.Uint16(pkt.Data[6+chlen+senderlen : 8+chlen+senderlen])
+	msg := string(pkt.Data[8+chlen+senderlen : 8+chlen+senderlen+msglen])
 
 	if ch != rpcCh || sender != "" {
 		return false
@@ -61,16 +61,16 @@ func processRpc(src, dst *Peer, pkt rudp.Pkt) bool {
 		if !ok {
 			return true
 		}
-		src.doRpc("->DEFSRV " + defsrv, rq)
+		src.doRpc("->DEFSRV "+defsrv, rq)
 	case "<-GETPEERCNT":
 		cnt := strconv.Itoa(GetPeerCount())
-		src.doRpc("->PEERCNT " + cnt, rq)
+		src.doRpc("->PEERCNT "+cnt, rq)
 	case "<-ISONLINE":
 		online := "false"
 		if IsOnline(strings.Join(strings.Split(msg, " ")[2:], " ")) {
 			online = "true"
 		}
-		src.doRpc("->ISONLINE " + online, rq)
+		src.doRpc("->ISONLINE "+online, rq)
 	case "<-CHECKPRIVS":
 		name := strings.Split(msg, " ")[2]
 		privs := decodePrivs(strings.Join(strings.Split(msg, " ")[3:], " "))
@@ -81,14 +81,14 @@ func processRpc(src, dst *Peer, pkt rudp.Pkt) bool {
 				hasprivs = "true"
 			}
 		}
-		src.doRpc("->HASPRIVS " + hasprivs, rq)
+		src.doRpc("->HASPRIVS "+hasprivs, rq)
 	case "<-GETSRV":
 		name := strings.Split(msg, " ")[2]
 		var srv string
 		if IsOnline(name) {
 			srv = GetListener().GetPeerByUsername(name).ServerName()
 		}
-		src.doRpc("->SRV " + srv, rq)
+		src.doRpc("->SRV "+srv, rq)
 	case "<-REDIRECT":
 		name := strings.Split(msg, " ")[2]
 		tosrv := strings.Split(msg, " ")[3]
@@ -101,7 +101,7 @@ func processRpc(src, dst *Peer, pkt rudp.Pkt) bool {
 		if IsOnline(name) {
 			addr = GetListener().GetPeerByUsername(name).Addr().String()
 		}
-		src.doRpc("->ADDR " + addr, rq)
+		src.doRpc("->ADDR "+addr, rq)
 	}
 	return true
 }

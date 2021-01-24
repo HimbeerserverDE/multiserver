@@ -10,22 +10,20 @@ import (
 	"time"
 
 	"github.com/anon55555/mt/rudp"
-
-	"github.com/HimbeerserverDE/multiserver"
 )
 
 func main() {
-	defaultSrv, ok := multiserver.GetConfKey("default_server").(string)
+	defaultSrv, ok := GetConfKey("default_server").(string)
 	if !ok {
 		log.Fatal("Default server name not set or not a string")
 	}
 
-	defaultSrvAddr, ok := multiserver.GetConfKey("servers:" + defaultSrv + ":address").(string)
+	defaultSrvAddr, ok := GetConfKey("servers:" + defaultSrv + ":address").(string)
 	if !ok {
 		log.Fatal("Default server address not set or not a string")
 	}
 
-	host, ok := multiserver.GetConfKey("host").(string)
+	host, ok := GetConfKey("host").(string)
 	if !ok {
 		log.Fatal("Host not set or not a string")
 	}
@@ -43,8 +41,8 @@ func main() {
 
 	log.Print("Listening on " + host)
 
-	l := multiserver.Listen(lc)
-	multiserver.SetListener(l)
+	l := Listen(lc)
+	SetListener(l)
 	for {
 		clt, err := l.Accept()
 		if err != nil {
@@ -59,11 +57,11 @@ func main() {
 			log.Fatal(err)
 		}
 
-		srv, err := multiserver.Connect(conn, conn.RemoteAddr())
+		srv, err := Connect(conn, conn.RemoteAddr())
 		if err != nil {
 			data := []byte{
-				0, multiserver.ToClientAccessDenied,
-				multiserver.AccessDeniedServerFail, 0, 0, 0, 0,
+				0, ToClientAccessDenied,
+				AccessDeniedServerFail, 0, 0, 0, 0,
 			}
 
 			_, err := clt.Send(rudp.Pkt{Data: data})
@@ -79,16 +77,16 @@ func main() {
 			continue
 		}
 
-		fin := make(chan *multiserver.Peer) // close-only
-		go multiserver.Init(srv, clt, true, false, fin)
+		fin := make(chan *Peer) // close-only
+		go Init(srv, clt, true, false, fin)
 
 		go func() {
 			srv = <-fin
 
 			clt.SetServer(srv)
 
-			go multiserver.Proxy(clt, srv)
-			go multiserver.Proxy(srv, clt)
+			go Proxy(clt, srv)
+			go Proxy(srv, clt)
 		}()
 	}
 }

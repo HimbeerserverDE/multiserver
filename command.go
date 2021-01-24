@@ -1,4 +1,4 @@
-package multiserver
+package main
 
 import (
 	"crypto/subtle"
@@ -131,7 +131,7 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 			return processServerChatMessage(dst, rudp.Pkt{Data: data, ChNo: pkt.ChNo})
 		case ToClientModChannelSignal:
 			chlen := binary.BigEndian.Uint16(pkt.Data[3:5])
-			ch := string(pkt.Data[5:5+chlen])
+			ch := string(pkt.Data[5 : 5+chlen])
 			if ch == rpcCh {
 				switch sig := pkt.Data[2]; sig {
 				case ModChSigJoinOk:
