@@ -423,4 +423,5 @@ func init() {
 	}
 
 	updateMediaCache()
+	go startRpc()
 }

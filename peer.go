@@ -38,6 +38,7 @@ type Peer struct {
 	aoIDs          map[uint16]bool
 
 	useRpc bool
+	modChs map[string]bool
 }
 
 // Username returns the username of the Peer
