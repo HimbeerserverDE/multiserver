@@ -26,7 +26,7 @@ func processJoin(p *Peer) {
 
 	rpcSrvMu.Lock()
 	for srv := range rpcSrvs {
-		srv.doRpc("->JOIN " + string(p.username), "--")
+		srv.doRpc("->JOIN "+string(p.username), "--")
 	}
 	rpcSrvMu.Unlock()
 
@@ -42,7 +42,7 @@ func processLeave(p *Peer) {
 
 	rpcSrvMu.Lock()
 	for srv := range rpcSrvs {
-		srv.doRpc("->LEAVE " + string(p.username), "--")
+		srv.doRpc("->LEAVE "+string(p.username), "--")
 	}
 	rpcSrvMu.Unlock()
 
