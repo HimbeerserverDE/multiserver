@@ -259,7 +259,7 @@ func startRpc() {
 
 					fin := make(chan *Peer) // close-only
 					go Init(clt, srv, true, true, fin)
-					
+
 					go func() {
 						<-fin
 

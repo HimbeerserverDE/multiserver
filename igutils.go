@@ -5,76 +5,54 @@ import (
 	"strings"
 )
 
-func cmdSend(p *Peer, param string) {
-	if param == "" {
-		p.SendChatMsg("Usage: #send <playername> <servername>")
-		return
+func privs(args ...string) map[string]bool {
+	m := make(map[string]bool)
+	for _, priv := range args {
+		m[priv] = true
 	}
-
-	name := strings.Split(param, " ")[0]
-	if name == "" || len(strings.Split(param, " ")) < 2 {
-		p.SendChatMsg("Usage: #send <playername> <servername>")
-		return
-	}
-	tosrv := strings.Split(param, " ")[1]
-	if tosrv == "" {
-		p.SendChatMsg("Usage: #send <playername> <servername>")
-		return
-	}
-
-	servers := GetConfKey("servers").(map[interface{}]interface{})
-	if servers[tosrv] == nil {
-		p.SendChatMsg("Unknown servername " + tosrv)
-		return
-	}
-
-	p2 := GetListener().GetPeerByUsername(name)
-	if p2 == nil {
-		p.SendChatMsg(name + " is not online.")
-		return
-	}
-
-	srv := p2.ServerName()
-	if srv == tosrv {
-		p.SendChatMsg(name + " is already connected to this server!")
-	}
-
-	go p2.Redirect(tosrv)
+	return m
 }
 
 func init() {
-	privs := make(map[string]map[string]bool)
+	RegisterChatCommand("send", privs("send"),
+		func(p *Peer, param string) {
+			if param == "" {
+				p.SendChatMsg("Usage: #send <playername> <servername>")
+				return
+			}
 
-	privs["send"] = make(map[string]bool)
-	privs["send"]["send"] = true
+			name := strings.Split(param, " ")[0]
+			if name == "" || len(strings.Split(param, " ")) < 2 {
+				p.SendChatMsg("Usage: #send <playername> <servername>")
+				return
+			}
+			tosrv := strings.Split(param, " ")[1]
+			if tosrv == "" {
+				p.SendChatMsg("Usage: #send <playername> <servername>")
+				return
+			}
 
-	privs["sendcurrent"] = make(map[string]bool)
-	privs["sendcurrent"]["send"] = true
+			servers := GetConfKey("servers").(map[interface{}]interface{})
+			if servers[tosrv] == nil {
+				p.SendChatMsg("Unknown servername " + tosrv)
+				return
+			}
 
-	privs["sendall"] = make(map[string]bool)
-	privs["sendall"]["send"] = true
+			p2 := GetListener().GetPeerByUsername(name)
+			if p2 == nil {
+				p.SendChatMsg(name + " is not online.")
+				return
+			}
 
-	privs["alert"] = make(map[string]bool)
-	privs["alert"]["alert"] = true
+			srv := p2.ServerName()
+			if srv == tosrv {
+				p.SendChatMsg(name + " is already connected to this server!")
+			}
 
-	privs["find"] = make(map[string]bool)
-	privs["find"]["find"] = true
+			go p2.Redirect(tosrv)
+		})
 
-	privs["addr"] = make(map[string]bool)
-	privs["addr"]["addr"] = true
-
-	privs["end"] = make(map[string]bool)
-	privs["end"]["end"] = true
-
-	privs["grant"] = make(map[string]bool)
-	privs["grant"]["privs"] = true
-
-	privs["revoke"] = make(map[string]bool)
-	privs["revoke"]["privs"] = true
-
-	RegisterChatCommand("send", privs["send"], cmdSend)
-
-	RegisterChatCommand("sendcurrent", privs["sendcurrent"],
+	RegisterChatCommand("sendcurrent", privs("send"),
 		func(p *Peer, param string) {
 			if param == "" {
 				p.SendChatMsg("Usage: #sendcurrent <servername>")
@@ -102,7 +80,7 @@ func init() {
 			}
 		})
 
-	RegisterChatCommand("sendall", privs["sendall"],
+	RegisterChatCommand("sendall", privs("send"),
 		func(p *Peer, param string) {
 			if param == "" {
 				p.SendChatMsg("Usage: #sendall <servername>")
@@ -127,7 +105,7 @@ func init() {
 			}
 		})
 
-	RegisterChatCommand("alert", privs["alert"],
+	RegisterChatCommand("alert", privs("alert"),
 		func(p *Peer, param string) {
 			ChatSendAll("[ALERT] " + param)
 		})
@@ -179,7 +157,7 @@ func init() {
 			}
 		})
 
-	RegisterChatCommand("find", privs["find"],
+	RegisterChatCommand("find", privs("find"),
 		func(p *Peer, param string) {
 			if param == "" {
 				p.SendChatMsg("Usage: #find <playername>")
@@ -195,7 +173,7 @@ func init() {
 			}
 		})
 
-	RegisterChatCommand("addr", privs["addr"],
+	RegisterChatCommand("addr", privs("addr"),
 		func(p *Peer, param string) {
 			if param == "" {
 				p.SendChatMsg("Usage: #addr <playername>")
@@ -210,7 +188,7 @@ func init() {
 			}
 		})
 
-	RegisterChatCommand("end", privs["end"],
+	RegisterChatCommand("end", privs("end"),
 		func(p *Peer, param string) {
 			go End(false, false)
 		})
@@ -251,7 +229,7 @@ func init() {
 			p.SendChatMsg(r + strings.Join(privnames, " "))
 		})
 
-	RegisterChatCommand("grant", privs["grant"],
+	RegisterChatCommand("grant", privs("privs"),
 		func(p *Peer, param string) {
 			name := strings.Split(param, " ")[0]
 			var privnames string
@@ -289,7 +267,7 @@ func init() {
 			p.SendChatMsg("Privileges updated.")
 		})
 
-	RegisterChatCommand("revoke", privs["revoke"],
+	RegisterChatCommand("revoke", privs("privs"),
 		func(p *Peer, param string) {
 			name := strings.Split(param, " ")[0]
 			var privnames string
