@@ -264,6 +264,26 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 					return
 				}
 
+				// Check if username is reserved for media or RPC
+				if string(p2.username) == "media" || string(p2.username) == "rpc" {
+					data := []byte{
+						0, ToClientAccessDenied,
+						AccessDeniedWrongName, 0, 0, 0, 0,
+					}
+
+					ack, err := p2.Send(rudp.Pkt{Data: data})
+					if err != nil {
+						log.Print(err)
+						continue
+					}
+					<-ack
+
+					p2.SendDisco(0, true)
+					p2.Close()
+					fin <- p
+					return
+				}
+
 				db, err := initAuthDB()
 				if err != nil {
 					log.Print(err)
