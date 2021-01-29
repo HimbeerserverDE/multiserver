@@ -17,9 +17,8 @@ func processAoRmAdd(p *Peer, data []byte) []byte {
 	countAdd := binary.BigEndian.Uint16(data[4+countRm*2 : 6+countRm*2])
 	aoAdd := make([]uint16, countAdd)
 	aoAddI := 0
-	j := uint32(0)
+	si := 6 + uint32(countRm)*2
 	for i := uint32(0); i < uint32(countAdd); i++ {
-		si := j + 6 + uint32(countRm)*2
 		initDataLen := binary.BigEndian.Uint32(data[3+si : 7+si])
 
 		namelen := binary.BigEndian.Uint16(data[8+si : 10+si])
@@ -32,16 +31,13 @@ func processAoRmAdd(p *Peer, data []byte) []byte {
 				p.initAoReceived = true
 			}
 
-			j += 7 + initDataLen
-
 			continue
 		}
 
 		aoAdd[aoAddI] = binary.BigEndian.Uint16(data[si : 2+si])
-
 		aoAddI++
 
-		j += 7 + initDataLen
+		si += 7 + initDataLen
 	}
 
 	p.redirectMu.Lock()
