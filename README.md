@@ -12,13 +12,13 @@ Go 1.15 or higher is required
 
 `go get github.com/HimbeerserverDE/multiserver`
 
-`cd ~/go/src/github.com/HimbeerserverDE/multiserver/multiserver`
+`cd ~/go/src/github.com/HimbeerserverDE/multiserver`
 
 `go build`
 ### Updating
 `go get -u github.com/HimbeerserverDE/multiserver`
 
-`cd ~/go/src/github.com/HimbeerserverDE/multiserver/multiserver`
+`cd ~/go/src/github.com/HimbeerserverDE/multiserver`
 
 `go build`
 
@@ -26,7 +26,7 @@ Go 1.15 or higher is required
 **Note: This shouldn't be used with existing minetest servers without moving authentication data (not the database files) to the proxy and then deleting the auth databases on the minetest servers! Not doing so can cause proxy <-> mt_server authentication to fail.**
 
 ### Running
-The `go build` command will create an executable file in `~/go/src/github.com/HimbeerserverDE/multiserver/multiserver/multiserver`.
+The `go build` command will create an executable file in `~/go/src/github.com/HimbeerserverDE/multiserver/multiserver`.
 This file should always be run from the same working directory. If you don't do this, the program will be unable to read the old data and will create
 the default files in the new working directory.
 
@@ -103,4 +103,5 @@ Description: The CSM restriction flags, default is none
 * 16: Limit node lookup
 * 32: No player info lookup
 * 63: All restrictions
+To set multiple flags at the same time add the corresponding numbers
 ```
