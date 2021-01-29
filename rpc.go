@@ -111,6 +111,15 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 			addr = GetListener().GetPeerByUsername(name).Addr().String()
 		}
 		p.doRpc("->ADDR "+addr, rq)
+	case "<-MT2MT":
+		msg := strings.Join(strings.Split(msg, " ")[2:], " ")
+		rpcSrvMu.Lock()
+		for srv := range rpcSrvs {
+			if srv.Addr().String() != p.Addr().String() {
+				srv.doRpc("->MT2MT "+msg, "--")
+			}
+		}
+		rpcSrvMu.Unlock()
 	}
 	return true
 }
