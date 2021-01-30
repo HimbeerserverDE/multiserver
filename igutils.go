@@ -71,13 +71,14 @@ func init() {
 				return
 			}
 
-			go p.Redirect(param)
-			peers := GetListener().GetPeers()
-			for i := range peers {
-				if peers[i].ServerName() == srv {
-					go peers[i].Redirect(param)
+			go func() {
+				peers := GetListener().GetPeers()
+				for i := range peers {
+					if peers[i].ServerName() == srv {
+						peers[i].Redirect(param)
+					}
 				}
-			}
+			}()
 		})
 
 	RegisterChatCommand("sendall", privs("send"),
@@ -93,16 +94,14 @@ func init() {
 				return
 			}
 
-			srv := p.ServerName()
-			if srv != param {
-				go p.Redirect(param)
-			}
-			peers := GetListener().GetPeers()
-			for i := range peers {
-				if psrv := peers[i].ServerName(); psrv != param {
-					go peers[i].Redirect(param)
+			go func() {
+				peers := GetListener().GetPeers()
+				for i := range peers {
+					if psrv := peers[i].ServerName(); psrv != param {
+						peers[i].Redirect(param)
+					}
 				}
-			}
+			}()
 		})
 
 	RegisterChatCommand("alert", privs("alert"),
