@@ -123,7 +123,7 @@ func (p *Peer) GetPrivs() (map[string]bool, error) {
 	}
 	defer db.Close()
 
-	eprivs, err := readPrivItem(db, string(p.username))
+	eprivs, err := readPrivItem(db, p.Username())
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (p *Peer) SetPrivs(privs map[string]bool) error {
 	}
 	defer db.Close()
 
-	err = modPrivItem(db, string(p.username), encodePrivs(privs))
+	err = modPrivItem(db, p.Username(), encodePrivs(privs))
 	if err != nil {
 		return err
 	}

@@ -26,11 +26,11 @@ func processJoin(p *Peer) {
 
 	rpcSrvMu.Lock()
 	for srv := range rpcSrvs {
-		srv.doRpc("->JOIN "+string(p.username), "--")
+		srv.doRpc("->JOIN "+p.Username(), "--")
 	}
 	rpcSrvMu.Unlock()
 
-	onlinePlayers[string(p.username)] = true
+	onlinePlayers[p.Username()] = true
 	for i := range onJoinPlayer {
 		onJoinPlayer[i](p)
 	}
@@ -42,11 +42,11 @@ func processLeave(p *Peer) {
 
 	rpcSrvMu.Lock()
 	for srv := range rpcSrvs {
-		srv.doRpc("->LEAVE "+string(p.username), "--")
+		srv.doRpc("->LEAVE "+p.Username(), "--")
 	}
 	rpcSrvMu.Unlock()
 
-	onlinePlayers[string(p.username)] = false
+	onlinePlayers[p.Username()] = false
 	for i := range onLeavePlayer {
 		onLeavePlayer[i](p)
 	}

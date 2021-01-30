@@ -80,7 +80,7 @@ func (l *Listener) GetPeerByUsername(name string) *Peer {
 	defer l.mu.RUnlock()
 
 	for peer := range l.peers {
-		if string(peer.username) == name {
+		if peer.Username() == name {
 			return peer
 		}
 	}

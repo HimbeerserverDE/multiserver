@@ -397,7 +397,7 @@ func loadMedia() {
 
 	loadMediaCache()
 
-	clt := &Peer{username: []byte("media")}
+	clt := &Peer{username: "media"}
 
 	servers := GetConfKey("servers").(map[interface{}]interface{})
 	for server := range servers {

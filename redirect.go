@@ -30,7 +30,7 @@ func processRedirectDone(p *Peer, newsrv string) {
 
 	rpcSrvMu.Lock()
 	for srv := range rpcSrvs {
-		srv.doRpc("->REDIRECTED "+string(p.username)+" "+newsrv+" "+successstr, "--")
+		srv.doRpc("->REDIRECTED "+p.Username()+" "+newsrv+" "+successstr, "--")
 	}
 	rpcSrvMu.Unlock()
 
