@@ -18,7 +18,7 @@ var connectedPeersMu sync.RWMutex
 type Peer struct {
 	*rudp.Peer
 
-	username []byte
+	username string
 	srp_s    []byte
 	srp_A    []byte
 	srp_a    []byte
@@ -43,7 +43,7 @@ type Peer struct {
 
 // Username returns the username of the Peer
 // if it isn't a server
-func (p *Peer) Username() string { return string(p.username) }
+func (p *Peer) Username() string { return p.username }
 
 // Forward reports whether the Proxy func should continue or stop
 func (p *Peer) Forward() bool {

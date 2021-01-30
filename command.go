@@ -173,7 +173,7 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 					return true
 				}
 
-				err = modAuthItem(db, string(src.username), pwd)
+				err = modAuthItem(db, src.Username(), pwd)
 				if err != nil {
 					log.Print(err)
 					return true
@@ -181,7 +181,7 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 
 				db.Close()
 			} else {
-				log.Print("User " + string(src.username) + " at " + src.Addr().String() + " did not enter sudo mode before attempting to change the password")
+				log.Print("User " + src.Username() + " at " + src.Addr().String() + " did not enter sudo mode before attempting to change the password")
 			}
 			return true
 		case ToServerSrpBytesA:
@@ -195,7 +195,7 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 					return true
 				}
 
-				pwd, err := readAuthItem(db, string(src.username))
+				pwd, err := readAuthItem(db, src.Username())
 				if err != nil {
 					log.Print(err)
 					return true
@@ -242,7 +242,7 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 				lenM := binary.BigEndian.Uint16(pkt.Data[2:4])
 				M := pkt.Data[4 : 4+lenM]
 
-				M2 := srp.CalculateM(src.username, src.srp_s, src.srp_A, src.srp_B, src.srp_K)
+				M2 := srp.CalculateM([]byte(src.Username()), src.srp_s, src.srp_A, src.srp_B, src.srp_K)
 
 				if subtle.ConstantTimeCompare(M, M2) == 1 {
 					// Password is correct
@@ -260,7 +260,7 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 					<-ack
 				} else {
 					// Client supplied wrong password
-					log.Print("User " + string(src.username) + " at " + src.Addr().String() + " supplied wrong password for sudo mode")
+					log.Print("User " + src.Username() + " at " + src.Addr().String() + " supplied wrong password for sudo mode")
 
 					// Send DENY_SUDO_MODE
 					data := []byte{0, ToClientDenySudoMode}

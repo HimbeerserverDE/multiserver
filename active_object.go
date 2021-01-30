@@ -23,7 +23,7 @@ func processAoRmAdd(p *Peer, data []byte) []byte {
 
 		namelen := binary.BigEndian.Uint16(data[8+si : 10+si])
 		name := data[10+si : 10+si+uint32(namelen)]
-		if string(name) == string(p.username) {
+		if string(name) == p.Username() {
 			if p.initAoReceived {
 				binary.BigEndian.PutUint16(data[4+countRm*2:6+countRm*2], countAdd-1)
 				data = append(data[:si], data[7+si+initDataLen:]...)

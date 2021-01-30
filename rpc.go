@@ -149,7 +149,7 @@ func (p *Peer) doRpc(rpc, rq string) {
 func connectRpc() {
 	servers := GetConfKey("servers").(map[interface{}]interface{})
 	for server := range servers {
-		clt := &Peer{username: []byte("rpc")}
+		clt := &Peer{username: "rpc"}
 
 		straddr := GetConfKey("servers:" + server.(string) + ":address")
 
@@ -230,7 +230,7 @@ func startRpc() {
 			case <-reconnect.C:
 				servers := GetConfKey("servers").(map[interface{}]interface{})
 				for server := range servers {
-					clt := &Peer{username: []byte("rpc")}
+					clt := &Peer{username: "rpc"}
 
 					straddr := GetConfKey("servers:" + server.(string) + ":address")
 

@@ -23,15 +23,15 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 	if p2.IsSrv() {
 		// We're trying to connect to a server
 		// INIT
-		data := make([]byte, 11+len(p.username))
+		data := make([]byte, 11+len(p.Username()))
 		data[0] = uint8(0x00)
 		data[1] = uint8(ToServerInit)
 		data[2] = uint8(0x1c)
 		binary.BigEndian.PutUint16(data[3:5], uint16(0x0000))
 		binary.BigEndian.PutUint16(data[5:7], uint16(0x0025))
 		binary.BigEndian.PutUint16(data[7:9], uint16(0x0027))
-		binary.BigEndian.PutUint16(data[9:11], uint16(len(p.username)))
-		copy(data[11:], p.username)
+		binary.BigEndian.PutUint16(data[9:11], uint16(len(p.Username())))
+		copy(data[11:], []byte(p.Username()))
 
 		time.Sleep(250 * time.Millisecond)
 
@@ -68,7 +68,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 			case ToClientHello:
 				if pkt.Data[10]&AuthMechSRP > 0 {
 					// Compute and send SRP_BYTES_A
-					_, _, err := srp.NewClient([]byte(strings.ToLower(string(p.username))), passPhrase)
+					_, _, err := srp.NewClient([]byte(strings.ToLower(p.Username())), passPhrase)
 					if err != nil {
 						log.Print(err)
 						continue
@@ -98,7 +98,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 					<-ack
 				} else {
 					// Compute and send s and v
-					s, v, err := srp.NewClient([]byte(strings.ToLower(string(p.username))), passPhrase)
+					s, v, err := srp.NewClient([]byte(strings.ToLower(p.Username())), passPhrase)
 					if err != nil {
 						log.Print(err)
 						continue
@@ -126,7 +126,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 				s := pkt.Data[4 : lenS+4]
 				B := pkt.Data[lenS+6:]
 
-				K, err := srp.CompleteHandshake(p.srp_A, p.srp_a, []byte(strings.ToLower(string(p.username))), passPhrase, s, B)
+				K, err := srp.CompleteHandshake(p.srp_A, p.srp_a, []byte(strings.ToLower(p.Username())), passPhrase, s, B)
 				if err != nil {
 					log.Print(err)
 					continue
@@ -134,7 +134,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 
 				p.srp_K = K
 
-				M := srp.CalculateM(p.username, s, p.srp_A, B, p.srp_K)
+				M := srp.CalculateM([]byte(p.Username()), s, p.srp_A, B, p.srp_K)
 
 				data := make([]byte, 4+len(M))
 				data[0] = uint8(0x00)
@@ -234,10 +234,10 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 			switch cmd := binary.BigEndian.Uint16(pkt.Data[0:2]); cmd {
 			case ToServerInit:
 				// Process data
-				p2.username = pkt.Data[11:]
+				p2.username = string(pkt.Data[11:])
 
 				// Send HELLO
-				data := make([]byte, 13+len(p2.username))
+				data := make([]byte, 13+len(p2.Username()))
 				data[0] = uint8(0x00)
 				data[1] = uint8(ToClientHello)
 				data[2] = uint8(0x1c)
@@ -245,7 +245,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 				binary.BigEndian.PutUint16(data[5:7], uint16(0x0027))
 
 				// Check if user is already connected
-				if IsOnline(string(p2.username)) {
+				if IsOnline(p2.Username()) {
 					data := []byte{
 						0, ToClientAccessDenied,
 						AccessDeniedAlreadyConnected, 0, 0, 0, 0,
@@ -265,7 +265,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 				}
 
 				// Check if username is reserved for media or RPC
-				if string(p2.username) == "media" || string(p2.username) == "rpc" {
+				if p2.Username() == "media" || p2.Username() == "rpc" {
 					data := []byte{
 						0, ToClientAccessDenied,
 						AccessDeniedWrongName, 0, 0, 0, 0,
@@ -290,7 +290,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 					continue
 				}
 
-				pwd, err := readAuthItem(db, string(p2.username))
+				pwd, err := readAuthItem(db, p2.Username())
 				if err != nil {
 					log.Print(err)
 					continue
@@ -308,8 +308,8 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 					binary.BigEndian.PutUint32(data[7:11], uint32(AuthMechSRP))
 				}
 
-				binary.BigEndian.PutUint16(data[11:13], uint16(len(p2.username)))
-				copy(data[13:], p2.username)
+				binary.BigEndian.PutUint16(data[11:13], uint16(len(p2.Username())))
+				copy(data[13:], []byte(p2.Username()))
 
 				ack, err := p2.Send(rudp.Pkt{Data: data})
 				if err != nil {
@@ -357,13 +357,13 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 					continue
 				}
 
-				err = addAuthItem(db, string(p2.username), pwd)
+				err = addAuthItem(db, p2.Username(), pwd)
 				if err != nil {
 					log.Print(err)
 					continue
 				}
 
-				err = addPrivItem(db, string(p2.username))
+				err = addPrivItem(db, p2.Username())
 				if err != nil {
 					log.Print(err)
 					continue
@@ -426,7 +426,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 					continue
 				}
 
-				pwd, err := readAuthItem(db, string(p2.username))
+				pwd, err := readAuthItem(db, p2.Username())
 				if err != nil {
 					log.Print(err)
 					continue
@@ -494,7 +494,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 				lenM := binary.BigEndian.Uint16(pkt.Data[2:4])
 				M := pkt.Data[4 : 4+lenM]
 
-				M2 := srp.CalculateM(p2.username, p2.srp_s, p2.srp_A, p2.srp_B, p2.srp_K)
+				M2 := srp.CalculateM([]byte(p2.Username()), p2.srp_s, p2.srp_A, p2.srp_B, p2.srp_K)
 
 				if subtle.ConstantTimeCompare(M, M2) == 1 {
 					// Password is correct
@@ -522,7 +522,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 					<-ack
 				} else {
 					// Client supplied wrong password
-					log.Print("User " + string(p2.username) + " at " + p2.Addr().String() + " supplied wrong password")
+					log.Print("User " + p2.Username() + " at " + p2.Addr().String() + " supplied wrong password")
 
 					// Send ACCESS_DENIED
 					data := []byte{
@@ -548,7 +548,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 				p2.sendMedia(pkt.Data[2:])
 			case ToServerClientReady:
 				if forceDefaultServer, ok := GetConfKey("force_default_server").(bool); !forceDefaultServer || !ok {
-					srvname, err := GetStorageKey("server:" + string(p2.username))
+					srvname, err := GetStorageKey("server:" + p2.Username())
 					if err != nil {
 						srvname, ok = GetConfKey("servers:" + GetConfKey("default_server").(string) + ":address").(string)
 						if !ok {
