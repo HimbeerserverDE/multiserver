@@ -71,19 +71,19 @@ func (p *Peer) fetchMedia() {
 		case ToClientAnnounceMedia:
 			var rq []string
 			count := binary.BigEndian.Uint16(pkt.Data[2:4])
-			si := uint16(4)
+			si := uint32(4)
 			for i := uint16(0); i < count; i++ {
 				namelen := binary.BigEndian.Uint16(pkt.Data[si : 2+si])
-				name := pkt.Data[2+si : 2+si+namelen]
-				diglen := binary.BigEndian.Uint16(pkt.Data[2+si+namelen : 4+si+namelen])
-				digest := pkt.Data[4+si+namelen : 4+si+namelen+diglen]
+				name := pkt.Data[2+si : 2+si+uint32(namelen)]
+				diglen := binary.BigEndian.Uint16(pkt.Data[2+si+uint32(namelen) : 4+si+uint32(namelen)])
+				digest := pkt.Data[4+si+uint32(namelen) : 4+si+uint32(namelen)+uint32(diglen)]
 
 				if media[string(name)] == nil && !isCached(string(name), digest) {
 					rq = append(rq, string(name))
 					media[string(name)] = &mediaFile{digest: digest}
 				}
 
-				si += 4 + namelen + diglen
+				si += 4 + uint32(namelen) + uint32(diglen)
 			}
 
 			// Request the media

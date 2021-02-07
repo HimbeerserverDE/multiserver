@@ -83,6 +83,7 @@ func (p *Peer) Redirect(newsrv string) error {
 	}
 	binary.BigEndian.PutUint16(data[i:2+i], uint16(0))
 
+	// Update detached inventories
 	if len(detachedinvs[newsrv]) > 0 {
 		for i := range detachedinvs[newsrv] {
 			data := make([]byte, 2+len(detachedinvs[newsrv][i]))
