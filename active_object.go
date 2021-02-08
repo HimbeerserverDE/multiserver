@@ -32,7 +32,6 @@ func processAoRmAdd(p *Peer, data []byte) []byte {
 			}
 
 			si += 7 + initDataLen
-
 			continue
 		}
 
