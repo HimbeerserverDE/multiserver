@@ -22,21 +22,23 @@ func processAoRmAdd(p *Peer, data []byte) []byte {
 		initDataLen := binary.BigEndian.Uint32(data[3+si : 7+si])
 
 		namelen := binary.BigEndian.Uint16(data[8+si : 10+si])
-		name := data[10+si : 10+si+uint32(namelen)]
-		if string(name) == p.Username() {
-			if p.initAoReceived {
-				binary.BigEndian.PutUint16(data[4+countRm*2:6+countRm*2], countAdd-1)
-				data = append(data[:si], data[7+si+initDataLen:]...)
-			} else {
-				p.initAoReceived = true
+		if uint16(len(data)) < 10+namelen {
+			name := data[10+si : 10+si+uint32(namelen)]
+			if string(name) == p.Username() {
+				if p.initAoReceived {
+					binary.BigEndian.PutUint16(data[4+countRm*2:6+countRm*2], countAdd-1)
+					data = append(data[:si], data[7+si+initDataLen:]...)
+				} else {
+					p.initAoReceived = true
+				}
+
+				si += 7 + initDataLen
+				continue
 			}
 
-			si += 7 + initDataLen
-			continue
+			aoAdd[aoAddI] = binary.BigEndian.Uint16(data[si : 2+si])
+			aoAddI++
 		}
-
-		aoAdd[aoAddI] = binary.BigEndian.Uint16(data[si : 2+si])
-		aoAddI++
 
 		si += 7 + initDataLen
 	}
