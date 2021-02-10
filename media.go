@@ -14,7 +14,7 @@ import (
 )
 
 // MediaRefetchInterval is the amount of time between media downloads
-const MediaRefetchInterval = 10 * time.Minute
+const MediaRefetchInterval = 30 * time.Second
 
 var media map[string]*mediaFile
 var tooldefs [][]byte
@@ -432,8 +432,10 @@ func loadMedia() {
 		srv.fetchMedia()
 	}
 
-	if err := mergeNodedefs(nodedefs); err != nil {
-		log.Fatal(err)
+	if nodedef == nil {
+		if err := mergeNodedefs(nodedefs); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	updateMediaCache()
