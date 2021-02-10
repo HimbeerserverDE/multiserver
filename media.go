@@ -18,7 +18,7 @@ const MediaRefetchInterval = 10 * time.Minute
 
 var media map[string]*mediaFile
 var tooldefs [][]byte
-var nodedefs [][]byte
+var nodedefs map[string][]byte
 var craftitemdefs [][]byte
 var itemdefs [][]byte
 var detachedinvs map[string][][]byte
@@ -50,7 +50,14 @@ func (p *Peer) fetchMedia() {
 		case ToClientTooldef:
 			tooldefs = append(tooldefs, pkt.Data[2:])
 		case ToClientNodedef:
-			nodedefs = append(nodedefs, pkt.Data[2:])
+			servers := GetConfKey("servers").(map[interface{}]interface{})
+			var srvname string
+			for server := range servers {
+				if GetConfKey("servers:"+server.(string)+":address") == p.Addr().String() {
+					srvname = server.(string)
+				}
+			}
+			nodedefs[srvname] = pkt.Data[6:]
 		case ToClientCraftitemdef:
 			craftitemdefs = append(craftitemdefs, pkt.Data[2:])
 		case ToClientItemdef:
@@ -172,19 +179,17 @@ func (p *Peer) announceMedia() {
 		<-ack
 	}
 
-	for _, def := range nodedefs {
-		data := make([]byte, 2+len(def))
-		data[0] = uint8(0x00)
-		data[1] = uint8(ToClientNodedef)
-		copy(data[2:], def)
+	data := make([]byte, 6+len(nodedef))
+	data[0] = uint8(0x00)
+	data[1] = uint8(ToClientNodedef)
+	binary.BigEndian.PutUint32(data[2:6], uint32(len(nodedef)))
+	copy(data[6:], nodedef)
 
-		ack, err := p.Send(rudp.Pkt{Data: data})
-		if err != nil {
-			log.Print(err)
-			continue
-		}
-		<-ack
+	ack, err := p.Send(rudp.Pkt{Data: data})
+	if err != nil {
+		log.Print(err)
 	}
+	<-ack
 
 	for _, def := range craftitemdefs {
 		data := make([]byte, 2+len(def))
@@ -216,12 +221,12 @@ func (p *Peer) announceMedia() {
 
 	p.updateDetachedInvs(srvname)
 
-	data := make([]byte, 2+len(movement))
+	data = make([]byte, 2+len(movement))
 	data[0] = uint8(0x00)
 	data[1] = uint8(ToClientMovement)
 	copy(data[2:], movement)
 
-	ack, err := p.Send(rudp.Pkt{Data: data})
+	ack, err = p.Send(rudp.Pkt{Data: data})
 	if err != nil {
 		log.Print(err)
 	}
@@ -393,6 +398,7 @@ func loadMedia() {
 	log.Print("Fetching media")
 
 	media = make(map[string]*mediaFile)
+	nodedefs = make(map[string][]byte)
 	detachedinvs = make(map[string][][]byte)
 
 	loadMediaCache()
@@ -424,6 +430,10 @@ func loadMedia() {
 		<-fin
 
 		srv.fetchMedia()
+	}
+
+	if err := mergeNodedefs(nodedefs); err != nil {
+		log.Fatal(err)
 	}
 
 	updateMediaCache()

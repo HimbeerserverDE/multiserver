@@ -147,6 +147,8 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 			return false
 		case ToClientModChannelMsg:
 			return processRpc(src, *pkt)
+		case ToClientBlockdata:
+			return processBlockdata(dst, pkt)
 		default:
 			return false
 		}
