@@ -38,7 +38,7 @@ func mergeNodedefs(mgrs map[string][]byte) error {
 
 	var nextID uint16
 
-	// Extract definitions from NodeDefMgrs
+	// Extract definitions from NodeDefManagers
 	for srv, compressedMgr := range mgrs {
 		if nodeDefs[srv] == nil {
 			nodeDefs[srv] = make(map[uint16]*NodeDef)
@@ -96,7 +96,7 @@ func mergeNodedefs(mgrs map[string][]byte) error {
 		}
 	}
 
-	// Merge definitions into new NodeDefMgr
+	// Merge definitions into new NodeDefManager
 	mgr := make([]byte, 7)
 	mgr[0] = uint8(1)
 	binary.BigEndian.PutUint16(mgr[1:3], total)

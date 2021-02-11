@@ -14,7 +14,7 @@ import (
 )
 
 // MediaRefetchInterval is the amount of time between media downloads
-const MediaRefetchInterval = 30 * time.Second
+const MediaRefetchInterval = 10 * time.Minute
 
 var media map[string]*mediaFile
 var tooldefs [][]byte
@@ -61,7 +61,7 @@ func (p *Peer) fetchMedia() {
 		case ToClientCraftitemdef:
 			craftitemdefs = append(craftitemdefs, pkt.Data[2:])
 		case ToClientItemdef:
-			itemdefs = append(itemdefs, pkt.Data[2:])
+			itemdefs = append(itemdefs, pkt.Data[6:])
 		case ToClientMovement:
 			movement = pkt.Data[2:]
 		case ToClientDetachedInventory:
@@ -205,19 +205,17 @@ func (p *Peer) announceMedia() {
 		<-ack
 	}
 
-	for _, def := range itemdefs {
-		data := make([]byte, 2+len(def))
-		data[0] = uint8(0x00)
-		data[1] = uint8(ToClientItemdef)
-		copy(data[2:], def)
+	data = make([]byte, 6+len(itemdef))
+	data[0] = uint8(0x00)
+	data[1] = uint8(ToClientItemdef)
+	binary.BigEndian.PutUint32(data[2:6], uint32(len(itemdef)))
+	copy(data[6:], itemdef)
 
-		ack, err := p.Send(rudp.Pkt{Data: data})
-		if err != nil {
-			log.Print(err)
-			continue
-		}
-		<-ack
+	ack, err = p.Send(rudp.Pkt{Data: data})
+	if err != nil {
+		log.Print(err)
 	}
+	<-ack
 
 	p.updateDetachedInvs(srvname)
 
@@ -436,6 +434,10 @@ func loadMedia() {
 		if err := mergeNodedefs(nodedefs); err != nil {
 			log.Fatal(err)
 		}
+	}
+
+	if err := mergeItemdefs(itemdefs); err != nil {
+		log.Fatal(err)
 	}
 
 	updateMediaCache()

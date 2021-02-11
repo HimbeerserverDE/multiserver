@@ -14,22 +14,9 @@ const NodeCount = 16 * 16 * 16
 func processBlockdata(p *Peer, pkt *rudp.Pkt) bool {
 	srv := p.ServerName()
 
-	var zc uint32
-	si := len(pkt.Data) - 1
-	for ; si > 0; si-- {
-		// Check for zlib header
-		if pkt.Data[si] == 120 && (pkt.Data[1+si] == 0x01 || pkt.Data[1+si] == 0x9C || pkt.Data[1+si] == 0xDA) {
-			zc++
-		}
-	}
-
-	if zc == 2 {
-		si = 14
-		// Check for zlib header
-		for ; !(pkt.Data[si] == 120 && (pkt.Data[1+si] == 0x01 || pkt.Data[1+si] == 0x9C || pkt.Data[1+si] == 0xDA)); si++ {
-		}
-	} else {
-		si = len(pkt.Data)
+	si := 14
+	// Check for zlib header
+	for ; !(pkt.Data[si] == 120 && (pkt.Data[1+si] == 0x01 || pkt.Data[1+si] == 0x9C || pkt.Data[1+si] == 0xDA)); si++ {
 	}
 
 	compressedNodes := pkt.Data[13:si]
@@ -64,20 +51,22 @@ func processBlockdata(p *Peer, pkt *rudp.Pkt) bool {
 
 	recompNodes := recompBuf.Bytes()
 
-	if zc == 2 {
-		data := make([]byte, 13+len(recompNodes)+len(pkt.Data[si:]))
-		copy(data[:13], pkt.Data[:13])
-		copy(data[13:13+len(recompNodes)], recompNodes)
-		copy(data[13+len(recompNodes):], pkt.Data[si:])
+	data := make([]byte, 13+len(recompNodes)+len(pkt.Data[si:]))
+	copy(data[:13], pkt.Data[:13])
+	copy(data[13:13+len(recompNodes)], recompNodes)
+	copy(data[13+len(recompNodes):], pkt.Data[si:])
 
-		pkt.Data = data
-	} else {
-		data := make([]byte, 13+len(recompNodes))
-		copy(data[:13], pkt.Data[:13])
-		copy(data[13:], recompNodes)
+	pkt.Data = data
 
-		pkt.Data = data
-	}
+	return false
+}
+
+func processAddnode(p *Peer, pkt *rudp.Pkt) bool {
+	srv := p.ServerName()
+
+	contentID := binary.BigEndian.Uint16(pkt.Data[8:10])
+	newID := nodeDefs[srv][contentID].ID()
+	binary.BigEndian.PutUint16(pkt.Data[8:10], newID)
 
 	return false
 }

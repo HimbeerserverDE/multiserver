@@ -149,6 +149,8 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 			return processRpc(src, *pkt)
 		case ToClientBlockdata:
 			return processBlockdata(dst, pkt)
+		case ToClientAddNode:
+			return processAddnode(dst, pkt)
 		default:
 			return false
 		}
