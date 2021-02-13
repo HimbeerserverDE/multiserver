@@ -135,11 +135,11 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 			if ch == rpcCh {
 				switch sig := pkt.Data[2]; sig {
 				case ModChSigJoinOk:
-					src.useRpc = true
+					src.SetUseRpc(true)
 				case ModChSigSetState:
 					state := pkt.Data[5+chlen]
 					if state == ModChStateRO {
-						src.useRpc = false
+						src.SetUseRpc(false)
 					}
 				}
 				return true
