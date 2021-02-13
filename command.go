@@ -135,11 +135,11 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 			if ch == rpcCh {
 				switch sig := pkt.Data[2]; sig {
 				case ModChSigJoinOk:
-					src.useRpc = true
+					src.SetUseRpc(true)
 				case ModChSigSetState:
 					state := pkt.Data[5+chlen]
 					if state == ModChStateRO {
-						src.useRpc = false
+						src.SetUseRpc(false)
 					}
 				}
 				return true
@@ -147,6 +147,18 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 			return false
 		case ToClientModChannelMsg:
 			return processRpc(src, *pkt)
+		case ToClientBlockdata:
+			return processBlockdata(dst, pkt)
+		case ToClientAddNode:
+			return processAddnode(dst, pkt)
+		case ToClientHudAdd:
+			id := binary.BigEndian.Uint32(pkt.Data[2:6])
+			dst.huds[id] = true
+			return false
+		case ToClientHudRm:
+			id := binary.BigEndian.Uint32(pkt.Data[2:6])
+			dst.huds[id] = false
+			return false
 		default:
 			return false
 		}

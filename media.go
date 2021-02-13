@@ -17,9 +17,7 @@ import (
 const MediaRefetchInterval = 10 * time.Minute
 
 var media map[string]*mediaFile
-var tooldefs [][]byte
-var nodedefs [][]byte
-var craftitemdefs [][]byte
+var nodedefs map[string][]byte
 var itemdefs [][]byte
 var detachedinvs map[string][][]byte
 var movement []byte
@@ -47,14 +45,17 @@ func (p *Peer) fetchMedia() {
 		}
 
 		switch cmd := binary.BigEndian.Uint16(pkt.Data[0:2]); cmd {
-		case ToClientTooldef:
-			tooldefs = append(tooldefs, pkt.Data[2:])
 		case ToClientNodedef:
-			nodedefs = append(nodedefs, pkt.Data[2:])
-		case ToClientCraftitemdef:
-			craftitemdefs = append(craftitemdefs, pkt.Data[2:])
+			servers := GetConfKey("servers").(map[interface{}]interface{})
+			var srvname string
+			for server := range servers {
+				if GetConfKey("servers:"+server.(string)+":address") == p.Addr().String() {
+					srvname = server.(string)
+				}
+			}
+			nodedefs[srvname] = pkt.Data[6:]
 		case ToClientItemdef:
-			itemdefs = append(itemdefs, pkt.Data[2:])
+			itemdefs = append(itemdefs, pkt.Data[6:])
 		case ToClientMovement:
 			movement = pkt.Data[2:]
 		case ToClientDetachedInventory:
@@ -158,70 +159,38 @@ func (p *Peer) announceMedia() {
 		return
 	}
 
-	for _, def := range tooldefs {
-		data := make([]byte, 2+len(def))
-		data[0] = uint8(0x00)
-		data[1] = uint8(ToClientTooldef)
-		copy(data[2:], def)
+	data := make([]byte, 6+len(nodedef))
+	data[0] = uint8(0x00)
+	data[1] = uint8(ToClientNodedef)
+	binary.BigEndian.PutUint32(data[2:6], uint32(len(nodedef)))
+	copy(data[6:], nodedef)
 
-		ack, err := p.Send(rudp.Pkt{Data: data})
-		if err != nil {
-			log.Print(err)
-			continue
-		}
-		<-ack
+	ack, err := p.Send(rudp.Pkt{Data: data})
+	if err != nil {
+		log.Print(err)
 	}
+	<-ack
 
-	for _, def := range nodedefs {
-		data := make([]byte, 2+len(def))
-		data[0] = uint8(0x00)
-		data[1] = uint8(ToClientNodedef)
-		copy(data[2:], def)
+	data = make([]byte, 6+len(itemdef))
+	data[0] = uint8(0x00)
+	data[1] = uint8(ToClientItemdef)
+	binary.BigEndian.PutUint32(data[2:6], uint32(len(itemdef)))
+	copy(data[6:], itemdef)
 
-		ack, err := p.Send(rudp.Pkt{Data: data})
-		if err != nil {
-			log.Print(err)
-			continue
-		}
-		<-ack
+	ack, err = p.Send(rudp.Pkt{Data: data})
+	if err != nil {
+		log.Print(err)
 	}
-
-	for _, def := range craftitemdefs {
-		data := make([]byte, 2+len(def))
-		data[0] = uint8(0x00)
-		data[1] = uint8(ToClientCraftitemdef)
-		copy(data[2:], def)
-
-		ack, err := p.Send(rudp.Pkt{Data: data})
-		if err != nil {
-			log.Print(err)
-			continue
-		}
-		<-ack
-	}
-
-	for _, def := range itemdefs {
-		data := make([]byte, 2+len(def))
-		data[0] = uint8(0x00)
-		data[1] = uint8(ToClientItemdef)
-		copy(data[2:], def)
-
-		ack, err := p.Send(rudp.Pkt{Data: data})
-		if err != nil {
-			log.Print(err)
-			continue
-		}
-		<-ack
-	}
+	<-ack
 
 	p.updateDetachedInvs(srvname)
 
-	data := make([]byte, 2+len(movement))
+	data = make([]byte, 2+len(movement))
 	data[0] = uint8(0x00)
 	data[1] = uint8(ToClientMovement)
 	copy(data[2:], movement)
 
-	ack, err := p.Send(rudp.Pkt{Data: data})
+	ack, err = p.Send(rudp.Pkt{Data: data})
 	if err != nil {
 		log.Print(err)
 	}
@@ -393,6 +362,8 @@ func loadMedia() {
 	log.Print("Fetching media")
 
 	media = make(map[string]*mediaFile)
+	nodedefs = make(map[string][]byte)
+	itemdefs = [][]byte{}
 	detachedinvs = make(map[string][][]byte)
 
 	loadMediaCache()
@@ -424,6 +395,16 @@ func loadMedia() {
 		<-fin
 
 		srv.fetchMedia()
+	}
+
+	if nodedef == nil {
+		if err := mergeNodedefs(nodedefs); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if err := mergeItemdefs(itemdefs); err != nil {
+		log.Fatal(err)
 	}
 
 	updateMediaCache()

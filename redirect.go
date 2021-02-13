@@ -70,42 +70,87 @@ func (p *Peer) Redirect(newsrv string) error {
 		return err
 	}
 
-	// Remove active objects
-	data := make([]byte, 6+len(p.aoIDs)*2)
-	data[0] = uint8(0x00)
-	data[1] = uint8(ToClientActiveObjectRemoveAdd)
-	binary.BigEndian.PutUint16(data[2:4], uint16(len(p.aoIDs)))
-	i := 4
-	for ao := range p.aoIDs {
-		binary.BigEndian.PutUint16(data[i:2+i], ao)
-
-		i += 2
-	}
-	binary.BigEndian.PutUint16(data[i:2+i], uint16(0))
-
-	// Update detached inventories
-	if len(detachedinvs[newsrv]) > 0 {
-		for i := range detachedinvs[newsrv] {
-			data := make([]byte, 2+len(detachedinvs[newsrv][i]))
-			data[0] = uint8(0x00)
-			data[1] = uint8(ToClientDetachedInventory)
-			copy(data[2:], detachedinvs[newsrv][i])
-
-			ack, err := p.Send(rudp.Pkt{Data: data})
-			if err != nil {
-				return err
-			}
-			<-ack
-		}
+	// Reset formspec style
+	data := []byte{
+		0x00, ToClientFormspecPrepend,
+		0x00, 0x00,
 	}
 
 	ack, err := p.Send(rudp.Pkt{Data: data})
+
+	// Remove active objects
+	data = make([]byte, 6+len(p.aoIDs)*2)
+	data[0] = uint8(0x00)
+	data[1] = uint8(ToClientActiveObjectRemoveAdd)
+	binary.BigEndian.PutUint16(data[2:4], uint16(len(p.aoIDs)))
+	si := 4
+	for ao := range p.aoIDs {
+		binary.BigEndian.PutUint16(data[si:2+si], ao)
+		si += 2
+	}
+	binary.BigEndian.PutUint16(data[si:2+si], uint16(0))
+
+	ack, err = p.Send(rudp.Pkt{Data: data})
 	if err != nil {
 		return err
 	}
 	<-ack
 
 	p.aoIDs = make(map[uint16]bool)
+
+	// Remove HUDs
+	data = []byte{0, ToClientHudSetParam, 0, 1, 0, 4, 0, 0, 0, 8}
+
+	ack, err = p.Send(rudp.Pkt{ChNo: 1, Data: data})
+	if err != nil {
+		return err
+	}
+	<-ack
+
+	data = []byte{0, ToClientHudSetParam, 0, 2, 0, 0}
+
+	ack, err = p.Send(rudp.Pkt{ChNo: 1, Data: data})
+	if err != nil {
+		return err
+	}
+	<-ack
+
+	data = []byte{0, ToClientHudSetParam, 0, 3, 0, 0}
+
+	ack, err = p.Send(rudp.Pkt{ChNo: 1, Data: data})
+	if err != nil {
+		return err
+	}
+	<-ack
+
+	for hud := range p.huds {
+		data = make([]byte, 6)
+		data[0] = uint8(0x00)
+		data[1] = uint8(ToClientHudRm)
+		binary.BigEndian.PutUint32(data[2:6], hud)
+
+		ack, err = p.Send(rudp.Pkt{ChNo: 1, Data: data})
+		if err != nil {
+			return err
+		}
+		<-ack
+	}
+
+	// Update detached inventories
+	if len(detachedinvs[newsrv]) > 0 {
+		for i := range detachedinvs[newsrv] {
+			data = make([]byte, 2+len(detachedinvs[newsrv][i]))
+			data[0] = uint8(0x00)
+			data[1] = uint8(ToClientDetachedInventory)
+			copy(data[2:], detachedinvs[newsrv][i])
+
+			ack, err = p.Send(rudp.Pkt{Data: data})
+			if err != nil {
+				return err
+			}
+			<-ack
+		}
+	}
 
 	p.Server().stopForwarding()
 
@@ -126,7 +171,7 @@ func (p *Peer) Redirect(newsrv string) error {
 		binary.BigEndian.PutUint16(data[2:4], uint16(len(ch)))
 		copy(data[4:], []byte(ch))
 
-		ack, err := srv.Send(rudp.Pkt{Data: data})
+		ack, err = srv.Send(rudp.Pkt{Data: data})
 		if err != nil {
 			log.Print(err)
 		}

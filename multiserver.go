@@ -1,6 +1,6 @@
 /*
 Multiserver is a multi-server minetest reverse proxy capable of
-media multiplexing
+media and definition multiplexing
 */
 package main
 

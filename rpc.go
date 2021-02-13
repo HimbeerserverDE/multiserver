@@ -125,7 +125,7 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 }
 
 func (p *Peer) doRpc(rpc, rq string) {
-	if !p.useRpc {
+	if !p.UseRpc() {
 		return
 	}
 
@@ -147,6 +147,8 @@ func (p *Peer) doRpc(rpc, rq string) {
 }
 
 func connectRpc() {
+	log.Print("Establishing RPC connections")
+
 	servers := GetConfKey("servers").(map[interface{}]interface{})
 	for server := range servers {
 		clt := &Peer{username: "rpc"}
@@ -203,11 +205,11 @@ func connectRpc() {
 						if ch == rpcCh {
 							switch sig := pkt.Data[2]; sig {
 							case ModChSigJoinOk:
-								srv.useRpc = true
+								srv.SetUseRpc(true)
 							case ModChSigSetState:
 								state := pkt.Data[5+chlen]
 								if state == ModChStateRO {
-									srv.useRpc = false
+									srv.SetUseRpc(false)
 								}
 							}
 						}
@@ -298,11 +300,11 @@ func startRpc() {
 									if ch == rpcCh {
 										switch sig := pkt.Data[2]; sig {
 										case ModChSigJoinOk:
-											srv.useRpc = true
+											srv.SetUseRpc(true)
 										case ModChSigSetState:
 											state := pkt.Data[5+chlen]
 											if state == ModChStateRO {
-												srv.useRpc = false
+												srv.SetUseRpc(false)
 											}
 										}
 									}
@@ -319,5 +321,7 @@ func startRpc() {
 }
 
 func init() {
+	rpcSrvMu.Lock()
 	rpcSrvs = make(map[*Peer]struct{})
+	rpcSrvMu.Unlock()
 }

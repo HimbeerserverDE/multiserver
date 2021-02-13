@@ -37,8 +37,11 @@ type Peer struct {
 	initAoReceived bool
 	aoIDs          map[uint16]bool
 
-	useRpc bool
-	modChs map[string]bool
+	useRpcMu sync.RWMutex
+	useRpc   bool
+	modChs   map[string]bool
+
+	huds map[uint32]bool
 }
 
 // Username returns the username of the Peer
@@ -90,6 +93,22 @@ func (p *Peer) SetServer(s *Peer) {
 	defer p.srvMu.Unlock()
 
 	p.srv = s
+}
+
+// UseRpc reports whether RPC messages can be sent to the Peer
+func (p *Peer) UseRpc() bool {
+	p.useRpcMu.RLock()
+	defer p.useRpcMu.RUnlock()
+
+	return p.useRpc
+}
+
+// SetUseRpc sets the value returned by UseRpc
+func (p *Peer) SetUseRpc(useRpc bool) {
+	p.useRpcMu.Lock()
+	defer p.useRpcMu.Unlock()
+
+	p.useRpc = useRpc
 }
 
 // Connect connects to the server on conn
