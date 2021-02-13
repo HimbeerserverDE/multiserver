@@ -70,8 +70,16 @@ func (p *Peer) Redirect(newsrv string) error {
 		return err
 	}
 
+	// Reset formspec style
+	data := []byte{
+		0x00, ToClientFormspecPrepend,
+		0x00, 0x00,
+	}
+
+	ack, err := p.Send(rudp.Pkt{Data: data})
+
 	// Remove active objects
-	data := make([]byte, 6+len(p.aoIDs)*2)
+	data = make([]byte, 6+len(p.aoIDs)*2)
 	data[0] = uint8(0x00)
 	data[1] = uint8(ToClientActiveObjectRemoveAdd)
 	binary.BigEndian.PutUint16(data[2:4], uint16(len(p.aoIDs)))
@@ -83,10 +91,18 @@ func (p *Peer) Redirect(newsrv string) error {
 	}
 	binary.BigEndian.PutUint16(data[i:2+i], uint16(0))
 
+	ack, err = p.Send(rudp.Pkt{Data: data})
+	if err != nil {
+		return err
+	}
+	<-ack
+
+	p.aoIDs = make(map[uint16]bool)
+
 	// Update detached inventories
 	if len(detachedinvs[newsrv]) > 0 {
 		for i := range detachedinvs[newsrv] {
-			data := make([]byte, 2+len(detachedinvs[newsrv][i]))
+			data = make([]byte, 2+len(detachedinvs[newsrv][i]))
 			data[0] = uint8(0x00)
 			data[1] = uint8(ToClientDetachedInventory)
 			copy(data[2:], detachedinvs[newsrv][i])
@@ -98,14 +114,6 @@ func (p *Peer) Redirect(newsrv string) error {
 			<-ack
 		}
 	}
-
-	ack, err := p.Send(rudp.Pkt{Data: data})
-	if err != nil {
-		return err
-	}
-	<-ack
-
-	p.aoIDs = make(map[uint16]bool)
 
 	p.Server().stopForwarding()
 
