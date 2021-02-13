@@ -397,6 +397,7 @@ func loadMedia() {
 
 	media = make(map[string]*mediaFile)
 	nodedefs = make(map[string][]byte)
+	itemdefs = [][]byte{}
 	detachedinvs = make(map[string][][]byte)
 
 	loadMediaCache()
