@@ -151,6 +151,14 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 			return processBlockdata(dst, pkt)
 		case ToClientAddNode:
 			return processAddnode(dst, pkt)
+		case ToClientHudAdd:
+			id := binary.BigEndian.Uint32(pkt.Data[2:6])
+			dst.huds[id] = true
+			return false
+		case ToClientHudRm:
+			id := binary.BigEndian.Uint32(pkt.Data[2:6])
+			dst.huds[id] = false
+			return false
 		default:
 			return false
 		}

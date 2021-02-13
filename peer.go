@@ -40,6 +40,8 @@ type Peer struct {
 	useRpcMu sync.RWMutex
 	useRpc   bool
 	modChs   map[string]bool
+
+	huds map[uint32]bool
 }
 
 // Username returns the username of the Peer
