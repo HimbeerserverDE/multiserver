@@ -17,9 +17,7 @@ import (
 const MediaRefetchInterval = 10 * time.Minute
 
 var media map[string]*mediaFile
-var tooldefs [][]byte
 var nodedefs map[string][]byte
-var craftitemdefs [][]byte
 var itemdefs [][]byte
 var detachedinvs map[string][][]byte
 var movement []byte
@@ -47,8 +45,6 @@ func (p *Peer) fetchMedia() {
 		}
 
 		switch cmd := binary.BigEndian.Uint16(pkt.Data[0:2]); cmd {
-		case ToClientTooldef:
-			tooldefs = append(tooldefs, pkt.Data[2:])
 		case ToClientNodedef:
 			servers := GetConfKey("servers").(map[interface{}]interface{})
 			var srvname string
@@ -58,8 +54,6 @@ func (p *Peer) fetchMedia() {
 				}
 			}
 			nodedefs[srvname] = pkt.Data[6:]
-		case ToClientCraftitemdef:
-			craftitemdefs = append(craftitemdefs, pkt.Data[2:])
 		case ToClientItemdef:
 			itemdefs = append(itemdefs, pkt.Data[6:])
 		case ToClientMovement:
@@ -165,20 +159,6 @@ func (p *Peer) announceMedia() {
 		return
 	}
 
-	for _, def := range tooldefs {
-		data := make([]byte, 2+len(def))
-		data[0] = uint8(0x00)
-		data[1] = uint8(ToClientTooldef)
-		copy(data[2:], def)
-
-		ack, err := p.Send(rudp.Pkt{Data: data})
-		if err != nil {
-			log.Print(err)
-			continue
-		}
-		<-ack
-	}
-
 	data := make([]byte, 6+len(nodedef))
 	data[0] = uint8(0x00)
 	data[1] = uint8(ToClientNodedef)
@@ -190,20 +170,6 @@ func (p *Peer) announceMedia() {
 		log.Print(err)
 	}
 	<-ack
-
-	for _, def := range craftitemdefs {
-		data := make([]byte, 2+len(def))
-		data[0] = uint8(0x00)
-		data[1] = uint8(ToClientCraftitemdef)
-		copy(data[2:], def)
-
-		ack, err := p.Send(rudp.Pkt{Data: data})
-		if err != nil {
-			log.Print(err)
-			continue
-		}
-		<-ack
-	}
 
 	data = make([]byte, 6+len(itemdef))
 	data[0] = uint8(0x00)
