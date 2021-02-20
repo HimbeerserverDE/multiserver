@@ -34,8 +34,10 @@ type Peer struct {
 	srvMu      sync.RWMutex
 	srv        *Peer
 
-	initAoReceived bool
-	aoIDs          map[uint16]bool
+	initAoReceived   bool
+	aoIDs            map[uint16]bool
+	localPlayerCao   uint16
+	currentPlayerCao uint16
 
 	useRpcMu sync.RWMutex
 	useRpc   bool
