@@ -29,8 +29,6 @@ const (
 	ModChStateRO
 )
 
-const RpcReconnectInterval = 10 * time.Minute
-
 var rpcSrvMu sync.Mutex
 var rpcSrvs map[*Peer]struct{}
 
@@ -222,14 +220,25 @@ func connectRpc() {
 	}
 }
 
-func startRpc() {
+func init() {
+	rpcSrvMu.Lock()
+	rpcSrvs = make(map[*Peer]struct{})
+	rpcSrvMu.Unlock()
+
+	reconnect, ok := GetConfKey("rpc_reconnect_interval").(int)
+	if !ok {
+		reconnect = 10
+	}
+
 	connectRpc()
 
 	go func() {
-		reconnect := time.NewTicker(RpcReconnectInterval)
+		reconnect := time.NewTicker(time.Duration(reconnect) * time.Minute)
 		for {
 			select {
 			case <-reconnect.C:
+				log.Print("Re-establishing closed RPC connections")
+
 				servers := GetConfKey("servers").(map[interface{}]interface{})
 				for server := range servers {
 					clt := &Peer{username: "rpc"}
@@ -318,12 +327,4 @@ func startRpc() {
 			}
 		}
 	}()
-}
-
-func init() {
-	rpcSrvMu.Lock()
-	rpcSrvs = make(map[*Peer]struct{})
-	rpcSrvMu.Unlock()
-
-	startRpc()
 }
