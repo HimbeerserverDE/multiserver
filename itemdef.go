@@ -116,9 +116,6 @@ func bestCap(defs [][]byte, capabs []*ToolCapabs) *ItemDef {
 		}
 	}
 
-	if bestK >= len(defs) {
-		return &ItemDef{}
-	}
 	return &ItemDef{data: defs[bestK]}
 }
 
