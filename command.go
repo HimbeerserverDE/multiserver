@@ -117,6 +117,9 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 		case ToClientActiveObjectRemoveAdd:
 			pkt.Data = processAoRmAdd(dst, pkt.Data)
 			return false
+		case ToClientActiveObjectMessages:
+			pkt.Data = processAoMsgs(dst, pkt.Data)
+			return false
 		case ToClientChatMessage:
 			namelen := binary.BigEndian.Uint16(pkt.Data[4:6])
 			msglen := binary.BigEndian.Uint16(pkt.Data[6+namelen : 8+namelen])
