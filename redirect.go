@@ -76,7 +76,7 @@ func (p *Peer) Redirect(newsrv string) error {
 		0x00, 0x00,
 	}
 
-	ack, err := p.Send(rudp.Pkt{Data: data})
+	_, err = p.Send(rudp.Pkt{Data: data})
 
 	// Remove active objects
 	data = make([]byte, 6+len(p.aoIDs)*2)
@@ -90,38 +90,38 @@ func (p *Peer) Redirect(newsrv string) error {
 	}
 	binary.BigEndian.PutUint16(data[si:2+si], uint16(0))
 
-	ack, err = p.Send(rudp.Pkt{Data: data})
+	_, err = p.Send(rudp.Pkt{Data: data})
 	if err != nil {
 		return err
 	}
-	<-ack
+	//<-ack
 
 	p.aoIDs = make(map[uint16]bool)
 
 	// Remove HUDs
 	data = []byte{0, ToClientHudSetParam, 0, 1, 0, 4, 0, 0, 0, 8}
 
-	ack, err = p.Send(rudp.Pkt{ChNo: 1, Data: data})
+	_, err = p.Send(rudp.Pkt{ChNo: 1, Data: data})
 	if err != nil {
 		return err
 	}
-	<-ack
+	//<-ack
 
 	data = []byte{0, ToClientHudSetParam, 0, 2, 0, 0}
 
-	ack, err = p.Send(rudp.Pkt{ChNo: 1, Data: data})
+	_, err = p.Send(rudp.Pkt{ChNo: 1, Data: data})
 	if err != nil {
 		return err
 	}
-	<-ack
+	//<-ack
 
 	data = []byte{0, ToClientHudSetParam, 0, 3, 0, 0}
 
-	ack, err = p.Send(rudp.Pkt{ChNo: 1, Data: data})
+	_, err = p.Send(rudp.Pkt{ChNo: 1, Data: data})
 	if err != nil {
 		return err
 	}
-	<-ack
+	//<-ack
 
 	for hud := range p.huds {
 		data = make([]byte, 6)
@@ -129,11 +129,11 @@ func (p *Peer) Redirect(newsrv string) error {
 		data[1] = uint8(ToClientHudRm)
 		binary.BigEndian.PutUint32(data[2:6], hud)
 
-		ack, err = p.Send(rudp.Pkt{ChNo: 1, Data: data})
+		_, err = p.Send(rudp.Pkt{ChNo: 1, Data: data})
 		if err != nil {
 			return err
 		}
-		<-ack
+		//<-ack
 	}
 
 	// Update detached inventories
@@ -144,11 +144,11 @@ func (p *Peer) Redirect(newsrv string) error {
 			data[1] = uint8(ToClientDetachedInventory)
 			copy(data[2:], detachedinvs[newsrv][i])
 
-			ack, err = p.Send(rudp.Pkt{Data: data})
+			_, err = p.Send(rudp.Pkt{Data: data})
 			if err != nil {
 				return err
 			}
-			<-ack
+			//<-ack
 		}
 	}
 
@@ -171,7 +171,7 @@ func (p *Peer) Redirect(newsrv string) error {
 		binary.BigEndian.PutUint16(data[2:4], uint16(len(ch)))
 		copy(data[4:], []byte(ch))
 
-		ack, err = srv.Send(rudp.Pkt{Data: data})
+		ack, err := srv.Send(rudp.Pkt{Data: data})
 		if err != nil {
 			log.Print(err)
 		}

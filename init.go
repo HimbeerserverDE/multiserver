@@ -49,14 +49,6 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 					}
 					log.Print(msg)
 
-					if !p2.IsSrv() {
-						connectedPeersMu.Lock()
-						connectedPeers--
-						connectedPeersMu.Unlock()
-
-						processLeave(p2)
-					}
-
 					return
 				}
 
@@ -195,12 +187,11 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 				binary.BigEndian.PutUint16(data[6:8], uint16(len(v)))
 				copy(data[8:], v)
 
-				ack, err := p2.Send(rudp.Pkt{Data: data, ChNo: 1})
+				_, err := p2.Send(rudp.Pkt{Data: data, ChNo: 1})
 				if err != nil {
 					log.Print(err)
 					continue
 				}
-				<-ack
 
 				return
 			}
@@ -216,13 +207,11 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 					}
 					log.Print(msg)
 
-					if !p2.IsSrv() {
-						connectedPeersMu.Lock()
-						connectedPeers--
-						connectedPeersMu.Unlock()
+					connectedPeersMu.Lock()
+					connectedPeers--
+					connectedPeersMu.Unlock()
 
-						processLeave(p2)
-					}
+					processLeave(p2)
 
 					return
 				}
