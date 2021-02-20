@@ -2,6 +2,9 @@ package main
 
 import (
 	"encoding/binary"
+	"log"
+
+	"github.com/anon55555/mt/rudp"
 )
 
 func processAoRmAdd(p *Peer, data []byte) []byte {
@@ -27,6 +30,37 @@ func processAoRmAdd(p *Peer, data []byte) []byte {
 		name := data[10+si : 10+si+uint32(namelen)]
 		if string(name) == p.Username() {
 			if p.initAoReceived {
+				initData := data[7+si : 7+si+initDataLen]
+
+				// Read the messages from the packet
+				// They need to be forwarded
+				msgcount := uint8(initData[32+namelen])
+				var msgs [][]byte
+				sj := uint16(33+namelen)
+				for j := uint8(0); j < msgcount; j++ {
+					msglen := binary.BigEndian.Uint16(initData[2+sj:4+sj])
+					msg := initData[4+sj : 4+sj+msglen]
+					msgs = append(msgs, msg)
+
+					sj += 4 + msglen
+				}
+
+				// Generate message packet
+				msgpkt := []byte{0x00, ToClientActiveObjectMessages}
+				for _, msg := range msgs {
+					msgdata := make([]byte, 4+len(msg))
+					binary.BigEndian.PutUint16(msgdata[0:2], p.localPlayerCao)
+					binary.BigEndian.PutUint16(msgdata[2:4], uint16(len(msg)))
+					copy(msgdata[4:], msg)
+					msgpkt = append(msgpkt, msgdata...)
+				}
+
+				ack, err := p.Send(rudp.Pkt{Data: msgpkt})
+				if err != nil {
+					log.Print(err)
+				}
+				<-ack
+
 				binary.BigEndian.PutUint16(data[4+countRm*2:6+countRm*2], countAdd-1)
 				data = append(data[:si], data[7+si+initDataLen:]...)
 				p.currentPlayerCao = id
