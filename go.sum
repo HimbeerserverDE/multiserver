@@ -1,9 +1,10 @@
-github.com/HimbeerserverDE/srp v0.0.0-20210106105115-e8e91ab831e1 h1:xD7UYc2WhwU/DZwTyu8492GMHl1ruWC6HwCH7Cur7b4=
-github.com/HimbeerserverDE/srp v0.0.0-20210106105115-e8e91ab831e1/go.mod h1:pxNH8S2nh4n2DWE0ToX5GnnDr/uEAuaAhJsCpkDLIWw=
-github.com/anon55555/mt v0.0.0-20201119151229-14c04859a14e h1:nP/OR12QY42NG+QGzvClhDxoIOUpUOu7eQ07xgpxGyo=
-github.com/anon55555/mt v0.0.0-20201119151229-14c04859a14e/go.mod h1:7ZPRe0qfnZlBvteViNuYubn47MvkAWj/M9JbEFRJqbE=
+github.com/HimbeerserverDE/srp v0.0.0-20210220165753-1b954ef7b017 h1:0vIYOfwAd3MtssbclXpCuUHVVV+5VOH0H1ld9+zSxgM=
+github.com/HimbeerserverDE/srp v0.0.0-20210220165753-1b954ef7b017/go.mod h1:pxNH8S2nh4n2DWE0ToX5GnnDr/uEAuaAhJsCpkDLIWw=
+github.com/anon55555/mt v0.0.0-20210220163106-8b61ee961a91 h1:R4TxnNwEQ/APFfAjnb99WyOzwWE9URNeDcZ34gVO4qE=
+github.com/anon55555/mt v0.0.0-20210220163106-8b61ee961a91/go.mod h1:jH4ER+ahjl7H6TczzK+q4V9sXY++U2Geh6/vt3r4Xvs=
 github.com/mattn/go-sqlite3 v1.14.6 h1:dNPt6NO46WmLVt2DLNpwczCmdV5boIZ6g/tlDrlRUbg=
 github.com/mattn/go-sqlite3 v1.14.6/go.mod h1:NyWgC/yNuGj7Q9rpYnZvas74GogHl5/Z4A/KQRfk6bU=
+gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v2 v2.4.0 h1:D8xgwECY7CYvx+Y2n4sBz93Jn9JRvxdiyyo8CTfuKaY=
 gopkg.in/yaml.v2 v2.4.0/go.mod h1:RDklbk79AGWmwhnvt/jBztapEOGDOx6ZbXqjP6csGnQ=

@@ -188,7 +188,7 @@ func connectRpc() {
 				for {
 					pkt, err := srv.Recv()
 					if err != nil {
-						if err == rudp.ErrClosed {
+						if err == net.ErrClosed {
 							rpcSrvMu.Lock()
 							delete(rpcSrvs, srv)
 							rpcSrvMu.Unlock()
@@ -283,7 +283,7 @@ func startRpc() {
 							for {
 								pkt, err := srv.Recv()
 								if err != nil {
-									if err == rudp.ErrClosed {
+									if err == net.ErrClosed {
 										rpcSrvMu.Lock()
 										delete(rpcSrvs, srv)
 										rpcSrvMu.Unlock()

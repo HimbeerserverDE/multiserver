@@ -42,7 +42,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 		for {
 			pkt, err := p2.Recv()
 			if err != nil {
-				if err == rudp.ErrClosed {
+				if err == net.ErrClosed {
 					msg := p2.Addr().String() + " disconnected"
 					if p2.TimedOut() {
 						msg += " (timed out)"
@@ -209,7 +209,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 		for {
 			pkt, err := p2.Recv()
 			if err != nil {
-				if err == rudp.ErrClosed {
+				if err == net.ErrClosed {
 					msg := p2.Addr().String() + " disconnected"
 					if p2.TimedOut() {
 						msg += " (timed out)"

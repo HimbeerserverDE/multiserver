@@ -36,7 +36,7 @@ func (p *Peer) fetchMedia() {
 	for {
 		pkt, err := p.Recv()
 		if err != nil {
-			if err == rudp.ErrClosed {
+			if err == net.ErrClosed {
 				return
 			}
 
