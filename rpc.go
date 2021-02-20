@@ -324,4 +324,6 @@ func init() {
 	rpcSrvMu.Lock()
 	rpcSrvs = make(map[*Peer]struct{})
 	rpcSrvMu.Unlock()
+
+	startRpc()
 }

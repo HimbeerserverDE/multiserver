@@ -412,7 +412,6 @@ func loadMedia() {
 
 func init() {
 	loadMedia()
-	go startRpc()
 
 	go func() {
 		refetch := time.NewTicker(MediaRefetchInterval)
