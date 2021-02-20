@@ -11,7 +11,7 @@ func processAoRmAdd(p *Peer, data []byte) []byte {
 	countRm := binary.BigEndian.Uint16(data[2:4])
 	var aoRm []uint16
 	for i := uint16(0); i < countRm; i += 2 {
-		id := binary.BigEndian.Uint16(data[4+i:6+i])
+		id := binary.BigEndian.Uint16(data[4+i : 6+i])
 		if id == p.localPlayerCao {
 			id = p.currentPlayerCao
 		}
@@ -22,7 +22,7 @@ func processAoRmAdd(p *Peer, data []byte) []byte {
 	var aoAdd []uint16
 	si := 6 + uint32(countRm)*2
 	for i := uint32(0); i < uint32(countAdd); i++ {
-		id := binary.BigEndian.Uint16(data[si:2+si])
+		id := binary.BigEndian.Uint16(data[si : 2+si])
 
 		initDataLen := binary.BigEndian.Uint32(data[3+si : 7+si])
 
@@ -36,9 +36,9 @@ func processAoRmAdd(p *Peer, data []byte) []byte {
 				// They need to be forwarded
 				msgcount := uint8(initData[32+namelen])
 				var msgs [][]byte
-				sj := uint16(33+namelen)
+				sj := uint16(33 + namelen)
 				for j := uint8(0); j < msgcount; j++ {
-					msglen := binary.BigEndian.Uint16(initData[2+sj:4+sj])
+					msglen := binary.BigEndian.Uint16(initData[2+sj : 4+sj])
 					msg := initData[4+sj : 4+sj+msglen]
 					msgs = append(msgs, msg)
 
@@ -101,7 +101,7 @@ func processAoRmAdd(p *Peer, data []byte) []byte {
 func processAoMsgs(p *Peer, data []byte) []byte {
 	si := uint32(2)
 	for si < uint32(len(data)) {
-		id := binary.BigEndian.Uint16(data[si:2+si])
+		id := binary.BigEndian.Uint16(data[si : 2+si])
 		msglen := binary.BigEndian.Uint16(data[2+si : 4+si])
 
 		if id == p.currentPlayerCao {
