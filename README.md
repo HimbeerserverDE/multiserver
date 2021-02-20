@@ -86,7 +86,7 @@ Description: The "privs" privilege is granted to the player with this name on st
 ```
 > `csm_restriction_flags`
 ```
-Type: Unsigned integer
+Type: Integer
 Description: The CSM restriction flags, default is none
 * 0: No restrictions
 * 1: No CSM loading
@@ -97,4 +97,14 @@ Description: The CSM restriction flags, default is none
 * 32: No player info lookup
 * 63: All restrictions
 To set multiple flags at the same time add the corresponding numbers
+```
+> `rpc_reconnect_interval`
+```
+Type: Integer
+Description: Number of minutes between RPC reconnection attempts, default is 10
+```
+> `media_refetch_interval`
+```
+Type: Integer
+Description: Number of minutes between media refetching, default is 10
 ```

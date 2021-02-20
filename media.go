@@ -13,9 +13,6 @@ import (
 	"github.com/anon55555/mt/rudp"
 )
 
-// MediaRefetchInterval is the amount of time between media downloads
-const MediaRefetchInterval = 10 * time.Minute
-
 var media map[string]*mediaFile
 var nodedefs map[string][]byte
 var itemdefs [][]byte
@@ -36,7 +33,7 @@ func (p *Peer) fetchMedia() {
 	for {
 		pkt, err := p.Recv()
 		if err != nil {
-			if err == rudp.ErrClosed {
+			if err == net.ErrClosed {
 				return
 			}
 
@@ -411,11 +408,15 @@ func loadMedia() {
 }
 
 func init() {
+	refetch, ok := GetConfKey("media_refetch_interval").(int)
+	if !ok {
+		refetch = 10
+	}
+
 	loadMedia()
-	go startRpc()
 
 	go func() {
-		refetch := time.NewTicker(MediaRefetchInterval)
+		refetch := time.NewTicker(time.Duration(refetch) * time.Minute)
 		for {
 			select {
 			case <-refetch.C:
