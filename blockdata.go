@@ -14,9 +14,9 @@ const NodeCount = 16 * 16 * 16
 func processBlockdata(p *Peer, pkt *rudp.Pkt) bool {
 	srv := p.ServerName()
 
-	si := 14
+	si := len(pkt.Data) - 1
 	// Check for zlib header
-	for ; !(pkt.Data[si] == 120 && (pkt.Data[1+si] == 0x01 || pkt.Data[1+si] == 0x9C || pkt.Data[1+si] == 0xDA)); si++ {
+	for ; !(pkt.Data[si] == 120 && (pkt.Data[1+si] == 0x01 || pkt.Data[1+si] == 0x9C || pkt.Data[1+si] == 0xDA)); si-- {
 	}
 
 	compressedNodes := pkt.Data[13:si]
