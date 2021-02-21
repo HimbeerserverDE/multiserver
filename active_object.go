@@ -7,6 +7,22 @@ import (
 	"github.com/anon55555/mt/rudp"
 )
 
+const (
+	AoCmdSetProps = iota
+	AoCmdUpdatePos
+	AoCmdSetTextureMod
+	AoCmdSetSprite
+	AoCmdPunched
+	AoCmdUpdateArmorGroups
+	AoCmdSetAnimation
+	AoCmdSetBonePos
+	AoCmdAttachTo
+	AoCmdSetPhysicsOverride
+	AoCmdObsolete1
+	AoCmdSpawnInfant
+	AoCmdSetAnimSpeed
+)
+
 func processAoRmAdd(p *Peer, data []byte) []byte {
 	countRm := binary.BigEndian.Uint16(data[2:4])
 	var aoRm []uint16
@@ -51,7 +67,7 @@ func processAoRmAdd(p *Peer, data []byte) []byte {
 					msgdata := make([]byte, 4+len(msg))
 					binary.BigEndian.PutUint16(msgdata[0:2], p.localPlayerCao)
 					binary.BigEndian.PutUint16(msgdata[2:4], uint16(len(msg)))
-					copy(msgdata[4:], msg)
+					copy(msgdata[4:], aoMsgReplaceIDs(p, msg))
 					msgpkt = append(msgpkt, msgdata...)
 				}
 
@@ -103,6 +119,9 @@ func processAoMsgs(p *Peer, data []byte) []byte {
 	for si < uint32(len(data)) {
 		id := binary.BigEndian.Uint16(data[si : 2+si])
 		msglen := binary.BigEndian.Uint16(data[2+si : 4+si])
+		msg := data[4+si : 4+si+uint32(msglen)]
+		msg = aoMsgReplaceIDs(p, msg)
+		copy(data[4+si : 4+si+uint32(msglen)], msg)
 
 		if id == p.currentPlayerCao {
 			id = p.localPlayerCao
@@ -112,7 +131,31 @@ func processAoMsgs(p *Peer, data []byte) []byte {
 			binary.BigEndian.PutUint16(data[si:2+si], id)
 		}
 
-		si += 2 + uint32(msglen)
+		si += 4 + uint32(msglen)
+	}
+	return data
+}
+
+func aoMsgReplaceIDs(p *Peer, data []byte) []byte {
+	switch cmd := data[0]; cmd {
+	case AoCmdAttachTo:
+		id := binary.BigEndian.Uint16(data[1:3])
+		if id == p.currentPlayerCao {
+			id = p.localPlayerCao
+			binary.BigEndian.PutUint16(data[1:3], id)
+		} else if id == p.localPlayerCao {
+			id = p.currentPlayerCao
+			binary.BigEndian.PutUint16(data[1:3], id)
+		}
+	case AoCmdSpawnInfant:
+		id := binary.BigEndian.Uint16(data[1:3])
+		if id == p.currentPlayerCao {
+			id = p.localPlayerCao
+			binary.BigEndian.PutUint16(data[1:3], id)
+		} else if id == p.localPlayerCao {
+			id = p.currentPlayerCao
+			binary.BigEndian.PutUint16(data[1:3], id)
+		}
 	}
 	return data
 }
