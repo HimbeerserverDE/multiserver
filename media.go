@@ -15,7 +15,7 @@ import (
 
 var media map[string]*mediaFile
 var nodedefs map[string][]byte
-var itemdefs [][]byte
+var itemdefs map[string][]byte
 var detachedinvs map[string][][]byte
 var movement []byte
 var timeofday []byte
@@ -48,11 +48,20 @@ func (p *Peer) fetchMedia() {
 			for server := range servers {
 				if GetConfKey("servers:"+server.(string)+":address") == p.Addr().String() {
 					srvname = server.(string)
+					break
 				}
 			}
 			nodedefs[srvname] = pkt.Data[6:]
 		case ToClientItemdef:
-			itemdefs = append(itemdefs, pkt.Data[6:])
+			servers := GetConfKey("servers").(map[interface{}]interface{})
+			var srvname string
+			for server := range servers {
+				if GetConfKey("servers:"+server.(string)+":address") == p.Addr().String() {
+					srvname = server.(string)
+					break
+				}
+			}
+			itemdefs[srvname] = pkt.Data[6:]
 		case ToClientMovement:
 			movement = pkt.Data[2:]
 		case ToClientDetachedInventory:
@@ -61,6 +70,7 @@ func (p *Peer) fetchMedia() {
 			for server := range servers {
 				if GetConfKey("servers:"+server.(string)+":address") == p.Addr().String() {
 					srvname = server.(string)
+					break
 				}
 			}
 			detachedinvs[srvname] = append(detachedinvs[srvname], pkt.Data[2:])
@@ -360,7 +370,7 @@ func loadMedia() {
 
 	media = make(map[string]*mediaFile)
 	nodedefs = make(map[string][]byte)
-	itemdefs = [][]byte{}
+	itemdefs = make(map[string][]byte)
 	detachedinvs = make(map[string][][]byte)
 
 	loadMediaCache()

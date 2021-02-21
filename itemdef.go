@@ -5,10 +5,12 @@ import (
 	"compress/zlib"
 	"encoding/binary"
 	"io"
+	"log"
 	"math"
 )
 
 var itemdef []byte
+var handcapabs map[string]*ToolCapabs
 
 type ItemDef struct {
 	name string
@@ -102,35 +104,37 @@ func (t *ToolCapabs) SetPunchAttackUses(uses uint16) {
 	t.punchAttackUses = uses
 }
 
-func bestCap(defs [][]byte, capabs []*ToolCapabs) *ItemDef {
-	var bestK, bestLen int
-	for k, cap := range capabs {
-		var grpLen int
-		for _, gcap := range cap.GroupCaps() {
-			grpLen += len(gcap.Times())
-		}
+func rmToolCapabs(def []byte) []byte {
+	itemNameLen := binary.BigEndian.Uint16(def[2:4])
+	desclen := binary.BigEndian.Uint16(def[4+itemNameLen : 6+itemNameLen])
+	invImgLen := binary.BigEndian.Uint16(def[6+itemNameLen+desclen : 8+itemNameLen+desclen])
+	wieldImgLen := binary.BigEndian.Uint16(def[8+itemNameLen+desclen+invImgLen : 10+itemNameLen+desclen+invImgLen])
+	capablen := binary.BigEndian.Uint16(def[26+itemNameLen+desclen+invImgLen+wieldImgLen : 28+itemNameLen+desclen+invImgLen+wieldImgLen])
 
-		if grpLen > bestLen {
-			bestLen = grpLen
-			bestK = k
-		}
+	stdcaps := []byte{
+		5,
+		0, 0, 0, 0,
+		0, 0,
+		0, 0, 0, 0,
+		0, 0, 0, 0,
+		0, 0,
 	}
 
-	if bestK >= len(defs) {
-		return &ItemDef{}
-	}
-	return &ItemDef{data: defs[bestK]}
+	si := 28 + itemNameLen + desclen + invImgLen + wieldImgLen
+
+	binary.BigEndian.PutUint16(def[26+itemNameLen+desclen+invImgLen+wieldImgLen : 28+itemNameLen+desclen+invImgLen+wieldImgLen], uint16(len(stdcaps)))
+	return append(def[:si], append(stdcaps, def[si+capablen:]...)...)
 }
 
-func mergeItemdefs(mgrs [][]byte) error {
+func mergeItemdefs(mgrs map[string][]byte) error {
 	var itemDefs []*ItemDef
 	aliases := make(map[string]string)
 
-	var handDefs [][]byte
-	var handCapabs []*ToolCapabs
+	handcapabs = make(map[string]*ToolCapabs)
+	var handDef []byte
 
 	// Extract definitions from CItemDefManager
-	for _, compressedMgr := range mgrs {
+	for srv, compressedMgr := range mgrs {
 		zr, err := zlib.NewReader(bytes.NewReader(compressedMgr))
 		if err != nil {
 			return err
@@ -208,8 +212,10 @@ func mergeItemdefs(mgrs [][]byte) error {
 
 				tcaps.SetPunchAttackUses(binary.BigEndian.Uint16(capab[sj : 2+sj]))
 
-				handDefs = append(handDefs, def)
-				handCapabs = append(handCapabs, tcaps)
+				if len(handDef) == 0 {
+					handDef = def
+				}
+				handcapabs[srv] = tcaps
 
 				si += 2 + uint32(deflen)
 				continue ItemLoop
@@ -245,7 +251,18 @@ func mergeItemdefs(mgrs [][]byte) error {
 		}
 	}
 
-	hand := bestCap(handDefs, handCapabs)
+	handdata := rmToolCapabs(handDef)
+	log.Print(handdata)
+
+	var compHanddata bytes.Buffer
+	handZw := zlib.NewWriter(&compHanddata)
+	handZw.Write(handdata)
+	handZw.Close()
+
+	hand := &ItemDef{
+		name: "",
+		data: handdata,
+	}
 	itemDefs = append(itemDefs, hand)
 
 	// Merge definitions into new CItemDefManager
