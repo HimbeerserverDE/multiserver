@@ -227,13 +227,13 @@ func init() {
 
 	reconnect, ok := GetConfKey("rpc_reconnect_interval").(int)
 	if !ok {
-		reconnect = 10
+		reconnect = 600
 	}
 
 	connectRpc()
 
 	go func() {
-		reconnect := time.NewTicker(time.Duration(reconnect) * time.Minute)
+		reconnect := time.NewTicker(time.Duration(reconnect) * time.Second)
 		for {
 			select {
 			case <-reconnect.C:
