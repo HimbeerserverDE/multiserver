@@ -30,8 +30,8 @@ func processInventory(p *Peer, data []byte) {
 	p.invlists = lists
 }
 
-func updateHandList(p *Peer, t *ToolCapabs) error {
-	item := " 1 0 " + t.String()
+func updateHandList(p *Peer, srv string) error {
+	item := "multiserver:hand_" + srv
 
 	list := "Width 1\n"
 	list += "Item " + item + "\n"
@@ -46,7 +46,10 @@ func updateHandList(p *Peer, t *ToolCapabs) error {
 
 	p.invlists = make(map[string]bool)
 
-	_, err := p.Send(rudp.Pkt{Data: []byte(inv)})
+	data := []byte{0, ToClientInventory}
+	data = append(data, []byte(inv)...)
+
+	_, err := p.Send(rudp.Pkt{Data: data})
 	if err != nil {
 		return err
 	}

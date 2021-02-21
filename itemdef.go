@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"io"
 	"math"
-	"strconv"
 )
 
 const (
@@ -110,55 +109,6 @@ func (t *ToolCapabs) SetPunchAttackUses(uses uint16) {
 	t.punchAttackUses = uses
 }
 
-// String returns a minetest meta string with the tool capabilities
-func (t *ToolCapabs) String() string {
-	r := MetaBegin
-
-	r += "tool_capabilities"
-	r += MetaKVDelim
-	r += "{\n"
-	r += "\t"
-
-	r += "\"damage_groups\" : \n"
-	r += "\t{\n"
-	for group, value := range t.DamageGroups() {
-		r += "\t\t\"" + group + "\" : "
-		r += strconv.Itoa(int(value)) + ",\n"
-	}
-	r += "\t},\n"
-
-	r += "\t\"full_punch_interval\" : "
-	r += strconv.FormatFloat(float64(t.PunchInt()), byte('e'), -1, 32)
-	r += ",\n"
-
-	r += "\t\"groupcaps\" : \n"
-	r += "\t{\n"
-	for name, cap := range t.GroupCaps() {
-		r += "\t\t\"" + name + "\" : \n"
-		r += "\t\t{\n"
-		r += "\t\t\t\"name\" : " + cap.Name() + ",\n"
-		r += "\t\t\t\"uses\" : " + strconv.Itoa(int(cap.Uses())) + ",\n"
-		r += "\t\t\t\"max_level\" : " + strconv.Itoa(int(cap.MaxLevel())) + ",\n"
-		r += "\t\t\t\"times\" : \n"
-		r += "\t\t\t{\n"
-		for k, v := range cap.Times() {
-			r += "\t\t\t\t\"" + strconv.Itoa(int(k)) + "\" : "
-			r += strconv.FormatFloat(float64(v), byte('e'), -1, 32)
-			r += ",\n"
-		}
-		r += "\t\t\t},\n"
-		r += "\t\t},\n"
-	}
-	r += "\t},\n"
-
-	r += "\t\"max_drop_level\" : " + strconv.Itoa(int(t.MaxDropLevel())) + ",\n"
-
-	r += "\t\"punch_attack_uses\" : " + strconv.Itoa(int(t.PunchAttackUses())) + "\n"
-	r += MetaPairDelim
-
-	return r
-}
-
 func rmToolCapabs(def []byte) []byte {
 	itemNameLen := binary.BigEndian.Uint16(def[2:4])
 	desclen := binary.BigEndian.Uint16(def[4+itemNameLen : 6+itemNameLen])
@@ -185,7 +135,6 @@ func mergeItemdefs(mgrs map[string][]byte) error {
 	var itemDefs []*ItemDef
 	aliases := make(map[string]string)
 
-	handcapabs = make(map[string]*ToolCapabs)
 	var handDef []byte
 
 	// Extract definitions from CItemDefManager
@@ -270,7 +219,13 @@ func mergeItemdefs(mgrs map[string][]byte) error {
 				if len(handDef) == 0 {
 					handDef = def
 				}
-				handcapabs[srv] = tcaps
+
+				newname := "multiserver:hand_" + srv
+				newdef := make([]byte, len(def))
+				copy(newdef, def)
+				binary.BigEndian.PutUint16(newdef[2:4], uint16(len(newname)))
+				newdef = append(newdef[:4], append([]byte(newname), newdef[4+itemNameLen:]...)...)
+				itemDefs = append(itemDefs, &ItemDef{name: newname, data: newdef})
 
 				si += 2 + uint32(deflen)
 				continue ItemLoop
@@ -307,11 +262,6 @@ func mergeItemdefs(mgrs map[string][]byte) error {
 	}
 
 	handdata := rmToolCapabs(handDef)
-
-	var compHanddata bytes.Buffer
-	handZw := zlib.NewWriter(&compHanddata)
-	handZw.Write(handdata)
-	handZw.Close()
 
 	hand := &ItemDef{
 		name: "",
