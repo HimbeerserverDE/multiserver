@@ -101,7 +101,7 @@ To set multiple flags at the same time add the corresponding numbers
 > `rpc_reconnect_interval`
 ```
 Type: Integer
-Description: Number of minutes between RPC reconnection attempts, default is 10
+Description: Number of seconds between RPC reconnection attempts, default is 600
 ```
 > `media_refetch_interval`
 ```
