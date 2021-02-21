@@ -50,6 +50,7 @@ func (l *Listener) Accept() (*Peer, error) {
 	clt.aoIDs = make(map[uint16]bool)
 	clt.modChs = make(map[string]bool)
 	clt.huds = make(map[uint32]bool)
+	clt.sounds = make(map[int32]bool)
 
 	maxPeers, ok := GetConfKey("player_limit").(int)
 	if !ok {

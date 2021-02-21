@@ -44,6 +44,8 @@ type Peer struct {
 	modChs   map[string]bool
 
 	huds map[uint32]bool
+
+	sounds map[int32]bool
 }
 
 // Username returns the username of the Peer

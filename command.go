@@ -162,6 +162,22 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 			id := binary.BigEndian.Uint32(pkt.Data[2:6])
 			dst.huds[id] = false
 			return false
+		case ToClientPlaySound:
+			id := int32(binary.BigEndian.Uint32(pkt.Data[2:6]))
+			namelen := binary.BigEndian.Uint16(pkt.Data[6:8])
+			objID := binary.BigEndian.Uint16(pkt.Data[17+namelen : 19+namelen])
+			if objID == dst.currentPlayerCao {
+				objID = dst.localPlayerCao
+			} else if objID == dst.localPlayerCao {
+				objID = dst.currentPlayerCao
+			}
+			binary.BigEndian.PutUint16(pkt.Data[17+namelen : 19+namelen], objID)
+			if loop := pkt.Data[19+namelen]; loop > 0 {
+				dst.sounds[id] = true
+			}
+		case ToClientStopSound:
+			id := int32(binary.BigEndian.Uint32(pkt.Data[2:6]))
+			dst.sounds[id] = false
 		default:
 			return false
 		}

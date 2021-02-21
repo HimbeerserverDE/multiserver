@@ -94,7 +94,6 @@ func (p *Peer) Redirect(newsrv string) error {
 	if err != nil {
 		return err
 	}
-	//<-ack
 
 	p.aoIDs = make(map[uint16]bool)
 
@@ -105,7 +104,6 @@ func (p *Peer) Redirect(newsrv string) error {
 	if err != nil {
 		return err
 	}
-	//<-ack
 
 	data = []byte{0, ToClientHudSetParam, 0, 2, 0, 0}
 
@@ -113,7 +111,6 @@ func (p *Peer) Redirect(newsrv string) error {
 	if err != nil {
 		return err
 	}
-	//<-ack
 
 	data = []byte{0, ToClientHudSetParam, 0, 3, 0, 0}
 
@@ -121,7 +118,6 @@ func (p *Peer) Redirect(newsrv string) error {
 	if err != nil {
 		return err
 	}
-	//<-ack
 
 	for hud := range p.huds {
 		data = make([]byte, 6)
@@ -129,12 +125,25 @@ func (p *Peer) Redirect(newsrv string) error {
 		data[1] = uint8(ToClientHudRm)
 		binary.BigEndian.PutUint32(data[2:6], hud)
 
-		_, err = p.Send(rudp.Pkt{ChNo: 1, Data: data})
+		_, err = p.Send(rudp.Pkt{Data: data, ChNo: 1})
 		if err != nil {
 			return err
 		}
-		//<-ack
 	}
+
+	p.huds = make(map[uint32]bool)
+
+	// Stop looped sounds
+	for sound := range p.sounds {
+		data = make([]byte, 6)
+		data[0] = uint8(0x00)
+		data[1] = uint8(ToClientStopSound)
+		binary.BigEndian.PutUint32(data[2:6], uint32(sound))
+
+		_, err = p.Send(rudp.Pkt{Data: data})
+	}
+
+	p.sounds = make(map[int32]bool)
 
 	// Update detached inventories
 	if len(detachedinvs[newsrv]) > 0 {
@@ -148,7 +157,6 @@ func (p *Peer) Redirect(newsrv string) error {
 			if err != nil {
 				return err
 			}
-			//<-ack
 		}
 	}
 
