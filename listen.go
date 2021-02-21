@@ -51,6 +51,7 @@ func (l *Listener) Accept() (*Peer, error) {
 	clt.modChs = make(map[string]bool)
 	clt.huds = make(map[uint32]bool)
 	clt.sounds = make(map[int32]bool)
+	clt.invlists = make(map[string]bool)
 
 	maxPeers, ok := GetConfKey("player_limit").(int)
 	if !ok {

@@ -187,6 +187,9 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 				id = dst.currentPlayerCao
 			}
 			binary.BigEndian.PutUint16(pkt.Data[107+texturelen : 109+texturelen], id)
+		case ToClientInventory:
+			processInventory(dst, pkt.Data[2:])
+			return false
 		default:
 			return false
 		}
