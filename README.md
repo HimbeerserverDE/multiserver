@@ -1,8 +1,6 @@
 # multiserver
 Minetest reverse proxy supporting multiple servers and media multiplexing
 
-**IMPORTANT NOTE: The current version is a development version that contains broken features and should not be used.**
-
 ## Credits
 This project was made possible by [anon55555's Minetest RUDP package](https://github.com/anon55555/mt/tree/master/rudp).
 
