@@ -252,7 +252,6 @@ func mergeItemdefs(mgrs map[string][]byte) error {
 	}
 
 	handdata := rmToolCapabs(handDef)
-	log.Print(handdata)
 
 	var compHanddata bytes.Buffer
 	handZw := zlib.NewWriter(&compHanddata)
