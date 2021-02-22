@@ -46,8 +46,6 @@ type Peer struct {
 	huds map[uint32]bool
 
 	sounds map[int32]bool
-
-	invlists map[string]bool
 }
 
 // Username returns the username of the Peer

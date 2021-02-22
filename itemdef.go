@@ -5,14 +5,8 @@ import (
 	"compress/zlib"
 	"encoding/binary"
 	"io"
+	"log"
 	"math"
-	"strconv"
-)
-
-const (
-	MetaBegin     = "\x01"
-	MetaKVDelim   = "\x02"
-	MetaPairDelim = "\x03"
 )
 
 var itemdef []byte
@@ -108,55 +102,6 @@ func (t *ToolCapabs) PunchAttackUses() uint16 { return t.punchAttackUses }
 // SetPunchAttackUses sets the punch attack uses
 func (t *ToolCapabs) SetPunchAttackUses(uses uint16) {
 	t.punchAttackUses = uses
-}
-
-// String returns a minetest meta string with the tool capabilities
-func (t *ToolCapabs) String() string {
-	r := MetaBegin
-
-	r += "tool_capabilities"
-	r += MetaKVDelim
-	r += "{\n"
-	r += "\t"
-
-	r += "\"damage_groups\" : \n"
-	r += "\t{\n"
-	for group, value := range t.DamageGroups() {
-		r += "\t\t\"" + group + "\" : "
-		r += strconv.Itoa(int(value)) + ",\n"
-	}
-	r += "\t},\n"
-
-	r += "\t\"full_punch_interval\" : "
-	r += strconv.FormatFloat(float64(t.PunchInt()), byte('e'), -1, 32)
-	r += ",\n"
-
-	r += "\t\"groupcaps\" : \n"
-	r += "\t{\n"
-	for name, cap := range t.GroupCaps() {
-		r += "\t\t\"" + name + "\" : \n"
-		r += "\t\t{\n"
-		r += "\t\t\t\"name\" : " + cap.Name() + ",\n"
-		r += "\t\t\t\"uses\" : " + strconv.Itoa(int(cap.Uses())) + ",\n"
-		r += "\t\t\t\"max_level\" : " + strconv.Itoa(int(cap.MaxLevel())) + ",\n"
-		r += "\t\t\t\"times\" : \n"
-		r += "\t\t\t{\n"
-		for k, v := range cap.Times() {
-			r += "\t\t\t\t\"" + strconv.Itoa(int(k)) + "\" : "
-			r += strconv.FormatFloat(float64(v), byte('e'), -1, 32)
-			r += ",\n"
-		}
-		r += "\t\t\t},\n"
-		r += "\t\t},\n"
-	}
-	r += "\t},\n"
-
-	r += "\t\"max_drop_level\" : " + strconv.Itoa(int(t.MaxDropLevel())) + ",\n"
-
-	r += "\t\"punch_attack_uses\" : " + strconv.Itoa(int(t.PunchAttackUses())) + "\n"
-	r += MetaPairDelim
-
-	return r
 }
 
 func rmToolCapabs(def []byte) []byte {
@@ -307,6 +252,7 @@ func mergeItemdefs(mgrs map[string][]byte) error {
 	}
 
 	handdata := rmToolCapabs(handDef)
+	log.Print(handdata)
 
 	var compHanddata bytes.Buffer
 	handZw := zlib.NewWriter(&compHanddata)
