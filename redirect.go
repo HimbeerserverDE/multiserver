@@ -146,7 +146,7 @@ func (p *Peer) Redirect(newsrv string) error {
 	p.sounds = make(map[int32]bool)
 
 	// Update hand capabs
-	err = updateHandList(p, newsrv)
+	err = updateHandList(p, handcapabs[newsrv])
 	if err != nil {
 		return err
 	}

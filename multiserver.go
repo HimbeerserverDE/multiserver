@@ -85,8 +85,6 @@ func main() {
 
 			clt.SetServer(srv)
 
-			updateHandList(clt, clt.ServerName())
-
 			go Proxy(clt, srv)
 			go Proxy(srv, clt)
 		}()
