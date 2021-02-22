@@ -121,7 +121,7 @@ func processAoMsgs(p *Peer, data []byte) []byte {
 		msglen := binary.BigEndian.Uint16(data[2+si : 4+si])
 		msg := data[4+si : 4+si+uint32(msglen)]
 		msg = aoMsgReplaceIDs(p, msg)
-		copy(data[4+si : 4+si+uint32(msglen)], msg)
+		copy(data[4+si:4+si+uint32(msglen)], msg)
 
 		if id == p.currentPlayerCao {
 			id = p.localPlayerCao

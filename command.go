@@ -171,7 +171,7 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 			} else if objID == dst.localPlayerCao {
 				objID = dst.currentPlayerCao
 			}
-			binary.BigEndian.PutUint16(pkt.Data[17+namelen : 19+namelen], objID)
+			binary.BigEndian.PutUint16(pkt.Data[17+namelen:19+namelen], objID)
 			if loop := pkt.Data[19+namelen]; loop > 0 {
 				dst.sounds[id] = true
 			}
@@ -186,7 +186,7 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 			} else if id == dst.localPlayerCao {
 				id = dst.currentPlayerCao
 			}
-			binary.BigEndian.PutUint16(pkt.Data[107+texturelen : 109+texturelen], id)
+			binary.BigEndian.PutUint16(pkt.Data[107+texturelen:109+texturelen], id)
 		case ToClientInventory:
 			processInventory(dst, pkt.Data[2:])
 			return false

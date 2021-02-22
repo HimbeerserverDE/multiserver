@@ -14,14 +14,9 @@ const NodeCount = 16 * 16 * 16
 func processBlockdata(p *Peer, pkt *rudp.Pkt) bool {
 	srv := p.ServerName()
 
-	si := len(pkt.Data) - 1
-	// Check for zlib header
-	for ; !(pkt.Data[si] == 120 && (pkt.Data[1+si] == 0x01 || pkt.Data[1+si] == 0x9C || pkt.Data[1+si] == 0xDA)); si-- {
-	}
+	r := bytes.NewReader(pkt.Data[13:])
 
-	compressedNodes := pkt.Data[13:si]
-
-	zr, err := zlib.NewReader(bytes.NewReader(compressedNodes))
+	zr, err := zlib.NewReader(r)
 	if err != nil {
 		return true
 	}
@@ -51,10 +46,18 @@ func processBlockdata(p *Peer, pkt *rudp.Pkt) bool {
 
 	recompNodes := recompBuf.Bytes()
 
-	data := make([]byte, 13+len(recompNodes)+len(pkt.Data[si:]))
+	meta := make([]byte, 65536)
+	n, err := r.Read(meta)
+	if err != nil {
+		return true
+	}
+
+	meta = meta[:n]
+
+	data := make([]byte, 13+len(recompNodes)+len(meta))
 	copy(data[:13], pkt.Data[:13])
 	copy(data[13:13+len(recompNodes)], recompNodes)
-	copy(data[13+len(recompNodes):], pkt.Data[si:])
+	copy(data[13+len(recompNodes):], meta)
 
 	pkt.Data = data
 

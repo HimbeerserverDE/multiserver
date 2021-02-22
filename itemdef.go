@@ -127,7 +127,7 @@ func rmToolCapabs(def []byte) []byte {
 
 	si := 28 + itemNameLen + desclen + invImgLen + wieldImgLen
 
-	binary.BigEndian.PutUint16(def[26+itemNameLen+desclen+invImgLen+wieldImgLen : 28+itemNameLen+desclen+invImgLen+wieldImgLen], uint16(len(stdcaps)))
+	binary.BigEndian.PutUint16(def[26+itemNameLen+desclen+invImgLen+wieldImgLen:28+itemNameLen+desclen+invImgLen+wieldImgLen], uint16(len(stdcaps)))
 	return append(def[:si], append(stdcaps, def[si+capablen:]...)...)
 }
 
