@@ -186,7 +186,7 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 			} else if id == dst.localPlayerCao {
 				id = dst.currentPlayerCao
 			}
-			binary.BigEndian.PutUint16(pkt.Data[107+texturelen : 109+texturelen], id)
+			binary.BigEndian.PutUint16(pkt.Data[107+texturelen:109+texturelen], id)
 		default:
 			return false
 		}

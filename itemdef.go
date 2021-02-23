@@ -106,17 +106,17 @@ func (t *ToolCapabs) SetPunchAttackUses(uses uint16) {
 }
 
 type GroupCapJSON struct {
-	MaxLevel int16 `json:"maxlevel"`
-	Uses int16 `json:"uses"`
-	Times map[int16]float32 `json:"times"`
+	MaxLevel int16             `json:"maxlevel"`
+	Uses     int16             `json:"uses"`
+	Times    map[int16]float32 `json:"times"`
 }
 
 type ToolCapsJSON struct {
-	FullPunchInterval float32 `json:"full_punch_interval"`
-	MaxDropLevel int16 `json:"max_drop_level"`
-	PunchAttackUses uint16 `json:"punch_attack_uses"`
-	GroupCaps map[string]GroupCapJSON `json:"groupcaps"`
-	DamageGroups map[string]int16 `json:"damage_groups"`
+	FullPunchInterval float32                 `json:"full_punch_interval"`
+	MaxDropLevel      int16                   `json:"max_drop_level"`
+	PunchAttackUses   uint16                  `json:"punch_attack_uses"`
+	GroupCaps         map[string]GroupCapJSON `json:"groupcaps"`
+	DamageGroups      map[string]int16        `json:"damage_groups"`
 }
 
 // SerializeJSON returns a serialized JSON string to be used in ItemMeta
@@ -125,17 +125,17 @@ func (t *ToolCapabs) SerializeJSON() (string, error) {
 	for name, cap := range t.GroupCaps() {
 		gj[name] = GroupCapJSON{
 			MaxLevel: cap.MaxLevel(),
-			Uses: cap.Uses(),
-			Times: cap.Times(),
+			Uses:     cap.Uses(),
+			Times:    cap.Times(),
 		}
 	}
 
 	tj := ToolCapsJSON{
 		FullPunchInterval: t.PunchInt(),
-		MaxDropLevel: t.MaxDropLevel(),
-		PunchAttackUses: t.PunchAttackUses(),
-		GroupCaps: gj,
-		DamageGroups: t.DamageGroups(),
+		MaxDropLevel:      t.MaxDropLevel(),
+		PunchAttackUses:   t.PunchAttackUses(),
+		GroupCaps:         gj,
+		DamageGroups:      t.DamageGroups(),
 	}
 
 	b, err := json.MarshalIndent(tj, "", "\t")
