@@ -197,6 +197,7 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 
 			buf := &bytes.Buffer{}
 			dst.Inv().Serialize(buf)
+
 			pkt.Data = append(pkt.Data[:2], buf.Bytes()...)
 
 			return false
