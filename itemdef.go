@@ -5,7 +5,6 @@ import (
 	"compress/zlib"
 	"encoding/binary"
 	"io"
-	"log"
 	"math"
 )
 
