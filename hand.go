@@ -16,19 +16,25 @@ func (p *Peer) UpdateHandCapabs() error {
 		l = p.Inv().List("hand")
 	}
 
-	hand := mt.Stack{
-		Item: mt.Item{
-			Name: "multiserver:hand_" + p.ServerName(),
-		},
-		Count: 1,
-	}
+	var hand mt.Stack
 
-	s, err := handcapabs[p.ServerName()].SerializeJSON()
-	if err != nil {
-		return err
-	}
+	if len(l.Stacks) == 1 && l.Stacks[0].Name != "multiserver:hand_"+p.ServerName() {
+		hand = l.Stacks[0]
 
-	hand.SetField("tool_capabilities", s)
+		s, err := handcapabs[p.ServerName()].SerializeJSON()
+		if err != nil {
+			return err
+		}
+
+		hand.SetField("tool_capabilities", s)
+	} else {
+		hand = mt.Stack{
+			Item: mt.Item{
+				Name: "multiserver:hand_" + p.ServerName(),
+			},
+			Count: 1,
+		}
+	}
 
 	l.Stacks = []mt.Stack{hand}
 
