@@ -23,6 +23,13 @@ func (p *Peer) UpdateHandCapabs() error {
 		Count: 1,
 	}
 
+	s, err := handcapabs[p.ServerName()].SerializeJSON()
+	if err != nil {
+		return err
+	}
+
+	hand.SetField("tool_capabilities", s)
+
 	l.Stacks = []mt.Stack{hand}
 
 	return nil

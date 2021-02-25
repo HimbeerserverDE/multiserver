@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"io"
 	"math"
+	"strings"
 )
 
 var itemdef []byte
@@ -106,8 +107,8 @@ func (t *ToolCapabs) SetPunchAttackUses(uses uint16) {
 }
 
 type GroupCapJSON struct {
-	MaxLevel int16             `json:"maxlevel"`
-	Uses     int16             `json:"uses"`
+	MaxLevel int16     `json:"maxlevel"`
+	Uses     int16     `json:"uses"`
 	Times    []float32 `json:"times"`
 }
 
@@ -120,7 +121,7 @@ type ToolCapsJSON struct {
 }
 
 // SerializeJSON returns a serialized JSON string to be used in ItemMeta
-func (t *ToolCapabs) SerializeJSON() (string, error) {
+func (t *ToolCapabs) SerializeJSON() (s string, err error) {
 	map2array := func(m map[int16]float32) []float32 {
 		var maxIndex int
 		for k := range m {
@@ -129,10 +130,15 @@ func (t *ToolCapabs) SerializeJSON() (string, error) {
 			}
 		}
 
-		r := make([]float32, maxIndex)
-		for k, v := range m {
-			r[int(k-1)] = v
+		r := make([]float32, maxIndex+1)
+		for k := range r {
+			r[k] = -1
 		}
+
+		for k, v := range m {
+			r[int(k)] = v
+		}
+
 		return r
 	}
 
@@ -155,10 +161,12 @@ func (t *ToolCapabs) SerializeJSON() (string, error) {
 
 	b, err := json.MarshalIndent(tj, "", "\t")
 	if err != nil {
-		return "", err
+		return
 	}
 
-	return string(b), nil
+	s = strings.Replace(string(b), "-1", "null", -1)
+
+	return
 }
 
 // DeserializeJSON processes a serialized JSON string
@@ -306,8 +314,8 @@ func mergeItemdefs(mgrs map[string][]byte) error {
 
 				def2 := make([]byte, len(def))
 				copy(def2, def)
-				binary.BigEndian.PutUint16(def2[2:4], uint16(len([]byte("multiserver:hand_" + srv))))
-				def2 = append(def2[:4], append([]byte("multiserver:hand_" + srv), def2[4+itemNameLen:]...)...)
+				binary.BigEndian.PutUint16(def2[2:4], uint16(len([]byte("multiserver:hand_"+srv))))
+				def2 = append(def2[:4], append([]byte("multiserver:hand_"+srv), def2[4+itemNameLen:]...)...)
 
 				itemDefs = append(itemDefs, &ItemDef{
 					name: "multiserver:hand_" + srv,
