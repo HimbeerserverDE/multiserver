@@ -129,9 +129,9 @@ func (t *ToolCapabs) SerializeJSON() (string, error) {
 			}
 		}
 
-		r := make([]float32, maxIndex + 1)
+		r := make([]float32, maxIndex)
 		for k, v := range m {
-			r[int(k)] = v
+			r[int(k-1)] = v
 		}
 		return r
 	}
