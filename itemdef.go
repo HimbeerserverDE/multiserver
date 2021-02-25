@@ -108,7 +108,7 @@ func (t *ToolCapabs) SetPunchAttackUses(uses uint16) {
 type GroupCapJSON struct {
 	MaxLevel int16             `json:"maxlevel"`
 	Uses     int16             `json:"uses"`
-	Times    map[int16]float32 `json:"times"`
+	Times    []float32 `json:"times"`
 }
 
 type ToolCapsJSON struct {
@@ -121,12 +121,27 @@ type ToolCapsJSON struct {
 
 // SerializeJSON returns a serialized JSON string to be used in ItemMeta
 func (t *ToolCapabs) SerializeJSON() (string, error) {
+	map2array := func(m map[int16]float32) []float32 {
+		var maxIndex int
+		for k := range m {
+			if int(k) > maxIndex {
+				maxIndex = int(k)
+			}
+		}
+
+		r := make([]float32, maxIndex + 1)
+		for k, v := range m {
+			r[int(k)] = v
+		}
+		return r
+	}
+
 	gj := make(map[string]GroupCapJSON)
 	for name, cap := range t.GroupCaps() {
 		gj[name] = GroupCapJSON{
 			MaxLevel: cap.MaxLevel(),
 			Uses:     cap.Uses(),
-			Times:    cap.Times(),
+			Times:    map2array(cap.Times()),
 		}
 	}
 
@@ -162,7 +177,7 @@ func (t *ToolCapabs) DeserializeJSON(ser string) error {
 	for name, cap := range tj.GroupCaps {
 		g := newGroupCap(name, cap.Uses, cap.MaxLevel)
 		for level, time := range cap.Times {
-			g.SetTimes(level, time)
+			g.SetTimes(int16(level), time)
 		}
 		r.AddGroupCap(g)
 	}
@@ -288,6 +303,16 @@ func mergeItemdefs(mgrs map[string][]byte) error {
 					handDef = def
 				}
 				handcapabs[srv] = tcaps
+
+				def2 := make([]byte, len(def))
+				copy(def2, def)
+				binary.BigEndian.PutUint16(def2[2:4], uint16(len([]byte("multiserver:hand_" + srv))))
+				def2 = append(def2[:4], append([]byte("multiserver:hand_" + srv), def2[4+itemNameLen:]...)...)
+
+				itemDefs = append(itemDefs, &ItemDef{
+					name: "multiserver:hand_" + srv,
+					data: def2,
+				})
 
 				si += 2 + uint32(deflen)
 				continue ItemLoop

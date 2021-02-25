@@ -193,7 +193,7 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 				return true
 			}
 
-			// updateHandCapabs(dst)
+			dst.UpdateHandCapabs()
 
 			buf := &bytes.Buffer{}
 			dst.Inv().Serialize(buf)
