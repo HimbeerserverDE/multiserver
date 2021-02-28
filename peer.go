@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/anon55555/mt"
 	"github.com/anon55555/mt/rudp"
 )
 
@@ -46,6 +47,8 @@ type Peer struct {
 	huds map[uint32]bool
 
 	sounds map[int32]bool
+
+	inv *mt.Inv
 }
 
 // Username returns the username of the Peer
@@ -114,6 +117,9 @@ func (p *Peer) SetUseRpc(useRpc bool) {
 
 	p.useRpc = useRpc
 }
+
+// Inv returns the inventory of the Peer
+func (p *Peer) Inv() *mt.Inv { return p.inv }
 
 // Connect connects to the server on conn
 // and closes conn when the Peer disconnects

@@ -5,6 +5,7 @@ import (
 	"net"
 	"sync"
 
+	"github.com/anon55555/mt"
 	"github.com/anon55555/mt/rudp"
 )
 
@@ -51,6 +52,7 @@ func (l *Listener) Accept() (*Peer, error) {
 	clt.modChs = make(map[string]bool)
 	clt.huds = make(map[uint32]bool)
 	clt.sounds = make(map[int32]bool)
+	clt.inv = &mt.Inv{}
 
 	maxPeers, ok := GetConfKey("player_limit").(int)
 	if !ok {

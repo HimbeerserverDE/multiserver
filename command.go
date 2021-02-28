@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/subtle"
 	"encoding/binary"
 	"log"
@@ -186,7 +187,20 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 			} else if id == dst.localPlayerCao {
 				id = dst.currentPlayerCao
 			}
-			binary.BigEndian.PutUint16(pkt.Data[107+texturelen : 109+texturelen], id)
+			binary.BigEndian.PutUint16(pkt.Data[107+texturelen:109+texturelen], id)
+		case ToClientInventory:
+			if err := dst.Inv().Deserialize(bytes.NewReader(pkt.Data[2:])); err != nil {
+				return true
+			}
+
+			dst.UpdateHandCapabs()
+
+			buf := &bytes.Buffer{}
+			dst.Inv().Serialize(buf)
+
+			pkt.Data = append(pkt.Data[:2], buf.Bytes()...)
+
+			return false
 		default:
 			return false
 		}
