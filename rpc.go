@@ -125,6 +125,44 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 			addr = GetListener().GetPeerByUsername(name).Addr().String()
 		}
 		go p.doRpc("->ADDR "+addr, rq)
+	case "<-ISBANNED":
+		db, err := initAuthDB()
+		if err != nil {
+			return true
+		}
+		defer db.Close()
+
+		target := strings.Split(msg, " ")[2]
+
+		if net.ParseIP(target) == nil {
+			return true
+		}
+
+		name, err := readBanItem(db, target)
+		if err != nil {
+			return true
+		}
+
+		r := "false"
+		if name != "" {
+			r = "true"
+		}
+
+		go p.doRpc("->ISBANNED "+r, rq)
+	case "<-BAN":
+		target := strings.Split(msg, " ")[2]
+		err := Ban(target)
+		if err != nil {
+			p2 := GetListener().GetPeerByUsername(target)
+			if p2 == nil {
+				return true
+			}
+
+			p2.Ban()
+		}
+	case "<-UNBAN":
+		target := strings.Split(msg, " ")[2]
+		Unban(target)
 	case "<-MT2MT":
 		msg := strings.Join(strings.Split(msg, " ")[2:], " ")
 		rpcSrvMu.Lock()
