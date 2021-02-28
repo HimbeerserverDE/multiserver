@@ -68,16 +68,16 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 		if !ok {
 			return true
 		}
-		p.doRpc("->DEFSRV "+defsrv, rq)
+		go p.doRpc("->DEFSRV "+defsrv, rq)
 	case "<-GETPEERCNT":
 		cnt := strconv.Itoa(GetPeerCount())
-		p.doRpc("->PEERCNT "+cnt, rq)
+		go p.doRpc("->PEERCNT "+cnt, rq)
 	case "<-ISONLINE":
 		online := "false"
 		if IsOnline(strings.Join(strings.Split(msg, " ")[2:], " ")) {
 			online = "true"
 		}
-		p.doRpc("->ISONLINE "+online, rq)
+		go p.doRpc("->ISONLINE "+online, rq)
 	case "<-CHECKPRIVS":
 		name := strings.Split(msg, " ")[2]
 		privs := decodePrivs(strings.Join(strings.Split(msg, " ")[3:], " "))
@@ -88,14 +88,30 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 				hasprivs = "true"
 			}
 		}
-		p.doRpc("->HASPRIVS "+hasprivs, rq)
+		go p.doRpc("->HASPRIVS "+hasprivs, rq)
+	case "<-GETPRIVS":
+		name := strings.Split(msg, " ")[2]
+		var r string
+		if IsOnline(name) {
+			privs, err := GetListener().GetPeerByUsername(name).GetPrivs()
+			if err == nil {
+				r = strings.Replace(encodePrivs(privs), "|", ",", -1)
+			}
+		}
+		go p.doRpc("->PRIVS "+r, rq)
+	case "<-SETPRIVS":
+		name := strings.Split(msg, " ")[2]
+		privs := decodePrivs(strings.Join(strings.Split(msg, " ")[3:], " "))
+		if IsOnline(name) {
+			GetListener().GetPeerByUsername(name).SetPrivs(privs)
+		}
 	case "<-GETSRV":
 		name := strings.Split(msg, " ")[2]
 		var srv string
 		if IsOnline(name) {
 			srv = GetListener().GetPeerByUsername(name).ServerName()
 		}
-		p.doRpc("->SRV "+srv, rq)
+		go p.doRpc("->SRV "+srv, rq)
 	case "<-REDIRECT":
 		name := strings.Split(msg, " ")[2]
 		tosrv := strings.Split(msg, " ")[3]
@@ -108,13 +124,13 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 		if IsOnline(name) {
 			addr = GetListener().GetPeerByUsername(name).Addr().String()
 		}
-		p.doRpc("->ADDR "+addr, rq)
+		go p.doRpc("->ADDR "+addr, rq)
 	case "<-MT2MT":
 		msg := strings.Join(strings.Split(msg, " ")[2:], " ")
 		rpcSrvMu.Lock()
 		for srv := range rpcSrvs {
 			if srv.Addr().String() != p.Addr().String() {
-				srv.doRpc("->MT2MT "+msg, "--")
+				go srv.doRpc("->MT2MT "+msg, "--")
 			}
 		}
 		rpcSrvMu.Unlock()
