@@ -113,3 +113,8 @@ Description: Number of minutes between media refetching, default is 10
 Type: Boolean
 Description: If this is true the builtin chatcommands and the redirect error message are deactivated, default is false
 ```
+> `command_prefix`
+```
+Type: Boolean
+Description: Prefix of proxy chat commands, default is #
+```

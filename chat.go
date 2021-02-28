@@ -10,10 +10,7 @@ import (
 	"github.com/anon55555/mt/rudp"
 )
 
-const (
-	ChatCommandPrefix       = "#"
-	ServerChatCommandPrefix = ":"
-)
+var ChatCommandPrefix string = "#"
 
 type chatCommand struct {
 	privs    map[string]bool
@@ -210,4 +207,10 @@ func wider(b []byte) []byte {
 
 func init() {
 	chatCommands = make(map[string]chatCommand)
+
+	// Read cmd prefix from config
+	prefix, ok := GetConfKey("command_prefix").(string)
+	if ok {
+		ChatCommandPrefix = prefix
+	}
 }

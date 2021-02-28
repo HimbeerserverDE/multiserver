@@ -43,6 +43,10 @@ func loadConfig() error {
 
 // GetConfKey returns a key in the configuration
 func GetConfKey(key string) interface{} {
+	if config == nil {
+		loadConfig()
+	}
+
 	keys := strings.Split(key, ":")
 	c := config
 	for i := 0; i < len(keys)-1; i++ {
@@ -53,8 +57,4 @@ func GetConfKey(key string) interface{} {
 	}
 
 	return c[keys[len(keys)-1]]
-}
-
-func init() {
-	loadConfig()
 }
