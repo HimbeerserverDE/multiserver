@@ -14,6 +14,11 @@ func privs(args ...string) map[string]bool {
 }
 
 func init() {
+	disable, ok := GetConfKey("disable_builtin").(bool)
+	if ok && disable {
+		return
+	}
+
 	RegisterChatCommand("send", privs("send"),
 		func(p *Peer, param string) {
 			if param == "" {
@@ -315,4 +320,6 @@ func init() {
 			p.SendChatMsg("Could not connect you to " + newsrv + "!")
 		}
 	})
+
+	log.Print("Loaded builtin")
 }

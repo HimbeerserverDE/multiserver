@@ -108,3 +108,8 @@ Description: Number of seconds between RPC reconnection attempts, default is 600
 Type: Integer
 Description: Number of minutes between media refetching, default is 10
 ```
+> `disable_builtin`
+```
+Type: Boolean
+Description: If this is true the builtin chatcommands and the redirect error message are deactivated, default is false
+```
