@@ -355,6 +355,7 @@ func init() {
 									}
 
 									log.Print(err)
+									continue
 								}
 
 								switch cmd := binary.BigEndian.Uint16(pkt.Data[0:2]); cmd {
