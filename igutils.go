@@ -309,6 +309,42 @@ func init() {
 			p.SendChatMsg("Privileges updated.")
 		})
 
+	RegisterChatCommand("ban", privs("ban"),
+		func (p *Peer, param string) {
+			if param == "" {
+				p.SendChatMsg("Usage: #ban <playername>")
+				return
+			}
+
+			p2 := GetListener().GetPeerByUsername(param)
+			if p2 == nil {
+				p.SendChatMsg(param + " is not online.")
+				return
+			}
+
+			if err := p2.Ban(); err != nil {
+				p.SendChatMsg("An internal error occured while attempting to ban the player.")
+				return
+			}
+
+			p.SendChatMsg("Banned " + param)
+		})
+
+	RegisterChatCommand("unban", privs("ban"),
+		func (p *Peer, param string) {
+			if param == "" {
+				p.SendChatMsg("Usage: #unban <playername>")
+				return
+			}
+
+			if err := Unban(param); err != nil {
+				p.SendChatMsg("An internal error occured while attempting to unban the player.")
+				return
+			}
+
+			p.SendChatMsg("Unbanned " + param)
+		})
+
 	RegisterOnRedirectDone(func(p *Peer, newsrv string, success bool) {
 		if success {
 			err := SetStorageKey("server:"+p.Username(), newsrv)

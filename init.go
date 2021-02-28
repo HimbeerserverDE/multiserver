@@ -233,6 +233,38 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 				binary.BigEndian.PutUint16(data[3:5], uint16(0x0000))
 				binary.BigEndian.PutUint16(data[5:7], uint16(0x0027))
 
+				// Check if user is banned
+				banned, bname, err := p2.IsBanned()
+				if err != nil {
+					log.Print(err)
+					continue
+				}
+
+				if banned {
+					reason := []byte("Your IP address is banned. Banned name is " + bname)
+					l := len(reason)
+
+					data := make([]byte, 7+l)
+					data[0] = uint8(0x00)
+					data[1] = uint8(ToClientAccessDenied)
+					data[2] = uint8(AccessDeniedCustomString)
+					binary.BigEndian.PutUint16(data[3:5], uint16(l))
+					copy(data[5:5+l], reason)
+					data[5+l] = uint8(0x00)
+					data[6+l] = uint8(0x00)
+
+					ack, err := p2.Send(rudp.Pkt{Data: data})
+					if err != nil {
+						log.Print(err)
+					}
+					<-ack
+
+					p2.SendDisco(0, true)
+					p2.Close()
+					fin <- p
+					return
+				}
+
 				// Check if user is already connected
 				if IsOnline(p2.Username()) {
 					data := []byte{

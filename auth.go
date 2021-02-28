@@ -63,6 +63,10 @@ func initAuthDB() (*sql.DB, error) {
 		name VARCHAR(32) NOT NULL,
 		privileges VARCHAR(1024)
 	);
+	CREATE TABLE IF NOT EXISTS ban (
+		addr VARCHAR(39) NOT NULL,
+		name VARCHAR(32) NOT NULL
+	);
 	`
 
 	_, err = db.Exec(sql_table)
