@@ -1,8 +1,12 @@
 package main
 
 import (
+	"errors"
+
 	"github.com/anon55555/mt"
 )
+
+var ErrNoHandCaps = errors.New("hand tool capabilities missing")
 
 func (p *Peer) UpdateHandCapabs() error {
 	l := p.Inv().List("hand")
@@ -21,7 +25,12 @@ func (p *Peer) UpdateHandCapabs() error {
 	if len(l.Stacks) == 1 && l.Stacks[0].Name != "multiserver:hand_"+p.ServerName() {
 		hand = l.Stacks[0]
 
-		s, err := handcapabs[p.ServerName()].SerializeJSON()
+		caps := handcapabs[p.ServerName()]
+		if caps == nil {
+			return ErrNoHandCaps
+		}
+
+		s, err := caps.SerializeJSON()
 		if err != nil {
 			return err
 		}
