@@ -310,30 +310,33 @@ func init() {
 		})
 
 	RegisterChatCommand("ban", privs("ban"),
-		func (p *Peer, param string) {
+		func(p *Peer, param string) {
 			if param == "" {
-				p.SendChatMsg("Usage: #ban <playername>")
+				p.SendChatMsg("Usage: #ban <playername | IP address>")
 				return
 			}
 
-			p2 := GetListener().GetPeerByUsername(param)
-			if p2 == nil {
-				p.SendChatMsg(param + " is not online.")
-				return
-			}
+			err := Ban(param)
+			if err != nil {
+				p2 := GetListener().GetPeerByUsername(param)
+				if p2 == nil {
+					p.SendChatMsg(param + " is not online.")
+					return
+				}
 
-			if err := p2.Ban(); err != nil {
-				p.SendChatMsg("An internal error occured while attempting to ban the player.")
-				return
+				if err := p2.Ban(); err != nil {
+					p.SendChatMsg("An internal error occured while attempting to ban the player.")
+					return
+				}
 			}
 
 			p.SendChatMsg("Banned " + param)
 		})
 
 	RegisterChatCommand("unban", privs("ban"),
-		func (p *Peer, param string) {
+		func(p *Peer, param string) {
 			if param == "" {
-				p.SendChatMsg("Usage: #unban <playername>")
+				p.SendChatMsg("Usage: #unban <playername | IP address>")
 				return
 			}
 

@@ -11,6 +11,7 @@ import (
 )
 
 var ErrAlreadyBanned = errors.New("ip address is already banned")
+var ErrInvalidAddress = errors.New("invalid ip address format")
 
 // addBanItem inserts a ban DB entry
 func addBanItem(db *sql.DB, addr, name string) error {
@@ -63,7 +64,7 @@ func readBanItem(db *sql.DB, addr string) (string, error) {
 
 // deleteBanItem deletes a ban DB entry
 func deleteBanItem(db *sql.DB, name string) error {
-	sql_deleteBanItem := `DELETE FROM ban WHERE name = ?;`
+	sql_deleteBanItem := `DELETE FROM ban WHERE name = ? OR addr = ?;`
 
 	stmt, err := db.Prepare(sql_deleteBanItem)
 	if err != nil {
@@ -71,7 +72,7 @@ func deleteBanItem(db *sql.DB, name string) error {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(name)
+	_, err = stmt.Exec(name, name)
 	if err != nil {
 		return err
 	}
@@ -142,6 +143,27 @@ func (p *Peer) Ban() error {
 
 	p.SendDisco(0, true)
 	p.Close()
+
+	return nil
+}
+
+func Ban(addr string) error {
+	db, err := initAuthDB()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	name := "not known"
+
+	if net.ParseIP(addr) == nil {
+		return ErrInvalidAddress
+	}
+
+	err = addBanItem(db, addr, name)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
