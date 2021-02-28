@@ -24,13 +24,28 @@ type NodeDef struct {
 var nodeDefs map[string]map[uint16]*NodeDef
 
 // ID returns the content ID of a NodeDef
-func (n *NodeDef) ID() uint16 { return n.id }
+func (n *NodeDef) ID() uint16 {
+	if n == nil {
+		return ContentUnknown
+	}
+	return n.id
+}
 
 // Name returns the name of a NodeDef
-func (n *NodeDef) Name() string { return n.name }
+func (n *NodeDef) Name() string {
+	if n == nil {
+		return ""
+	}
+	return n.name
+}
 
 // Data returns the actual definition
-func (n *NodeDef) Data() []byte { return n.data }
+func (n *NodeDef) Data() []byte {
+	if n == nil {
+		return []byte{}
+	}
+	return n.data
+}
 
 func mergeNodedefs(mgrs map[string][]byte) error {
 	var total uint16
