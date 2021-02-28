@@ -356,18 +356,20 @@ func mergeItemdefs(mgrs map[string][]byte) error {
 		}
 	}
 
-	handdata := rmToolCapabs(handDef)
+	if len(handDef) < 4 {
+		handdata := rmToolCapabs(handDef)
 
-	var compHanddata bytes.Buffer
-	handZw := zlib.NewWriter(&compHanddata)
-	handZw.Write(handdata)
-	handZw.Close()
+		var compHanddata bytes.Buffer
+		handZw := zlib.NewWriter(&compHanddata)
+		handZw.Write(handdata)
+		handZw.Close()
 
-	hand := &ItemDef{
-		name: "",
-		data: handdata,
+		hand := &ItemDef{
+			name: "",
+			data: handdata,
+		}
+		itemDefs = append(itemDefs, hand)
 	}
-	itemDefs = append(itemDefs, hand)
 
 	// Merge definitions into new CItemDefManager
 	mgr := make([]byte, 3)
