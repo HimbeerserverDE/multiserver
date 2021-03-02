@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"io/ioutil"
 	"log"
 	"net"
@@ -33,7 +34,7 @@ func (p *Peer) fetchMedia() {
 	for {
 		pkt, err := p.Recv()
 		if err != nil {
-			if err == net.ErrClosed {
+			if errors.Is(err, net.ErrClosed) {
 				return
 			}
 

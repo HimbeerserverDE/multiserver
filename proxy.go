@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"net"
 
@@ -40,7 +41,7 @@ func Proxy(src, dst *Peer) {
 			break
 		}
 		if err != nil {
-			if err == net.ErrClosed {
+			if errors.Is(err, net.ErrClosed) {
 				msg := src.Addr().String() + " disconnected"
 				if src.TimedOut() {
 					msg += " (timed out)"

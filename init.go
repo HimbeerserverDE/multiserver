@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/subtle"
 	"encoding/binary"
+	"errors"
 	"log"
 	"net"
 	"strings"
@@ -39,7 +40,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 		for {
 			pkt, err := p2.Recv()
 			if err != nil {
-				if err == net.ErrClosed {
+				if errors.Is(err, net.ErrClosed) {
 					msg := p2.Addr().String() + " disconnected"
 					if p2.TimedOut() {
 						msg += " (timed out)"
@@ -206,7 +207,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 		for {
 			pkt, err := p2.Recv()
 			if err != nil {
-				if err == net.ErrClosed {
+				if errors.Is(err, net.ErrClosed) {
 					msg := p2.Addr().String() + " disconnected"
 					if p2.TimedOut() {
 						msg += " (timed out)"

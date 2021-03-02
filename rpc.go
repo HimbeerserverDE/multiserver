@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/binary"
+	"errors"
 	"log"
 	"net"
 	"strconv"
@@ -240,7 +241,7 @@ func connectRpc() {
 				for {
 					pkt, err := srv.Recv()
 					if err != nil {
-						if err == net.ErrClosed {
+						if errors.Is(err, net.ErrClosed) {
 							rpcSrvMu.Lock()
 							delete(rpcSrvs, srv)
 							rpcSrvMu.Unlock()
@@ -347,7 +348,7 @@ func init() {
 							for {
 								pkt, err := srv.Recv()
 								if err != nil {
-									if err == net.ErrClosed {
+									if errors.Is(err, net.ErrClosed) {
 										rpcSrvMu.Lock()
 										delete(rpcSrvs, srv)
 										rpcSrvMu.Unlock()
