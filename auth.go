@@ -147,16 +147,14 @@ func readAuthItem(db *sql.DB, name string) (string, error) {
 func init() {
 	pwd, err := GetStorageKey("auth:passphrase")
 	if err != nil {
-		log.Print(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	if pwd == "" {
 		passPhrase = make([]byte, 16)
 		_, err := rand.Read(passPhrase)
 		if err != nil {
-			log.Print(err)
-			os.Exit(1)
+			log.Fatal(err)
 		}
 
 		// Save the passphrase for future use
