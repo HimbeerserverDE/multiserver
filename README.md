@@ -115,6 +115,13 @@ Description: If this is true the builtin chatcommands and the redirect error mes
 ```
 > `command_prefix`
 ```
-Type: Boolean
+Type: String
 Description: Prefix of proxy chat commands, default is #
+```
+> `do_fallback`
+```
+Type: Boolean
+Description: If this is true players are automatically redirected to
+the default server if the server they are on shuts down or crashes,
+default is true
 ```

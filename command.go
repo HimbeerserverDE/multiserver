@@ -201,6 +201,39 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 			pkt.Data = append(pkt.Data[:2], buf.Bytes()...)
 
 			return false
+		case ToClientAccessDenied:
+			doFallback, ok := GetConfKey("do_fallback").(bool)
+			if ok && !doFallback {
+				return false
+			}
+
+			if pkt.Data[2] != uint8(11) && pkt.Data[2] != uint8(12) {
+				return false
+			}
+
+			msg := "shut down"
+			if pkt.Data[2] == uint8(12) {
+				msg = "crashed"
+			}
+
+			defsrv, ok := GetConfKey("default_server").(string)
+			if !ok {
+				log.Print("Default server name not set or not a string")
+				return false
+			}
+
+			if dst.ServerName() == defsrv {
+				return false
+			}
+
+			dst.SendChatMsg("The minetest server has " + msg + ", connecting you to the default server...")
+
+			go dst.Redirect(defsrv)
+
+			for src.Forward() {
+			}
+
+			return true
 		default:
 			return false
 		}
