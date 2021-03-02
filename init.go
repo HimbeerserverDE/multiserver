@@ -241,6 +241,8 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 				}
 
 				if banned {
+					log.Print("Banned user " + bname + " at " + p2.Addr().String() + " tried to connect")
+
 					reason := []byte("Your IP address is banned. Banned name is " + bname)
 					l := len(reason)
 
