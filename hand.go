@@ -1,12 +1,10 @@
 package main
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/anon55555/mt"
 )
-
-var ErrNoHandCaps = errors.New("hand tool capabilities missing")
 
 func (p *Peer) UpdateHandCapabs() error {
 	l := p.Inv().List("hand")
@@ -27,7 +25,7 @@ func (p *Peer) UpdateHandCapabs() error {
 
 		caps := handcapabs[p.ServerName()]
 		if caps == nil {
-			return ErrNoHandCaps
+			return fmt.Errorf("hand tool capabilities of server %s missing", p.ServerName())
 		}
 
 		s, err := caps.SerializeJSON()

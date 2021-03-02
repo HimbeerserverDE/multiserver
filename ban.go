@@ -4,13 +4,13 @@ import (
 	"database/sql"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"net"
 
 	"github.com/anon55555/mt/rudp"
 	_ "github.com/mattn/go-sqlite3"
 )
 
-var ErrAlreadyBanned = errors.New("ip address is already banned")
 var ErrInvalidAddress = errors.New("invalid ip address format")
 
 // addBanItem inserts a ban DB entry
@@ -106,7 +106,7 @@ func (p *Peer) Ban() error {
 	}
 
 	if banned {
-		return ErrAlreadyBanned
+		return fmt.Errorf("ip address %s is already banned", p.Addr().String())
 	}
 
 	db, err := initAuthDB()

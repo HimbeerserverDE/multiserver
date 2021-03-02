@@ -1,7 +1,7 @@
 package main
 
 import (
-	"errors"
+	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -9,8 +9,6 @@ import (
 	"github.com/anon55555/mt"
 	"github.com/anon55555/mt/rudp"
 )
-
-var ErrServerUnreachable = errors.New("server is unreachable")
 
 var connectedPeers int = 0
 var connectedPeersMu sync.RWMutex
@@ -136,7 +134,7 @@ func Connect(conn net.PacketConn, addr net.Addr) (*Peer, error) {
 		srv.SendDisco(0, true)
 		srv.Close()
 
-		return nil, ErrServerUnreachable
+		return nil, fmt.Errorf("server at %s is unreachable", addr.String())
 	case <-ack:
 	}
 
