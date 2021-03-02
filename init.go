@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/subtle"
 	"encoding/binary"
-	"errors"
 	"log"
 	"net"
 	"strings"
@@ -12,8 +11,6 @@ import (
 	"github.com/HimbeerserverDE/srp"
 	"github.com/anon55555/mt/rudp"
 )
-
-var ErrAuthFailed = errors.New("authentication failure")
 
 // Init authenticates to the server srv
 // and finishes the initialisation process if ignMedia is true
@@ -142,7 +139,16 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 				<-ack
 			case ToClientAccessDenied:
 				// Auth failed for some reason
-				log.Print(ErrAuthFailed)
+				servers := GetConfKey("servers").(map[interface{}]interface{})
+				var srv string
+				for server := range servers {
+					if GetConfKey("servers:"+server.(string)+":address") == p2.Addr().String() {
+						srv = server.(string)
+						break
+					}
+				}
+
+				log.Print("authentication failed for server " + srv)
 
 				if noAccessDenied {
 					return
