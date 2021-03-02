@@ -2,15 +2,12 @@ package main
 
 import (
 	"encoding/binary"
-	"errors"
+	"fmt"
 	"log"
 	"net"
 
 	"github.com/anon55555/mt/rudp"
 )
-
-var ErrServerDoesNotExist = errors.New("server doesn't exist")
-var ErrAlreadyConnected = errors.New("already connected to server")
 
 var onRedirectDone []func(*Peer, string, bool)
 
@@ -48,11 +45,11 @@ func (p *Peer) Redirect(newsrv string) error {
 
 	straddr, ok := GetConfKey("servers:" + newsrv + ":address").(string)
 	if !ok {
-		return ErrServerDoesNotExist
+		return fmt.Errorf("server %s does not exist", newsrv)
 	}
 
-	if p.Server().Addr().String() == straddr {
-		return ErrAlreadyConnected
+	if p.ServerName() == newsrv {
+		return fmt.Errorf("already connected to server %s", newsrv)
 	}
 
 	srvaddr, err := net.ResolveUDPAddr("udp", straddr)
