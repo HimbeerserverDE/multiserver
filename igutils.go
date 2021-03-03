@@ -111,6 +111,7 @@ func init() {
 
 	RegisterChatCommand("alert", privs("alert"),
 		func(p *Peer, param string) {
+			
 			ChatSendAll("[ALERT] " + param)
 		})
 
@@ -346,6 +347,26 @@ func init() {
 			}
 
 			p.SendChatMsg("Unbanned " + param)
+		})
+	
+	RegisterChatCommand("help", nil,
+		func(p *Peer) {
+
+			p.SendChatMsg("Available commands as of version 1.8.1 are:")
+			p.SendChatMsg("#send <playername> <servername>)")
+			p.SendChatMsg("#sendcurrent <servername>")
+			p.SendChatMsg("#sendall <servername>")
+			p.SendChatMsg("#alert <message>")
+			p.SendChatMsg("#server")
+			p.SendChatMsg("#find <playername>")
+			p.SendChatMsg("#addr <playername>")
+			p.SendChatMsg("#end")
+			p.SendChatMsg("#privs [<playername>]")
+			p.SendChatMsg("#grant <playername> <priv>")
+			p.SendChatMsg("#revoke <playername> <priv>")
+			p.SendChatMsg("#ban <playername | IP address>")
+			p.SendChatMsg("#unban <playername | IP address>")
+			p.SendChatMsg("#help")
 		})
 
 	RegisterOnRedirectDone(func(p *Peer, newsrv string, success bool) {
