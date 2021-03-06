@@ -78,7 +78,7 @@ func readStorageItem(db *sql.DB, key string) (string, error) {
 		err = rows.Scan(&r)
 	}
 
-	return r, nil
+	return r, err
 }
 
 func deleteStorageItem(db *sql.DB, key string) error {

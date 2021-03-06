@@ -112,7 +112,7 @@ func readPrivItem(db *sql.DB, name string) (string, error) {
 		err = rows.Scan(&r)
 	}
 
-	return r, nil
+	return r, err
 }
 
 // GetPrivs returns the privileges of the Peer

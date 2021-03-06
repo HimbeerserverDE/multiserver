@@ -141,7 +141,7 @@ func readAuthItem(db *sql.DB, name string) (string, error) {
 		err = rows.Scan(&r)
 	}
 
-	return r, nil
+	return r, err
 }
 
 func init() {

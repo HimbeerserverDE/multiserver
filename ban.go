@@ -59,7 +59,7 @@ func readBanItem(db *sql.DB, addr string) (string, error) {
 		err = rows.Scan(&r)
 	}
 
-	return r, nil
+	return r, err
 }
 
 // deleteBanItem deletes a ban DB entry
@@ -105,7 +105,11 @@ func BanList() (map[string]string, error) {
 
 	for rows.Next() {
 		var addr, name string
-		err = rows.Scan(&addr, &name)
+
+		if err = rows.Scan(&addr, &name); err != nil {
+			return nil, err
+		}
+
 		r[addr] = name
 	}
 
