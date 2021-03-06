@@ -9,7 +9,6 @@ import (
 	"net"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/anon55555/mt/rudp"
 )
@@ -366,21 +365,19 @@ func stringToDigest(s string) []byte {
 	return r
 }
 
-func loadMedia() {
+func loadMedia(servers map[string]struct{}) {
 	log.Print("Fetching media")
 
 	media = make(map[string]*mediaFile)
 	nodedefs = make(map[string][]byte)
-	itemdefs = make(map[string][]byte)
 	detachedinvs = make(map[string][][]byte)
 
 	loadMediaCache()
 
 	clt := &Peer{username: "media"}
 
-	servers := GetConfKey("servers").(map[interface{}]interface{})
 	for server := range servers {
-		straddr := GetConfKey("servers:" + server.(string) + ":address")
+		straddr := GetConfKey("servers:" + server + ":address")
 
 		srvaddr, err := net.ResolveUDPAddr("udp", straddr.(string))
 		if err != nil {
@@ -419,20 +416,17 @@ func loadMedia() {
 }
 
 func init() {
-	refetch, ok := GetConfKey("media_refetch_interval").(int)
+	itemdefs = make(map[string][]byte)
+
+	servers, ok := GetConfKey("servers").(map[interface{}]interface{})
 	if !ok {
-		refetch = 10
+		log.Fatal("Server list inexistent or not a dictionary")
 	}
 
-	loadMedia()
+	srvs := make(map[string]struct{})
+	for server := range servers {
+		srvs[server.(string)] = struct{}{}
+	}
 
-	go func() {
-		refetch := time.NewTicker(time.Duration(refetch) * time.Minute)
-		for {
-			select {
-			case <-refetch.C:
-				loadMedia()
-			}
-		}
-	}()
+	loadMedia(srvs)
 }

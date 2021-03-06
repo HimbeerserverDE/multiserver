@@ -356,7 +356,7 @@ func mergeItemdefs(mgrs map[string][]byte) error {
 		}
 	}
 
-	if len(handDef) < 4 {
+	if len(handDef) >= 4 {
 		handdata := rmToolCapabs(handDef)
 
 		var compHanddata bytes.Buffer

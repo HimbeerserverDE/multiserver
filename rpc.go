@@ -315,6 +315,10 @@ func init() {
 						continue
 					}
 
+					// Also refetch media in case something has not
+					// been downloaded yet
+					loadMedia(map[string]struct{}{server.(string): struct{}{}})
+
 					srvaddr, err := net.ResolveUDPAddr("udp", straddr.(string))
 					if err != nil {
 						log.Print(err)
