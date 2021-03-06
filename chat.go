@@ -13,6 +13,7 @@ import (
 var ChatCommandPrefix string = "#"
 
 type chatCommand struct {
+	help     string
 	privs    map[string]bool
 	function func(*Peer, string)
 }
@@ -24,9 +25,16 @@ var onServerChatMsg []func(*Peer, string) bool
 
 // RegisterChatCommand registers a callback function that is called
 // when a client executes the command and has the required privileges
-func RegisterChatCommand(name string, privs map[string]bool, function func(*Peer, string)) {
-	chatCommands[name] = chatCommand{privs: privs, function: function}
+func RegisterChatCommand(name string, privs map[string]bool, help string, function func(*Peer, string)) {
+	chatCommands[name] = chatCommand{
+		privs:    privs,
+		help:     help,
+		function: function,
+	}
 }
+
+// Help returns the help string of a chatCommand
+func (c chatCommand) Help() string { return c.help }
 
 // RegisterOnChatMessage registers a callback function that is called
 // when a client sends a chat message
@@ -177,6 +185,11 @@ func ChatSendAll(msg string) {
 	for i := range peers {
 		go peers[i].SendChatMsg(msg)
 	}
+}
+
+// Colorize prepends a color escape sequence to a string
+func Colorize(text, color string) string {
+	return string(0x1b) + "(c@" + color + ")" + text + string(0x1b) + "(c@#FFF)"
 }
 
 func narrow(b []byte) []byte {

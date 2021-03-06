@@ -19,21 +19,50 @@ func init() {
 		return
 	}
 
-	RegisterChatCommand("send", privs("send"),
+	RegisterChatCommand("help",
+		nil,
+		"Shows the help for a command. Shows the help for all commands if executed without arguments. Usage: help [command]",
+		func(p *Peer, param string) {
+			showHelp := func(name string) {
+				cmd := chatCommands[name]
+				if help := cmd.Help(); help != "" {
+					color := "#F00"
+					if has, err := p.CheckPrivs(cmd.privs); (err == nil && has) || cmd.privs == nil {
+						color = "#0F0"
+					}
+
+					p.SendChatMsg(Colorize(name, color) + ": " + help)
+				} else {
+					p.SendChatMsg("No help available for " + name + ".")
+				}
+			}
+
+			if param == "" {
+				for cmd := range chatCommands {
+					showHelp(cmd)
+				}
+			} else {
+				showHelp(param)
+			}
+		})
+
+	RegisterChatCommand("send",
+		privs("send"),
+		"Sends a player to a server. Usage: send <playername> <servername>",
 		func(p *Peer, param string) {
 			if param == "" {
-				p.SendChatMsg("Usage: #send <playername> <servername>")
+				p.SendChatMsg("Usage: send <playername> <servername>")
 				return
 			}
 
 			name := strings.Split(param, " ")[0]
 			if name == "" || len(strings.Split(param, " ")) < 2 {
-				p.SendChatMsg("Usage: #send <playername> <servername>")
+				p.SendChatMsg("Usage: send <playername> <servername>")
 				return
 			}
 			tosrv := strings.Split(param, " ")[1]
 			if tosrv == "" {
-				p.SendChatMsg("Usage: #send <playername> <servername>")
+				p.SendChatMsg("Usage: send <playername> <servername>")
 				return
 			}
 
@@ -57,10 +86,12 @@ func init() {
 			go p2.Redirect(tosrv)
 		})
 
-	RegisterChatCommand("sendcurrent", privs("send"),
+	RegisterChatCommand("sendcurrent",
+		privs("send"),
+		"Sends all players on the current server to a new server. Usage: sendcurrent <servername>",
 		func(p *Peer, param string) {
 			if param == "" {
-				p.SendChatMsg("Usage: #sendcurrent <servername>")
+				p.SendChatMsg("Usage: sendcurrent <servername>")
 				return
 			}
 
@@ -86,10 +117,12 @@ func init() {
 			}()
 		})
 
-	RegisterChatCommand("sendall", privs("send"),
+	RegisterChatCommand("sendall",
+		privs("send"),
+		"Sends all players to a server. Usage: sendall <servername>",
 		func(p *Peer, param string) {
 			if param == "" {
-				p.SendChatMsg("Usage: #sendall <servername>")
+				p.SendChatMsg("Usage: sendall <servername>")
 				return
 			}
 
@@ -109,12 +142,17 @@ func init() {
 			}()
 		})
 
-	RegisterChatCommand("alert", privs("alert"),
+	RegisterChatCommand("alert",
+		privs("alert"),
+		"Sends a message to all players that are connected to the network. Usage: alert [message]",
 		func(p *Peer, param string) {
 			ChatSendAll("[ALERT] " + param)
 		})
 
-	RegisterChatCommand("server", nil,
+	RegisterChatCommand("server",
+		nil,
+		`Prints your current server and a list of all servers if executed without arguments. 
+		Sends you to a server if executed with arguments and the required privilege. Usage: server [servername]"`,
 		func(p *Peer, param string) {
 			if param == "" {
 				var r string
@@ -161,10 +199,12 @@ func init() {
 			}
 		})
 
-	RegisterChatCommand("find", privs("find"),
+	RegisterChatCommand("find",
+		privs("find"),
+		"Prints the online status and the current server of a player. Usage: find <playername>",
 		func(p *Peer, param string) {
 			if param == "" {
-				p.SendChatMsg("Usage: #find <playername>")
+				p.SendChatMsg("Usage: find <playername>")
 				return
 			}
 
@@ -177,10 +217,12 @@ func init() {
 			}
 		})
 
-	RegisterChatCommand("addr", privs("addr"),
+	RegisterChatCommand("addr",
+		privs("addr"),
+		"Prints the network address (including the port) of a connected player. Usage: addr <playername>",
 		func(p *Peer, param string) {
 			if param == "" {
-				p.SendChatMsg("Usage: #addr <playername>")
+				p.SendChatMsg("Usage: addr <playername>")
 				return
 			}
 
@@ -192,12 +234,17 @@ func init() {
 			}
 		})
 
-	RegisterChatCommand("end", privs("end"),
+	RegisterChatCommand("end",
+		privs("end"),
+		"Kicks all connected clients and stops the proxy. Usage: end",
 		func(p *Peer, param string) {
 			go End(false, false)
 		})
 
-	RegisterChatCommand("privs", nil,
+	RegisterChatCommand("privs",
+		nil,
+		`Prints your privileges if executed without arguments. 
+		Prints a connected player's privileges if executed with arguments. Usage: privs [playername]`,
 		func(p *Peer, param string) {
 			var r string
 
@@ -233,7 +280,10 @@ func init() {
 			p.SendChatMsg(r + strings.Join(privnames, " "))
 		})
 
-	RegisterChatCommand("grant", privs("privs"),
+	RegisterChatCommand("grant",
+		privs("privs"),
+		`Grants privileges to a connected player. The privileges need to be comma-seperated. 
+		If the playername is omitted, privileges are granted to you. Usage: grant [playername] <privileges>`,
 		func(p *Peer, param string) {
 			name := strings.Split(param, " ")[0]
 			var privnames string
@@ -271,7 +321,10 @@ func init() {
 			p.SendChatMsg("Privileges updated.")
 		})
 
-	RegisterChatCommand("revoke", privs("privs"),
+	RegisterChatCommand("revoke",
+		privs("privs"),
+		`Revokes privileges from a connected player. The privileges need to be comma-seperated. 
+		If the playername is omitted, privileges are revoked from you. Usage: revoke [playername] <privileges>`,
 		func(p *Peer, param string) {
 			name := strings.Split(param, " ")[0]
 			var privnames string
@@ -309,10 +362,12 @@ func init() {
 			p.SendChatMsg("Privileges updated.")
 		})
 
-	RegisterChatCommand("ban", privs("ban"),
+	RegisterChatCommand("ban",
+		privs("ban"),
+		"Bans an IP address or a connected player. Usage: ban <playername | IP address>",
 		func(p *Peer, param string) {
 			if param == "" {
-				p.SendChatMsg("Usage: #ban <playername | IP address>")
+				p.SendChatMsg("Usage: ban <playername | IP address>")
 				return
 			}
 
@@ -333,10 +388,12 @@ func init() {
 			p.SendChatMsg("Banned " + param)
 		})
 
-	RegisterChatCommand("unban", privs("ban"),
+	RegisterChatCommand("unban",
+		privs("ban"),
+		"Unbans an IP address or a playername. Usage: unban <playername | IP address>",
 		func(p *Peer, param string) {
 			if param == "" {
-				p.SendChatMsg("Usage: #unban <playername | IP address>")
+				p.SendChatMsg("Usage: unban <playername | IP address>")
 				return
 			}
 
