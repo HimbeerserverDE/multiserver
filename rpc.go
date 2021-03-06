@@ -281,7 +281,7 @@ func init() {
 	rpcSrvs = make(map[*Peer]struct{})
 	rpcSrvMu.Unlock()
 
-	reconnect, ok := GetConfKey("rpc_reconnect_interval").(int)
+	reconnect, ok := GetConfKey("server_reintegration_interval").(int)
 	if !ok {
 		reconnect = 600
 	}

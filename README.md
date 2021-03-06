@@ -98,15 +98,12 @@ Description: The CSM restriction flags, default is none
 * 63: All restrictions
 To set multiple flags at the same time add the corresponding numbers
 ```
-> `rpc_reconnect_interval`
+> `server_reintergration_interval`
 ```
 Type: Integer
-Description: Number of seconds between RPC reconnection attempts, default is 600
-```
-> `media_refetch_interval`
-```
-Type: Integer
-Description: Number of minutes between media refetching, default is 10
+Description: Number of seconds between server reintegrations, default is 600.
+A server reintegration is reconnecting the RPC user and refetching the media
+from one or more minetest servers.
 ```
 > `disable_builtin`
 ```
