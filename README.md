@@ -122,3 +122,8 @@ Description: If this is true players are automatically redirected to
 the default server if the server they are on shuts down or crashes,
 default is true
 ```
+> `serverlist_address`
+```
+Type: String
+Description: Address to send to server list
+```

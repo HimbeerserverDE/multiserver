@@ -43,6 +43,9 @@ func main() {
 
 	l := Listen(lc)
 	SetListener(l)
+
+	Announce(AnnounceStart)
+
 	for {
 		clt, err := l.Accept()
 		if err != nil {
@@ -82,6 +85,27 @@ func main() {
 
 		go func() {
 			srv = <-fin
+
+			if srv == nil {
+				data := []byte{
+					0, ToClientAccessDenied,
+					AccessDeniedServerFail, 0, 0, 0, 0,
+				}
+
+				select {
+				case <-clt.Disco():					
+				default:
+					ack, err := clt.Send(rudp.Pkt{Data: data})
+					if err != nil {
+						log.Print(err)
+					}
+					<-ack
+				}
+
+				clt.SendDisco(0, true)
+				clt.Close()
+				return
+			}
 
 			clt.SetServer(srv)
 

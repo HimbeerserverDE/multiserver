@@ -49,6 +49,8 @@ func End(crash, reconnect bool) {
 
 	time.Sleep(time.Second)
 
+	Announce(AnnounceDelete)
+
 	if crash {
 		os.Exit(1)
 	} else {
