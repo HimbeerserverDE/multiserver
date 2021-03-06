@@ -93,7 +93,7 @@ func main() {
 				}
 
 				select {
-				case <-clt.Disco():					
+				case <-clt.Disco():
 				default:
 					ack, err := clt.Send(rudp.Pkt{Data: data})
 					if err != nil {
