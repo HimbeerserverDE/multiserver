@@ -23,6 +23,18 @@ type NodeDef struct {
 
 var nodeDefs map[string]map[uint16]*NodeDef
 
+// NodeDefByID returns the NodeDef that has the specified ID on a
+// minetest server
+func NodeDefByName(srv, name string) *NodeDef {
+	for _, def := range nodeDefs[srv] {
+		if def.Name() == name {
+			return def
+		}
+	}
+
+	return nil
+}
+
 // ID returns the content ID of a NodeDef
 func (n *NodeDef) ID() uint16 {
 	if n == nil {
@@ -91,6 +103,14 @@ func mergeNodedefs(mgrs map[string][]byte) error {
 						si += 4 + uint32(deflen)
 						continue NodeLoop
 					}
+				}
+			}
+
+			if def := NodeDefByName(srv, nodeName); def != nil {
+				nodeDefs[srv][id] = &NodeDef{
+					id:   def.ID(),
+					name: nodeName,
+					data: mgr[2+si : 4+si+uint32(deflen)],
 				}
 			}
 

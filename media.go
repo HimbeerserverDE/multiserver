@@ -369,7 +369,6 @@ func loadMedia(servers map[string]struct{}) {
 	log.Print("Fetching media")
 
 	media = make(map[string]*mediaFile)
-	nodedefs = make(map[string][]byte)
 	detachedinvs = make(map[string][][]byte)
 
 	loadMediaCache()
@@ -402,10 +401,8 @@ func loadMedia(servers map[string]struct{}) {
 		srv.fetchMedia()
 	}
 
-	if nodedef == nil {
-		if err := mergeNodedefs(nodedefs); err != nil {
-			log.Fatal(err)
-		}
+	if err := mergeNodedefs(nodedefs); err != nil {
+		log.Fatal(err)
 	}
 
 	if err := mergeItemdefs(itemdefs); err != nil {
@@ -416,6 +413,7 @@ func loadMedia(servers map[string]struct{}) {
 }
 
 func init() {
+	nodedefs = make(map[string][]byte)
 	itemdefs = make(map[string][]byte)
 
 	servers, ok := GetConfKey("servers").(map[interface{}]interface{})
