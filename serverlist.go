@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	AnnounceStart = "start"
+	AnnounceStart  = "start"
 	AnnounceUpdate = "update"
 	AnnounceDelete = "delete"
 )
@@ -118,7 +118,7 @@ func Announce(action string) error {
 	part.Write(s)
 	writer.Close()
 
-	_, err = http.Post(listsrv + "/announce", "multipart/form-data; boundary=" + writer.Boundary(), rqBody)
+	_, err = http.Post(listsrv+"/announce", "multipart/form-data; boundary="+writer.Boundary(), rqBody)
 	if err != nil {
 		return err
 	}
