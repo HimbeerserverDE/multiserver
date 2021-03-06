@@ -80,6 +80,38 @@ func deleteBanItem(db *sql.DB, name string) error {
 	return nil
 }
 
+// BanList returns the list of banned players and IP addresses
+func BanList() (map[string]string, error) {
+	sql_readBanItems := `SELECT addr, name FROM ban;`
+
+	db, err := initAuthDB()
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+
+	stmt, err := db.Prepare(sql_readBanItems)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query()
+	if err != nil {
+		return nil, err
+	}
+
+	r := make(map[string]string)
+
+	for rows.Next() {
+		var addr, name string
+		err = rows.Scan(&addr, &name)
+		r[addr] = name
+	}
+
+	return r, nil
+}
+
 // IsBanned reports whether a Peer is banned
 func (p *Peer) IsBanned() (bool, string, error) {
 	db, err := initAuthDB()

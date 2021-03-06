@@ -362,6 +362,24 @@ func init() {
 			p.SendChatMsg("Privileges updated.")
 		})
 
+	RegisterChatCommand("banlist",
+		privs("ban"),
+		"Prints the list of banned IP address and associated players. Usage: banlist",
+		func(p *Peer, param string) {
+			bans, err := BanList()
+			if err != nil {
+				p.SendChatMsg("An internal error occured while attempting to read the ban list.")
+				return
+			}
+
+			msg := "Address | Name\n"
+			for addr, name := range bans {
+				msg += addr + " | " + name + "\n"
+			}
+
+			p.SendChatMsg(msg)
+		})
+
 	RegisterChatCommand("ban",
 		privs("ban"),
 		"Bans an IP address or a connected player. Usage: ban <playername | IP address>",
