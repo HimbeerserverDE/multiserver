@@ -18,14 +18,8 @@ const (
 )
 
 func Announce(action string) error {
-	announce, ok := GetConfKey("serverlist_announce").(bool)
-	if !ok || !announce {
-		return nil
-	}
-
 	listsrv, ok := GetConfKey("serverlist_url").(string)
 	if !ok {
-		log.Print("Server list URL not set or not a string")
 		return nil
 	}
 
@@ -96,9 +90,6 @@ func Announce(action string) error {
 	}
 
 	if action == AnnounceStart {
-		data["dedicated"] = true
-		data["rollback"] = confBool("serverlist_rollback")
-		data["privs"] = conf("serverlist_default_privs")
 		data["can_see_far_names"] = confBool("serverlist_can_see_far_names")
 		data["mods"] = mods
 	}

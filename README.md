@@ -122,8 +122,73 @@ Description: If this is true players are automatically redirected to
 the default server if the server they are on shuts down or crashes,
 default is true
 ```
+> `disallow_empty_passwords`
+```
+Type: Boolean
+Description: Whether to deny access if the password is empty,
+default is false
+```
+> `serverlist_url`
+```
+Type: String
+Description: The URL of the list server to announce to,
+announcements are disabled if this is unset
+```
 > `serverlist_address`
 ```
 Type: String
-Description: Address to send to server list
+Description: The server address to be displayed on the server list,
+can be omitted
+```
+> `serverlist_name`
+```
+Type: String
+Description: The name to be displayed on the server list, can be omitted
+```
+> `serverlist_desc`
+```
+Type: String
+Description: The description to be displayed on the server list,
+can be omitted
+```
+> `serverlist_display_url`
+```
+Type: String
+Description: The URL of the website of the server, can be omitted
+```
+> `serverlist_creative`
+```
+Type: Boolean
+Description: Whether one of the minetest servers has creative enabled,
+default is false
+```
+> `serverlist_damage`
+```
+Type: Boolean
+Description: Whether one of the minetest servers has damage enabled,
+default is false
+```
+> `serverlist_pvp`
+```
+Type: Boolean
+Description: Whether one of the minetest servers has PvP enabled,
+default is false
+```
+> `serverlist_game`
+```
+Type: String
+Description: The subgame that is used on the minetest servers,
+can be omitted
+```
+> `serverlist_can_see_far_names`
+```
+Type: Boolean
+Description: Whether unlimited player view range is enabled,
+default is false
+```
+> `serverlist_mods`
+```
+Type: List
+Description: All mods that have been installed on any of the
+minetest servers, can be omitted
 ```
