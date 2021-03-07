@@ -379,6 +379,30 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 				lenV := binary.BigEndian.Uint16(pkt.Data[4+lenS : 6+lenS])
 				v := pkt.Data[6+lenS : 6+lenS+lenV]
 
+				// Also make sure to check for an empty password
+				disallow, ok := GetConfKey("disallow_empty_passwords").(bool)
+				if ok && disallow && pkt.Data[6+lenS+lenV] == 1 {
+					log.Print(p2.Addr().String() + " used an empty password but disallow_empty_passwords is true")
+
+					// Send ACCESS_DENIED
+					data := []byte{
+						0, ToClientAccessDenied,
+						AccessDeniedEmptyPassword, 0, 0, 0, 0,
+					}
+
+					ack, err := p2.Send(rudp.Pkt{Data: data})
+					if err != nil {
+						log.Print(err)
+						continue
+					}
+					<-ack
+
+					p2.SendDisco(0, true)
+					p2.Close()
+					fin <- p
+					return
+				}
+
 				pwd := encodeVerifierAndSalt(s, v)
 
 				db, err := initAuthDB()
