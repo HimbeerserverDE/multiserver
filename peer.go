@@ -40,6 +40,7 @@ type Peer struct {
 
 	useRpcMu sync.RWMutex
 	useRpc   bool
+	noClt    bool
 	modChs   map[string]bool
 
 	huds map[uint32]bool
@@ -114,6 +115,14 @@ func (p *Peer) SetUseRpc(useRpc bool) {
 	defer p.useRpcMu.Unlock()
 
 	p.useRpc = useRpc
+}
+
+// NoClt reports whether the Peer is RPC-only
+func (p *Peer) NoClt() bool { return p.noClt }
+
+// MakeRpcOnly marks the Peer as RPC-only
+func (p *Peer) MakeRpcOnly() {
+	p.noClt = true
 }
 
 // Inv returns the inventory of the Peer

@@ -34,6 +34,8 @@ func processJoin(p *Peer) {
 	for i := range onJoinPlayer {
 		onJoinPlayer[i](p)
 	}
+
+	go OptimizeRPCConns()
 }
 
 func processLeave(p *Peer) {

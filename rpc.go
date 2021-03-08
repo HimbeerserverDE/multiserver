@@ -47,6 +47,20 @@ func (p *Peer) joinRpc() {
 	<-ack
 }
 
+func (p *Peer) leaveRpc() {
+	data := make([]byte, 4+len(rpcCh))
+	data[0] = uint8(0x00)
+	data[1] = uint8(ToServerModChannelLeave)
+	binary.BigEndian.PutUint16(data[2:4], uint16(len(rpcCh)))
+	copy(data[4:], []byte(rpcCh))
+
+	ack, err := p.Send(rudp.Pkt{Data: data})
+	if err != nil {
+		return
+	}
+	<-ack
+}
+
 func processRpc(p *Peer, pkt rudp.Pkt) bool {
 	chlen := binary.BigEndian.Uint16(pkt.Data[2:4])
 	ch := string(pkt.Data[4 : 4+chlen])
@@ -237,41 +251,148 @@ func connectRpc() {
 			rpcSrvMu.Unlock()
 
 			go srv.joinRpc()
-			go func() {
-				for {
-					pkt, err := srv.Recv()
-					if err != nil {
-						if errors.Is(err, net.ErrClosed) {
-							rpcSrvMu.Lock()
-							delete(rpcSrvs, srv)
-							rpcSrvMu.Unlock()
-							break
-						}
+			go handleRpc(srv)
+		}()
+	}
+}
 
-						log.Print(err)
-						continue
-					}
+func handleRpc(srv *Peer) {
+	srv.MakeRpcOnly()
+	for {
+		pkt, err := srv.Recv()
+		if err != nil {
+			if errors.Is(err, net.ErrClosed) {
+				rpcSrvMu.Lock()
+				delete(rpcSrvs, srv)
+				rpcSrvMu.Unlock()
+				break
+			}
 
-					switch cmd := binary.BigEndian.Uint16(pkt.Data[0:2]); cmd {
-					case ToClientModChannelSignal:
-						chlen := binary.BigEndian.Uint16(pkt.Data[3:5])
-						ch := string(pkt.Data[5 : 5+chlen])
-						if ch == rpcCh {
-							switch sig := pkt.Data[2]; sig {
-							case ModChSigJoinOk:
-								srv.SetUseRpc(true)
-							case ModChSigSetState:
-								state := pkt.Data[5+chlen]
-								if state == ModChStateRO {
-									srv.SetUseRpc(false)
-								}
-							}
-						}
-					case ToClientModChannelMsg:
-						processRpc(srv, pkt)
+			log.Print(err)
+			continue
+		}
+
+		switch cmd := binary.BigEndian.Uint16(pkt.Data[0:2]); cmd {
+		case ToClientModChannelSignal:
+			chlen := binary.BigEndian.Uint16(pkt.Data[3:5])
+			ch := string(pkt.Data[5 : 5+chlen])
+			if ch == rpcCh {
+				switch sig := pkt.Data[2]; sig {
+				case ModChSigJoinOk:
+					srv.SetUseRpc(true)
+				case ModChSigSetState:
+					state := pkt.Data[5+chlen]
+					if state == ModChStateRO {
+						srv.SetUseRpc(false)
 					}
 				}
-			}()
+			}
+		case ToClientModChannelMsg:
+			processRpc(srv, pkt)
+		}
+	}
+}
+
+func OptimizeRPCConns() {
+	rpcSrvMu.Lock()
+	defer rpcSrvMu.Unlock()
+
+ServerLoop:
+	for p := range rpcSrvs {
+		for _, p2 := range GetListener().GetPeers() {
+			if p2.Server().Addr().String() == p.Addr().String() {
+				if p.NoClt() {
+					p.SendDisco(0, true)
+					p.Close()
+				} else {
+					p.SetUseRpc(false)
+					p.leaveRpc()
+				}
+
+				delete(rpcSrvs, p)
+
+				p3 := p2.Server()
+				p3.SetUseRpc(true)
+				p3.joinRpc()
+
+				rpcSrvs[p3] = struct{}{}
+
+				go func() {
+					<-p3.Disco()
+					rpcSrvMu.Lock()
+					delete(rpcSrvs, p3)
+					rpcSrvMu.Unlock()
+
+					OptimizeRPCConns()
+				}()
+
+				continue ServerLoop
+			}
+		}
+	}
+
+	go reconnectRpc(false)
+}
+
+func reconnectRpc(media bool) {
+	servers := GetConfKey("servers").(map[interface{}]interface{})
+ServerLoop:
+	for server := range servers {
+		clt := &Peer{username: "rpc"}
+
+		straddr := GetConfKey("servers:" + server.(string) + ":address").(string)
+
+		rpcSrvMu.Lock()
+		for rpcsrv := range rpcSrvs {
+			if rpcsrv.Addr().String() == straddr {
+				rpcSrvMu.Unlock()
+				continue ServerLoop
+			}
+		}
+		rpcSrvMu.Unlock()
+
+		/*for _, p := range GetListener().GetPeers() {
+			if p.Server().Addr().String() == straddr {
+				continue ServerLoop
+			}
+		}*/
+
+		// Also refetch media in case something has not
+		// been downloaded yet
+		if media {
+			loadMedia(map[string]struct{}{server.(string): {}})
+		}
+
+		srvaddr, err := net.ResolveUDPAddr("udp", straddr)
+		if err != nil {
+			log.Print(err)
+			continue
+		}
+
+		conn, err := net.DialUDP("udp", nil, srvaddr)
+		if err != nil {
+			log.Print(err)
+			continue
+		}
+
+		srv, err := Connect(conn, conn.RemoteAddr())
+		if err != nil {
+			log.Print(err)
+			continue
+		}
+
+		fin := make(chan *Peer) // close-only
+		go Init(clt, srv, true, true, fin)
+
+		go func() {
+			<-fin
+
+			rpcSrvMu.Lock()
+			rpcSrvs[srv] = struct{}{}
+			rpcSrvMu.Unlock()
+
+			go srv.joinRpc()
+			go handleRpc(srv)
 		}()
 	}
 }
@@ -293,98 +414,8 @@ func init() {
 		for {
 			select {
 			case <-reconnect.C:
-				log.Print("Re-establishing closed RPC connections")
-
-				servers := GetConfKey("servers").(map[interface{}]interface{})
-				for server := range servers {
-					clt := &Peer{username: "rpc"}
-
-					straddr := GetConfKey("servers:" + server.(string) + ":address")
-
-					var c bool
-
-					rpcSrvMu.Lock()
-					for rpcsrv := range rpcSrvs {
-						if rpcsrv.Addr().String() == straddr.(string) {
-							c = true
-						}
-					}
-					rpcSrvMu.Unlock()
-
-					if c {
-						continue
-					}
-
-					// Also refetch media in case something has not
-					// been downloaded yet
-					loadMedia(map[string]struct{}{server.(string): {}})
-
-					srvaddr, err := net.ResolveUDPAddr("udp", straddr.(string))
-					if err != nil {
-						log.Print(err)
-						continue
-					}
-
-					conn, err := net.DialUDP("udp", nil, srvaddr)
-					if err != nil {
-						log.Print(err)
-						continue
-					}
-
-					srv, err := Connect(conn, conn.RemoteAddr())
-					if err != nil {
-						log.Print(err)
-						continue
-					}
-
-					fin := make(chan *Peer) // close-only
-					go Init(clt, srv, true, true, fin)
-
-					go func() {
-						<-fin
-
-						rpcSrvMu.Lock()
-						rpcSrvs[srv] = struct{}{}
-						rpcSrvMu.Unlock()
-
-						go srv.joinRpc()
-						go func() {
-							for {
-								pkt, err := srv.Recv()
-								if err != nil {
-									if errors.Is(err, net.ErrClosed) {
-										rpcSrvMu.Lock()
-										delete(rpcSrvs, srv)
-										rpcSrvMu.Unlock()
-										break
-									}
-
-									log.Print(err)
-									continue
-								}
-
-								switch cmd := binary.BigEndian.Uint16(pkt.Data[0:2]); cmd {
-								case ToClientModChannelSignal:
-									chlen := binary.BigEndian.Uint16(pkt.Data[3:5])
-									ch := string(pkt.Data[5 : 5+chlen])
-									if ch == rpcCh {
-										switch sig := pkt.Data[2]; sig {
-										case ModChSigJoinOk:
-											srv.SetUseRpc(true)
-										case ModChSigSetState:
-											state := pkt.Data[5+chlen]
-											if state == ModChStateRO {
-												srv.SetUseRpc(false)
-											}
-										}
-									}
-								case ToClientModChannelMsg:
-									processRpc(srv, pkt)
-								}
-							}
-						}()
-					}()
-				}
+				log.Print("Reintegrating servers")
+				reconnectRpc(true)
 			}
 		}
 	}()
