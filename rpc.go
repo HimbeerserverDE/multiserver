@@ -206,11 +206,10 @@ func (p *Peer) doRpc(rpc, rq string) {
 	binary.BigEndian.PutUint16(data[4+len(rpcCh):6+len(rpcCh)], uint16(len(msg)))
 	copy(data[6+len(rpcCh):6+len(rpcCh)+len(msg)], []byte(msg))
 
-	ack, err := p.Send(rudp.Pkt{Data: data})
+	_, err := p.Send(rudp.Pkt{Data: data})
 	if err != nil {
 		return
 	}
-	<-ack
 }
 
 func connectRpc() {
