@@ -221,7 +221,7 @@ func init() {
 	chatCommands = make(map[string]chatCommand)
 
 	// Read cmd prefix from config
-	prefix, ok := GetConfKey("command_prefix").(string)
+	prefix, ok := ConfKey("command_prefix").(string)
 	if ok {
 		ChatCommandPrefix = prefix
 	}

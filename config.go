@@ -41,8 +41,8 @@ func loadConfig() error {
 	return nil
 }
 
-// GetConfKey returns a key in the configuration
-func GetConfKey(key string) interface{} {
+// ConfKey returns a key from the configuration
+func ConfKey(key string) interface{} {
 	if config == nil {
 		loadConfig()
 	}

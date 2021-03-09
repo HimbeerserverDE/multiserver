@@ -202,7 +202,7 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 
 			return false
 		case ToClientAccessDenied:
-			doFallback, ok := GetConfKey("do_fallback").(bool)
+			doFallback, ok := ConfKey("do_fallback").(bool)
 			if ok && !doFallback {
 				return false
 			}
@@ -216,7 +216,7 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 				msg = "crashed"
 			}
 
-			defsrv, ok := GetConfKey("default_server").(string)
+			defsrv, ok := ConfKey("default_server").(string)
 			if !ok {
 				log.Print("Default server name not set or not a string")
 				return false

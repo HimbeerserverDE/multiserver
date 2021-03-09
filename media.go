@@ -43,20 +43,20 @@ func (p *Peer) fetchMedia() {
 
 		switch cmd := binary.BigEndian.Uint16(pkt.Data[0:2]); cmd {
 		case ToClientNodedef:
-			servers := GetConfKey("servers").(map[interface{}]interface{})
+			servers := ConfKey("servers").(map[interface{}]interface{})
 			var srvname string
 			for server := range servers {
-				if GetConfKey("servers:"+server.(string)+":address") == p.Addr().String() {
+				if ConfKey("servers:"+server.(string)+":address") == p.Addr().String() {
 					srvname = server.(string)
 					break
 				}
 			}
 			nodedefs[srvname] = pkt.Data[6:]
 		case ToClientItemdef:
-			servers := GetConfKey("servers").(map[interface{}]interface{})
+			servers := ConfKey("servers").(map[interface{}]interface{})
 			var srvname string
 			for server := range servers {
-				if GetConfKey("servers:"+server.(string)+":address") == p.Addr().String() {
+				if ConfKey("servers:"+server.(string)+":address") == p.Addr().String() {
 					srvname = server.(string)
 					break
 				}
@@ -65,10 +65,10 @@ func (p *Peer) fetchMedia() {
 		case ToClientMovement:
 			movement = pkt.Data[2:]
 		case ToClientDetachedInventory:
-			servers := GetConfKey("servers").(map[interface{}]interface{})
+			servers := ConfKey("servers").(map[interface{}]interface{})
 			var srvname string
 			for server := range servers {
-				if GetConfKey("servers:"+server.(string)+":address") == p.Addr().String() {
+				if ConfKey("servers:"+server.(string)+":address") == p.Addr().String() {
 					srvname = server.(string)
 					break
 				}
@@ -160,7 +160,7 @@ func (p *Peer) updateDetachedInvs(srvname string) {
 }
 
 func (p *Peer) announceMedia() {
-	srvname, ok := GetConfKey("default_server").(string)
+	srvname, ok := ConfKey("default_server").(string)
 	if !ok {
 		log.Print("Default server name not set or not a string")
 		return
@@ -214,7 +214,7 @@ func (p *Peer) announceMedia() {
 	}
 	<-ack
 
-	csmrf, ok := GetConfKey("csm_restriction_flags").(int)
+	csmrf, ok := ConfKey("csm_restriction_flags").(int)
 	if !ok {
 		csmrf = 0
 	}
@@ -376,7 +376,7 @@ func loadMedia(servers map[string]struct{}) {
 	clt := &Peer{username: "media"}
 
 	for server := range servers {
-		straddr := GetConfKey("servers:" + server + ":address")
+		straddr := ConfKey("servers:" + server + ":address")
 
 		srvaddr, err := net.ResolveUDPAddr("udp", straddr.(string))
 		if err != nil {
@@ -416,7 +416,7 @@ func init() {
 	nodedefs = make(map[string][]byte)
 	itemdefs = make(map[string][]byte)
 
-	servers, ok := GetConfKey("servers").(map[interface{}]interface{})
+	servers, ok := ConfKey("servers").(map[interface{}]interface{})
 	if !ok {
 		log.Fatal("Server list inexistent or not a dictionary")
 	}

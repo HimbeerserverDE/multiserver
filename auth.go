@@ -145,7 +145,7 @@ func readAuthItem(db *sql.DB, name string) (string, error) {
 }
 
 func init() {
-	pwd, err := GetStorageKey("auth:passphrase")
+	pwd, err := StorageKey("auth:passphrase")
 	if err != nil {
 		log.Fatal(err)
 	}

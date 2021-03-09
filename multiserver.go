@@ -13,17 +13,17 @@ import (
 )
 
 func main() {
-	defaultSrv, ok := GetConfKey("default_server").(string)
+	defaultSrv, ok := ConfKey("default_server").(string)
 	if !ok {
 		log.Fatal("Default server name not set or not a string")
 	}
 
-	defaultSrvAddr, ok := GetConfKey("servers:" + defaultSrv + ":address").(string)
+	defaultSrvAddr, ok := ConfKey("servers:" + defaultSrv + ":address").(string)
 	if !ok {
 		log.Fatal("Default server address not set or not a string")
 	}
 
-	host, ok := GetConfKey("host").(string)
+	host, ok := ConfKey("host").(string)
 	if !ok {
 		log.Fatal("Host not set or not a string")
 	}

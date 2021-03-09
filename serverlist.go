@@ -18,14 +18,14 @@ const (
 )
 
 func Announce(action string) error {
-	listsrv, ok := GetConfKey("serverlist_url").(string)
+	listsrv, ok := ConfKey("serverlist_url").(string)
 	if !ok {
 		return nil
 	}
 
 	log.Print("Updating server list announcement")
 
-	host := GetConfKey("host").(string)
+	host := ConfKey("host").(string)
 
 	addr, err := net.ResolveUDPAddr("udp", host)
 	if err != nil {
@@ -34,7 +34,7 @@ func Announce(action string) error {
 
 	peers := Peers()
 
-	mods, ok := GetConfKey("serverlist_mods").([]string)
+	mods, ok := ConfKey("serverlist_mods").([]string)
 	if !ok {
 		mods = make([]string, 0)
 	}
@@ -44,13 +44,13 @@ func Announce(action string) error {
 		clients_list = append(clients_list, peer.Username())
 	}
 
-	maxPeers, ok := GetConfKey("player_limit").(int)
+	maxPeers, ok := ConfKey("player_limit").(int)
 	if !ok {
 		maxPeers = -1
 	}
 
 	conf := func(key string) interface{} {
-		value, ok := GetConfKey(key).(string)
+		value, ok := ConfKey(key).(string)
 		if !ok {
 			return ""
 		}
@@ -58,7 +58,7 @@ func Announce(action string) error {
 	}
 
 	confBool := func(key string) interface{} {
-		value, ok := GetConfKey(key).(bool)
+		value, ok := ConfKey(key).(bool)
 		if !ok {
 			return false
 		}

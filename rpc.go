@@ -79,7 +79,7 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 	case "<-ALERT":
 		ChatSendAll(strings.Join(strings.Split(msg, " ")[2:], " "))
 	case "<-GETDEFSRV":
-		defsrv, ok := GetConfKey("default_server").(string)
+		defsrv, ok := ConfKey("default_server").(string)
 		if !ok {
 			return true
 		}
@@ -108,7 +108,7 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 		name := strings.Split(msg, " ")[2]
 		var r string
 		if IsOnline(name) {
-			privs, err := PeerByUsername(name).GetPrivs()
+			privs, err := PeerByUsername(name).Privs()
 			if err == nil {
 				r = strings.Replace(encodePrivs(privs), "|", ",", -1)
 			}
@@ -215,11 +215,11 @@ func (p *Peer) doRpc(rpc, rq string) {
 func connectRpc() {
 	log.Print("Establishing RPC connections")
 
-	servers := GetConfKey("servers").(map[interface{}]interface{})
+	servers := ConfKey("servers").(map[interface{}]interface{})
 	for server := range servers {
 		clt := &Peer{username: "rpc"}
 
-		straddr := GetConfKey("servers:" + server.(string) + ":address")
+		straddr := ConfKey("servers:" + server.(string) + ":address")
 
 		srvaddr, err := net.ResolveUDPAddr("udp", straddr.(string))
 		if err != nil {
@@ -334,12 +334,12 @@ ServerLoop:
 }
 
 func reconnectRpc(media bool) {
-	servers := GetConfKey("servers").(map[interface{}]interface{})
+	servers := ConfKey("servers").(map[interface{}]interface{})
 ServerLoop:
 	for server := range servers {
 		clt := &Peer{username: "rpc"}
 
-		straddr := GetConfKey("servers:" + server.(string) + ":address").(string)
+		straddr := ConfKey("servers:" + server.(string) + ":address").(string)
 
 		rpcSrvMu.Lock()
 		for rpcsrv := range rpcSrvs {
@@ -395,7 +395,7 @@ func init() {
 	rpcSrvs = make(map[*Peer]struct{})
 	rpcSrvMu.Unlock()
 
-	reconnect, ok := GetConfKey("server_reintegration_interval").(int)
+	reconnect, ok := ConfKey("server_reintegration_interval").(int)
 	if !ok {
 		reconnect = 600
 	}

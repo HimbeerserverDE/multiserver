@@ -43,7 +43,7 @@ func (p *Peer) Redirect(newsrv string) error {
 
 	defer processRedirectDone(p, newsrv)
 
-	straddr, ok := GetConfKey("servers:" + newsrv + ":address").(string)
+	straddr, ok := ConfKey("servers:" + newsrv + ":address").(string)
 	if !ok {
 		return fmt.Errorf("server %s does not exist", newsrv)
 	}

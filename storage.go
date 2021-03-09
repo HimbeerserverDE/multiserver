@@ -113,8 +113,8 @@ func SetStorageKey(key, value string) error {
 	return modOrAddStorageItem(db, key, value)
 }
 
-// GetStorageKey gets an entry in the storage database
-func GetStorageKey(key string) (string, error) {
+// StorageKey returns an entry from the storage database
+func StorageKey(key string) (string, error) {
 	db, err := initStorageDB()
 	if err != nil {
 		return "", err

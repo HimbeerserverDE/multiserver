@@ -140,10 +140,10 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 				<-ack
 			case ToClientAccessDenied:
 				// Auth failed for some reason
-				servers := GetConfKey("servers").(map[interface{}]interface{})
+				servers := ConfKey("servers").(map[interface{}]interface{})
 				var srv string
 				for server := range servers {
-					if GetConfKey("servers:"+server.(string)+":address") == p2.Addr().String() {
+					if ConfKey("servers:"+server.(string)+":address") == p2.Addr().String() {
 						srv = server.(string)
 						break
 					}
@@ -380,7 +380,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 				v := pkt.Data[6+lenS : 6+lenS+lenV]
 
 				// Also make sure to check for an empty password
-				disallow, ok := GetConfKey("disallow_empty_passwords").(bool)
+				disallow, ok := ConfKey("disallow_empty_passwords").(bool)
 				if ok && disallow && pkt.Data[6+lenS+lenV] == 1 {
 					log.Print(p2.Addr().String() + " used an empty password but disallow_empty_passwords is true")
 
@@ -601,10 +601,10 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 			case ToServerRequestMedia:
 				p2.sendMedia(pkt.Data[2:])
 			case ToServerClientReady:
-				if forceDefaultServer, ok := GetConfKey("force_default_server").(bool); !forceDefaultServer || !ok {
-					srvname, err := GetStorageKey("server:" + p2.Username())
+				if forceDefaultServer, ok := ConfKey("force_default_server").(bool); !forceDefaultServer || !ok {
+					srvname, err := StorageKey("server:" + p2.Username())
 					if err != nil {
-						srvname, ok = GetConfKey("servers:" + GetConfKey("default_server").(string) + ":address").(string)
+						srvname, ok = ConfKey("servers:" + ConfKey("default_server").(string) + ":address").(string)
 						if !ok {
 							go p2.SendChatMsg("Could not connect you to your last server!")
 
@@ -617,7 +617,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 						}
 					}
 
-					straddr, ok := GetConfKey("servers:" + srvname + ":address").(string)
+					straddr, ok := ConfKey("servers:" + srvname + ":address").(string)
 					if !ok {
 						go p2.SendChatMsg("Could not connect you to your last server!")
 

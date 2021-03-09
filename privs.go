@@ -115,8 +115,8 @@ func readPrivItem(db *sql.DB, name string) (string, error) {
 	return r, err
 }
 
-// GetPrivs returns the privileges of the Peer
-func (p *Peer) GetPrivs() (map[string]bool, error) {
+// Privs returns the privileges of the Peer
+func (p *Peer) Privs() (map[string]bool, error) {
 	db, err := initAuthDB()
 	if err != nil {
 		return nil, err
@@ -149,7 +149,7 @@ func (p *Peer) SetPrivs(privs map[string]bool) error {
 
 // CheckPrivs reports if the Peer has all ofthe specified privileges
 func (p *Peer) CheckPrivs(req map[string]bool) (bool, error) {
-	privs, err := p.GetPrivs()
+	privs, err := p.Privs()
 	if err != nil {
 		return false, err
 	}
@@ -166,7 +166,7 @@ func (p *Peer) CheckPrivs(req map[string]bool) (bool, error) {
 }
 
 func init() {
-	if admin, ok := GetConfKey("admin").(string); ok {
+	if admin, ok := ConfKey("admin").(string); ok {
 		db, err := initAuthDB()
 		if err != nil {
 			log.Print(err)

@@ -53,7 +53,7 @@ func (l *Listener) Accept() (*Peer, error) {
 	clt.sounds = make(map[int32]bool)
 	clt.inv = &mt.Inv{}
 
-	maxPeers, ok := GetConfKey("player_limit").(int)
+	maxPeers, ok := ConfKey("player_limit").(int)
 	if !ok {
 		maxPeers = int(^uint(0) >> 1)
 	}

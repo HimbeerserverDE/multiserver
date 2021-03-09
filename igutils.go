@@ -14,7 +14,7 @@ func privs(args ...string) map[string]bool {
 }
 
 func init() {
-	disable, ok := GetConfKey("disable_builtin").(bool)
+	disable, ok := ConfKey("disable_builtin").(bool)
 	if ok && disable {
 		return
 	}
@@ -66,7 +66,7 @@ func init() {
 				return
 			}
 
-			servers := GetConfKey("servers").(map[interface{}]interface{})
+			servers := ConfKey("servers").(map[interface{}]interface{})
 			if servers[tosrv] == nil {
 				p.SendChatMsg("Unknown servername " + tosrv)
 				return
@@ -95,7 +95,7 @@ func init() {
 				return
 			}
 
-			servers := GetConfKey("servers").(map[interface{}]interface{})
+			servers := ConfKey("servers").(map[interface{}]interface{})
 			if servers[param] == nil {
 				p.SendChatMsg("Unknown servername " + param)
 				return
@@ -125,7 +125,7 @@ func init() {
 				return
 			}
 
-			servers := GetConfKey("servers").(map[interface{}]interface{})
+			servers := ConfKey("servers").(map[interface{}]interface{})
 			if servers[param] == nil {
 				p.SendChatMsg("Unknown servername " + param)
 				return
@@ -154,14 +154,14 @@ func init() {
 		func(p *Peer, param string) {
 			if param == "" {
 				var r string
-				servers := GetConfKey("servers").(map[interface{}]interface{})
+				servers := ConfKey("servers").(map[interface{}]interface{})
 				for server := range servers {
 					r += server.(string) + " "
 				}
 				srv := p.ServerName()
 				p.SendChatMsg("Current server: " + srv + " | All servers: " + r)
 			} else {
-				servers := GetConfKey("servers").(map[interface{}]interface{})
+				servers := ConfKey("servers").(map[interface{}]interface{})
 				srv := p.ServerName()
 
 				if srv == param {
@@ -175,7 +175,7 @@ func init() {
 				}
 
 				reqprivs := make(map[string]bool)
-				reqpriv, ok := GetConfKey("servers:" + param + ":priv").(string)
+				reqpriv, ok := ConfKey("servers:" + param + ":priv").(string)
 				if ok {
 					reqprivs[reqpriv] = true
 				}
@@ -261,7 +261,7 @@ func init() {
 				return
 			}
 
-			privs, err := p2.GetPrivs()
+			privs, err := p2.Privs()
 			if err != nil {
 				log.Print(err)
 				p.SendChatMsg("An internal error occured while attempting to get the privileges.")
@@ -299,7 +299,7 @@ func init() {
 				return
 			}
 
-			privs, err := p2.GetPrivs()
+			privs, err := p2.Privs()
 			if err != nil {
 				log.Print(err)
 				p.SendChatMsg("An internal error occured while attempting to get the privileges.")
@@ -340,7 +340,7 @@ func init() {
 				return
 			}
 
-			privs, err := p2.GetPrivs()
+			privs, err := p2.Privs()
 			if err != nil {
 				log.Print(err)
 				p.SendChatMsg("An internal error occured while attempting to get the privileges.")
