@@ -304,7 +304,7 @@ func (p *Peer) sendMedia(rqdata []byte) {
 }
 
 func loadMediaCache() error {
-	os.Mkdir("cache", 0775)
+	os.Mkdir("cache", 0777)
 
 	files, err := ioutil.ReadDir("cache")
 	if err != nil {
@@ -332,7 +332,7 @@ func loadMediaCache() error {
 }
 
 func isCached(name string, digest []byte) bool {
-	os.Mkdir("cache", 0775)
+	os.Mkdir("cache", 0777)
 
 	_, err := os.Stat("cache/" + name + "#" + digestToString(digest))
 	if os.IsNotExist(err) {
@@ -342,7 +342,7 @@ func isCached(name string, digest []byte) bool {
 }
 
 func updateMediaCache() {
-	os.Mkdir("cache", 0775)
+	os.Mkdir("cache", 0777)
 
 	for mfname, mfile := range media {
 		cfname := "cache/" + mfname + "#" + digestToString(mfile.digest)

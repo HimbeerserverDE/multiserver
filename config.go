@@ -19,7 +19,7 @@ force_default_server: true
 `)
 
 func loadConfig() error {
-	os.Mkdir("config", 0775)
+	os.Mkdir("config", 0777)
 
 	_, err := os.Stat("config/multiserver.yml")
 	if os.IsNotExist(err) {

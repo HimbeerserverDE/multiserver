@@ -8,7 +8,7 @@ import (
 )
 
 func initStorageDB() (*sql.DB, error) {
-	os.Mkdir("storage", 0775)
+	os.Mkdir("storage", 0777)
 
 	db, err := sql.Open("sqlite3", "storage/storage.sqlite")
 	if err != nil {
