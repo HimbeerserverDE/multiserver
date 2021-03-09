@@ -72,7 +72,7 @@ func init() {
 				return
 			}
 
-			p2 := GetListener().GetPeerByUsername(name)
+			p2 := PeerByUsername(name)
 			if p2 == nil {
 				p.SendChatMsg(name + " is not online.")
 				return
@@ -108,10 +108,9 @@ func init() {
 			}
 
 			go func() {
-				peers := GetListener().GetPeers()
-				for i := range peers {
-					if peers[i].ServerName() == srv {
-						peers[i].Redirect(param)
+				for _, p := range Peers() {
+					if p.ServerName() == srv {
+						p.Redirect(param)
 					}
 				}
 			}()
@@ -133,10 +132,9 @@ func init() {
 			}
 
 			go func() {
-				peers := GetListener().GetPeers()
-				for i := range peers {
-					if psrv := peers[i].ServerName(); psrv != param {
-						peers[i].Redirect(param)
+				for _, p := range Peers() {
+					if psrv := p.ServerName(); psrv != param {
+						p.Redirect(param)
 					}
 				}
 			}()
@@ -208,7 +206,7 @@ func init() {
 				return
 			}
 
-			p2 := GetListener().GetPeerByUsername(param)
+			p2 := PeerByUsername(param)
 			if p2 == nil {
 				p.SendChatMsg(param + " is not online.")
 			} else {
@@ -226,7 +224,7 @@ func init() {
 				return
 			}
 
-			p2 := GetListener().GetPeerByUsername(param)
+			p2 := PeerByUsername(param)
 			if p2 == nil {
 				p.SendChatMsg(param + " is not online.")
 			} else {
@@ -254,7 +252,7 @@ func init() {
 				p2 = p
 				r += "Your privileges: "
 			} else {
-				p2 = GetListener().GetPeerByUsername(name)
+				p2 = PeerByUsername(name)
 				r += name + "'s privileges: "
 			}
 
@@ -292,7 +290,7 @@ func init() {
 				p2 = p
 				privnames = name
 			} else {
-				p2 = GetListener().GetPeerByUsername(name)
+				p2 = PeerByUsername(name)
 				privnames = strings.Split(param, " ")[1]
 			}
 
@@ -333,7 +331,7 @@ func init() {
 				p2 = p
 				privnames = name
 			} else {
-				p2 = GetListener().GetPeerByUsername(name)
+				p2 = PeerByUsername(name)
 				privnames = strings.Split(param, " ")[1]
 			}
 
@@ -391,7 +389,7 @@ func init() {
 
 			err := Ban(param)
 			if err != nil {
-				p2 := GetListener().GetPeerByUsername(param)
+				p2 := PeerByUsername(param)
 				if p2 == nil {
 					p.SendChatMsg(param + " is not online.")
 					return

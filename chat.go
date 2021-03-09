@@ -181,9 +181,8 @@ func (p *Peer) SendChatMsg(msg string) {
 
 // ChatSendAll sends a chat message to all connected client Peers
 func ChatSendAll(msg string) {
-	peers := GetListener().GetPeers()
-	for i := range peers {
-		go peers[i].SendChatMsg(msg)
+	for _, p := range Peers() {
+		go p.SendChatMsg(msg)
 	}
 }
 

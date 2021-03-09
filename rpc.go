@@ -85,7 +85,7 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 		}
 		go p.doRpc("->DEFSRV "+defsrv, rq)
 	case "<-GETPEERCNT":
-		cnt := strconv.Itoa(GetPeerCount())
+		cnt := strconv.Itoa(PeerCount())
 		go p.doRpc("->PEERCNT "+cnt, rq)
 	case "<-ISONLINE":
 		online := "false"
@@ -98,7 +98,7 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 		privs := decodePrivs(strings.Join(strings.Split(msg, " ")[3:], " "))
 		hasprivs := "false"
 		if IsOnline(name) {
-			has, err := GetListener().GetPeerByUsername(name).CheckPrivs(privs)
+			has, err := PeerByUsername(name).CheckPrivs(privs)
 			if err == nil && has {
 				hasprivs = "true"
 			}
@@ -108,7 +108,7 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 		name := strings.Split(msg, " ")[2]
 		var r string
 		if IsOnline(name) {
-			privs, err := GetListener().GetPeerByUsername(name).GetPrivs()
+			privs, err := PeerByUsername(name).GetPrivs()
 			if err == nil {
 				r = strings.Replace(encodePrivs(privs), "|", ",", -1)
 			}
@@ -118,26 +118,26 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 		name := strings.Split(msg, " ")[2]
 		privs := decodePrivs(strings.Join(strings.Split(msg, " ")[3:], " "))
 		if IsOnline(name) {
-			GetListener().GetPeerByUsername(name).SetPrivs(privs)
+			PeerByUsername(name).SetPrivs(privs)
 		}
 	case "<-GETSRV":
 		name := strings.Split(msg, " ")[2]
 		var srv string
 		if IsOnline(name) {
-			srv = GetListener().GetPeerByUsername(name).ServerName()
+			srv = PeerByUsername(name).ServerName()
 		}
 		go p.doRpc("->SRV "+srv, rq)
 	case "<-REDIRECT":
 		name := strings.Split(msg, " ")[2]
 		tosrv := strings.Split(msg, " ")[3]
 		if IsOnline(name) {
-			go GetListener().GetPeerByUsername(name).Redirect(tosrv)
+			go PeerByUsername(name).Redirect(tosrv)
 		}
 	case "<-GETADDR":
 		name := strings.Split(msg, " ")[2]
 		var addr string
 		if IsOnline(name) {
-			addr = GetListener().GetPeerByUsername(name).Addr().String()
+			addr = PeerByUsername(name).Addr().String()
 		}
 		go p.doRpc("->ADDR "+addr, rq)
 	case "<-ISBANNED":
@@ -168,7 +168,7 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 		target := strings.Split(msg, " ")[2]
 		err := Ban(target)
 		if err != nil {
-			p2 := GetListener().GetPeerByUsername(target)
+			p2 := PeerByUsername(target)
 			if p2 == nil {
 				return true
 			}
@@ -299,7 +299,7 @@ func OptimizeRPCConns() {
 
 ServerLoop:
 	for p := range rpcSrvs {
-		for _, p2 := range GetListener().GetPeers() {
+		for _, p2 := range Peers() {
 			if p2.Server().Addr().String() == p.Addr().String() {
 				if p.NoClt() {
 					p.SendDisco(0, true)
@@ -350,12 +350,6 @@ ServerLoop:
 			}
 		}
 		rpcSrvMu.Unlock()
-
-		/*for _, p := range GetListener().GetPeers() {
-			if p.Server().Addr().String() == straddr {
-				continue ServerLoop
-			}
-		}*/
 
 		// Also refetch media in case something has not
 		// been downloaded yet

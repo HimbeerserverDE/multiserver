@@ -150,8 +150,8 @@ func Connect(conn net.PacketConn, addr net.Addr) (*Peer, error) {
 	return srv, nil
 }
 
-// GetPeerCount reports how many client Peers are connected
-func GetPeerCount() int {
+// PeerCount reports how many client Peers are connected
+func PeerCount() int {
 	connectedPeersMu.RLock()
 	defer connectedPeersMu.RUnlock()
 

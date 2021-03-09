@@ -42,7 +42,6 @@ func main() {
 	log.Print("Listening on " + host)
 
 	l := Listen(lc)
-	SetListener(l)
 
 	Announce(AnnounceStart)
 

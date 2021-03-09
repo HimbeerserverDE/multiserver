@@ -29,15 +29,7 @@ func End(crash, reconnect bool) {
 	}
 	data[6] = uint8(0x00)
 
-	rpcSrvMu.Lock()
-	for srv := range rpcSrvs {
-		srv.SendDisco(0, true)
-		srv.Close()
-	}
-	rpcSrvMu.Unlock()
-
-	peers := GetListener().GetPeers()
-	for _, clt := range peers {
+	for _, clt := range Peers() {
 		_, err := clt.Send(rudp.Pkt{Data: data})
 		if err != nil {
 			log.Print(err)
@@ -46,6 +38,13 @@ func End(crash, reconnect bool) {
 		clt.SendDisco(0, true)
 		clt.Close()
 	}
+
+	rpcSrvMu.Lock()
+	for srv := range rpcSrvs {
+		srv.SendDisco(0, true)
+		srv.Close()
+	}
+	rpcSrvMu.Unlock()
 
 	time.Sleep(time.Second)
 

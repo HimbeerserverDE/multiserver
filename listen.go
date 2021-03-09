@@ -13,16 +13,14 @@ var ErrPlayerLimitReached = errors.New("player limit reached")
 
 type Listener struct {
 	*rudp.Listener
-	mu    sync.RWMutex
-	peers map[*Peer]struct{}
 }
 
-var listener *Listener
+var peerMu sync.RWMutex
+var peers map[*Peer]struct{}
 
 func Listen(conn net.PacketConn) *Listener {
 	return &Listener{
 		Listener: rudp.Listen(conn),
-		peers:    make(map[*Peer]struct{}),
 	}
 }
 
@@ -37,15 +35,16 @@ func (l *Listener) Accept() (*Peer, error) {
 
 	clt := &Peer{Peer: rp}
 
-	l.mu.Lock()
-	l.peers[clt] = struct{}{}
-	l.mu.Unlock()
+	peerMu.Lock()
+	peers[clt] = struct{}{}
+	peerMu.Unlock()
+
 	go func() {
 		<-clt.Disco()
 
-		l.mu.Lock()
-		delete(l.peers, clt)
-		l.mu.Unlock()
+		peerMu.Lock()
+		delete(peers, clt)
+		peerMu.Unlock()
 	}()
 
 	clt.aoIDs = make(map[uint16]bool)
@@ -59,7 +58,7 @@ func (l *Listener) Accept() (*Peer, error) {
 		maxPeers = int(^uint(0) >> 1)
 	}
 
-	if GetPeerCount() >= maxPeers {
+	if PeerCount() >= maxPeers {
 		data := []byte{
 			0, ToClientAccessDenied,
 			AccessDeniedTooManyUsers, 0, 0, 0, 0,
@@ -72,47 +71,44 @@ func (l *Listener) Accept() (*Peer, error) {
 
 		return nil, ErrPlayerLimitReached
 	}
+
+	connectedPeersMu.Lock()
 	connectedPeers++
+	connectedPeersMu.Unlock()
 
 	return clt, nil
 }
 
-// GetPeerByUsername returns the Peer that is using name for
-// authentication
-func (l *Listener) GetPeerByUsername(name string) *Peer {
-	l.mu.RLock()
-	defer l.mu.RUnlock()
+// PeerByUsername returns the Peer that is using the specified name
+// for authentication
+func PeerByUsername(name string) *Peer {
+	peerMu.RLock()
+	defer peerMu.RUnlock()
 
-	for peer := range l.peers {
-		if peer.Username() == name {
-			return peer
+	for p := range peers {
+		if p.Username() == name {
+			return p
 		}
 	}
 
 	return nil
 }
 
-// GetPeers returns an array containing all connected client Peers
-func (l *Listener) GetPeers() []*Peer {
-	l.mu.RLock()
-	defer l.mu.RUnlock()
+// Peers returns an array containing all connected client Peers
+func Peers() []*Peer {
+	peerMu.RLock()
+	defer peerMu.RUnlock()
 
 	var r []*Peer
-	for p := range l.peers {
+	for p := range peers {
 		r = append(r, p)
 	}
 	return r
 }
 
-// SetListener is used to make a listener available globally
-// This can only be done once
-func SetListener(l *Listener) {
-	if listener == nil {
-		listener = l
-	}
-}
+func init() {
+	peerMu.Lock()
+	defer peerMu.Unlock()
 
-// GetListener returns the global listener
-func GetListener() *Listener {
-	return listener
+	peers = make(map[*Peer]struct{})
 }

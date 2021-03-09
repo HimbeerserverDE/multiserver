@@ -32,7 +32,7 @@ func Announce(action string) error {
 		return err
 	}
 
-	peers := GetListener().GetPeers()
+	peers := Peers()
 
 	mods, ok := GetConfKey("serverlist_mods").([]string)
 	if !ok {
@@ -83,7 +83,7 @@ func Announce(action string) error {
 		data["pvp"] = confBool("serverlist_pvp")
 		data["uptime"] = Uptime()
 		data["game_time"] = 0
-		data["clients"] = GetPeerCount()
+		data["clients"] = PeerCount()
 		data["clients_max"] = maxPeers
 		data["clients_list"] = clients_list
 		data["gameid"] = conf("serverlist_game")
