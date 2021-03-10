@@ -322,6 +322,8 @@ ServerLoop:
 					delete(rpcSrvs, p3)
 					rpcSrvMu.Unlock()
 
+					for p2.Server().Addr().String() == p3.Addr().String() {
+					}
 					OptimizeRPCConns()
 				}()
 
