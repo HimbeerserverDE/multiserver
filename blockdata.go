@@ -14,6 +14,12 @@ const NodeCount = 16 * 16 * 16
 func processBlockdata(p *Peer, pkt *rudp.Pkt) bool {
 	srv := p.ServerName()
 
+	x := int16(binary.BigEndian.Uint16(pkt.Data[2:4]))
+	y := int16(binary.BigEndian.Uint16(pkt.Data[4:6]))
+	z := int16(binary.BigEndian.Uint16(pkt.Data[6:8]))
+
+	p.blocks = append(p.blocks, [3]int16{x, y, z})
+
 	r := bytes.NewReader(pkt.Data[13:])
 
 	zr, err := zlib.NewReader(r)

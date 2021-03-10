@@ -47,6 +47,8 @@ type Peer struct {
 
 	sounds map[int32]bool
 
+	blocks [][3]int16
+
 	inv *mt.Inv
 }
 

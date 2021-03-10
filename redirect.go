@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"compress/zlib"
 	"encoding/binary"
 	"fmt"
 	"log"
@@ -93,6 +95,49 @@ func (p *Peer) Redirect(newsrv string) error {
 	}
 
 	p.aoIDs = make(map[uint16]bool)
+
+	// Remove MapBlocks
+	for _, block := range p.blocks {
+		x := block[0]
+		y := block[1]
+		z := block[2]
+
+		blockdata := make([]byte, 5)
+		blockdata[0] = uint8(0)
+		binary.BigEndian.PutUint16(blockdata[1:3], uint16(0xFFFF))
+		blockdata[3] = uint8(2)
+		blockdata[4] = uint8(2)
+
+		nodes := make([]byte, 16384)
+		for i := uint32(0); i < NodeCount; i++ {
+			binary.BigEndian.PutUint16(nodes[2*i:2+2*i], uint16(ContentIgnore))
+			nodes[2*NodeCount+i] = uint8(0)
+			nodes[3*NodeCount+i] = uint8(0)
+		}
+
+		var compBuf bytes.Buffer
+		zw := zlib.NewWriter(&compBuf)
+		zw.Write(nodes)
+		zw.Close()
+
+		compNodes := compBuf.Bytes()
+
+		data = make([]byte, 8+len(blockdata)+len(compNodes))
+		data[0] = uint8(0x00)
+		data[1] = uint8(ToClientBlockdata)
+		binary.BigEndian.PutUint16(data[2:4], uint16(x))
+		binary.BigEndian.PutUint16(data[4:6], uint16(y))
+		binary.BigEndian.PutUint16(data[6:8], uint16(z))
+		copy(data[8:8+len(blockdata)], blockdata)
+		copy(data[8+len(blockdata):], compNodes)
+
+		_, err = p.Send(rudp.Pkt{Data: data})
+		if err != nil {
+			return err
+		}
+	}
+
+	p.blocks = [][3]int16{}
 
 	// Remove HUDs
 	data = []byte{0, ToClientHudSetParam, 0, 1, 0, 4, 0, 0, 0, 8}
