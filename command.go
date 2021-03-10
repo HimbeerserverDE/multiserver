@@ -234,6 +234,31 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 			}
 
 			return true
+		case ToClientMediaPush:
+			digLen := binary.BigEndian.Uint16(pkt.Data[2:4])
+			digest := pkt.Data[4 : 4+digLen]
+			namelen := binary.BigEndian.Uint16(pkt.Data[4+digLen : 6+digLen])
+			name := pkt.Data[6+digLen : 6+digLen+namelen]
+			cache := pkt.Data[6+digLen+namelen] == uint8(1)
+			data := pkt.Data[11+digLen+namelen:]
+
+			media[string(name)] = &mediaFile{
+				digest:  digest,
+				data:    data,
+				noCache: !cache,
+			}
+
+			for _, peer := range Peers() {
+				ack, err := peer.Send(*pkt)
+				if err != nil {
+					log.Print(err)
+				}
+				<-ack
+			}
+
+			updateMediaCache()
+
+			return true
 		default:
 			return false
 		}

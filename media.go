@@ -21,8 +21,9 @@ var movement []byte
 var timeofday []byte
 
 type mediaFile struct {
-	digest []byte
-	data   []byte
+	digest  []byte
+	data    []byte
+	noCache bool
 }
 
 func (p *Peer) fetchMedia() {
@@ -345,6 +346,10 @@ func updateMediaCache() {
 	os.Mkdir("cache", 0777)
 
 	for mfname, mfile := range media {
+		if mfile.noCache {
+			continue
+		}
+
 		cfname := "cache/" + mfname + "#" + digestToString(mfile.digest)
 		_, err := os.Stat(cfname)
 		if os.IsNotExist(err) {
