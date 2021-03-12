@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -23,10 +22,10 @@ func loadConfig() error {
 
 	_, err := os.Stat("config/multiserver.yml")
 	if os.IsNotExist(err) {
-		ioutil.WriteFile("config/multiserver.yml", defaultConfig, 0664)
+		os.WriteFile("config/multiserver.yml", defaultConfig, 0666)
 	}
 
-	data, err := ioutil.ReadFile("config/multiserver.yml")
+	data, err := os.ReadFile("config/multiserver.yml")
 	if err != nil {
 		return err
 	}

@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
-	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -307,7 +306,7 @@ func (p *Peer) sendMedia(rqdata []byte) {
 func loadMediaCache() error {
 	os.Mkdir("cache", 0777)
 
-	files, err := ioutil.ReadDir("cache")
+	files, err := os.ReadDir("cache")
 	if err != nil {
 		return err
 	}
@@ -320,7 +319,7 @@ func loadMediaCache() error {
 				continue
 			}
 
-			data, err := ioutil.ReadFile("cache/" + file.Name())
+			data, err := os.ReadFile("cache/" + file.Name())
 			if err != nil {
 				continue
 			}
@@ -353,7 +352,7 @@ func updateMediaCache() {
 		cfname := "cache/" + mfname + "#" + digestToString(mfile.digest)
 		_, err := os.Stat(cfname)
 		if os.IsNotExist(err) {
-			ioutil.WriteFile(cfname, mfile.data, 0664)
+			os.WriteFile(cfname, mfile.data, 0666)
 		}
 	}
 }
