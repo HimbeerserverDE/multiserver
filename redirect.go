@@ -200,8 +200,22 @@ func (p *Peer) Redirect(newsrv string) error {
 
 	// Reset eye offset
 	data = []byte{}
-	for i := 0; i < 24; i++ {
+	for i := 0; i < 48; i++ {
 		data = append(data, uint8(0))
+	}
+
+	_, err = p.Send(rudp.Pkt{Data: data})
+	if err != nil {
+		return err
+	}
+
+	// Reset sun
+	data = []byte{
+		1,
+		0, 0,
+		0, 0,
+		0, 0,
+		0, 0, 0, 1,
 	}
 
 	_, err = p.Send(rudp.Pkt{Data: data})
