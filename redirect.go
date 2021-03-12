@@ -183,9 +183,20 @@ func (p *Peer) Redirect(newsrv string) error {
 		binary.BigEndian.PutUint32(data[2:6], uint32(sound))
 
 		_, err = p.Send(rudp.Pkt{Data: data})
+		if err != nil {
+			return err
+		}
 	}
 
 	p.sounds = make(map[int32]bool)
+
+	// Stop day/night ratio override
+	data = []byte{0, 0, 0}
+
+	_, err = p.Send(rudp.Pkt{Data: data})
+	if err != nil {
+		return err
+	}
 
 	// Update detached inventories
 	if len(detachedinvs[newsrv]) > 0 {
