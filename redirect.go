@@ -198,6 +198,17 @@ func (p *Peer) Redirect(newsrv string) error {
 		return err
 	}
 
+	// Reset eye offset
+	data = []byte{}
+	for i := 0; i < 24; i++ {
+		data = append(data, uint8(0))
+	}
+
+	_, err = p.Send(rudp.Pkt{Data: data})
+	if err != nil {
+		return err
+	}
+
 	// Update detached inventories
 	if len(detachedinvs[newsrv]) > 0 {
 		for i := range detachedinvs[newsrv] {
