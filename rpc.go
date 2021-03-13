@@ -299,6 +299,9 @@ func OptimizeRPCConns() {
 ServerLoop:
 	for p := range rpcSrvs {
 		for _, p2 := range Peers() {
+			if p2.Server() == nil {
+				continue
+			}
 			if p2.Server().Addr().String() == p.Addr().String() {
 				if p.NoClt() {
 					p.SendDisco(0, true)
