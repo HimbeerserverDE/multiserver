@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
+	"math"
 	"net"
 
 	"github.com/anon55555/mt/rudp"
@@ -236,6 +237,22 @@ func (p *Peer) Redirect(newsrv string) error {
 			0, 0,
 		}
 	}
+
+	_, err = p.Send(rudp.Pkt{Data: data})
+	if err != nil {
+		return err
+	}
+
+	// Reset sun
+	data = []byte{
+		1,
+		0, 7, 115, 117, 110, 46, 112, 110, 103,
+		0, 15, 115, 117, 110, 95, 116, 111, 110, 101, 109, 97, 112, 46, 112, 110, 103,
+		0, 13, 115, 117, 110, 114, 105, 115, 101, 98, 103, 46, 112, 110, 103,
+	}
+	sunscale := make([]byte, 4)
+	binary.BigEndian.PutUint32(sunscale[0:4], math.Float32bits(1))
+	data = append(data, sunscale...)
 
 	_, err = p.Send(rudp.Pkt{Data: data})
 	if err != nil {
