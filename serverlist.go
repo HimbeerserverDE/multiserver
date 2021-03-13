@@ -73,7 +73,7 @@ func Announce(action string) error {
 	if action != AnnounceDelete {
 		data["name"] = conf("serverlist_name")
 		data["description"] = conf("serverlist_desc")
-		data["version"] = "multiserver v1.8.1"
+		data["version"] = "multiserver v1.9.2"
 		data["proto_min"] = 37
 		data["proto_max"] = 39
 		data["url"] = conf("serverlist_display_url")
