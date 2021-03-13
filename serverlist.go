@@ -46,7 +46,7 @@ func Announce(action string) error {
 
 	maxPeers, ok := ConfKey("player_limit").(int)
 	if !ok {
-		maxPeers = -1
+		maxPeers = int(^uint(0) >> 1)
 	}
 
 	conf := func(key string) interface{} {
