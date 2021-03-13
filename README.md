@@ -192,3 +192,9 @@ Type: List
 Description: All mods that have been installed on any of the
 minetest servers, can be omitted
 ```
+> `serverlist_announce_interval`
+```
+Type: Integer
+Description: Number of seconds between serverlist announcement updates,
+default is 300
+```

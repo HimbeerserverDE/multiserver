@@ -118,8 +118,13 @@ func Announce(action string) error {
 }
 
 func init() {
+	reannounce, ok := ConfKey("serverlist_announce_interval").(int)
+	if !ok {
+		reannounce = 300
+	}
+
 	go func() {
-		announce := time.NewTicker(5 * time.Minute)
+		announce := time.NewTicker(time.Duration(reannounce) * time.Second)
 		for {
 			select {
 			case <-announce.C:
