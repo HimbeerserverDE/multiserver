@@ -209,8 +209,6 @@ func (p *Peer) Redirect(newsrv string) error {
 		return err
 	}
 
-	log.Print(p.ProtoVer())
-
 	// Reset sky
 	switch p.ProtoVer() {
 	case 39:
