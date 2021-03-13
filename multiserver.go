@@ -7,7 +7,7 @@ package main
 import (
 	"log"
 	"net"
-	"time"
+	//"time"
 
 	"github.com/anon55555/mt/rudp"
 )
@@ -18,7 +18,7 @@ func main() {
 		log.Fatal("Default server name not set or not a string")
 	}
 
-	defaultSrvAddr, ok := ConfKey("servers:" + defaultSrv + ":address").(string)
+	_, ok = ConfKey("servers:" + defaultSrv + ":address").(string)
 	if !ok {
 		log.Fatal("Default server address not set or not a string")
 	}
@@ -26,11 +26,6 @@ func main() {
 	host, ok := ConfKey("host").(string)
 	if !ok {
 		log.Fatal("Host not set or not a string")
-	}
-
-	srvaddr, err := net.ResolveUDPAddr("udp", defaultSrvAddr)
-	if err != nil {
-		log.Fatal(err)
 	}
 
 	lc, err := net.ListenPacket("udp", host)
@@ -54,36 +49,11 @@ func main() {
 
 		log.Print(clt.Addr(), " connected")
 
-		conn, err := net.DialUDP("udp", nil, srvaddr)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		srv, err := Connect(conn, conn.RemoteAddr())
-		if err != nil {
-			data := []byte{
-				0, ToClientAccessDenied,
-				AccessDeniedServerFail, 0, 0, 0, 0,
-			}
-
-			_, err := clt.Send(rudp.Pkt{Data: data})
-			if err != nil {
-				log.Print(err)
-			}
-
-			time.Sleep(250 * time.Millisecond)
-
-			clt.SendDisco(0, true)
-			clt.Close()
-
-			continue
-		}
-
 		fin := make(chan *Peer)
-		go Init(srv, clt, true, false, fin)
+		go Init(nil, clt, true, false, fin)
 
 		go func() {
-			srv = <-fin
+			srv := <-fin
 
 			if srv == nil {
 				data := []byte{

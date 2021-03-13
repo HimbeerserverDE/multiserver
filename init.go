@@ -635,6 +635,36 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 			case ToServerRequestMedia:
 				p2.sendMedia(pkt.Data[2:])
 			case ToServerClientReady:
+				defaultSrv := ConfKey("default_server").(string)
+
+				defSrv := func() *Peer {
+					defaultSrvAddr := ConfKey("servers:" + defaultSrv + ":address").(string)
+
+					srvaddr, err := net.ResolveUDPAddr("udp", defaultSrvAddr)
+					if err != nil {
+						log.Print(err)
+						return nil
+					}
+
+					conn, err := net.DialUDP("udp", nil, srvaddr)
+					if err != nil {
+						log.Print(err)
+						return nil
+					}
+
+					srv, err := Connect(conn, conn.RemoteAddr())
+					if err != nil {
+						log.Print(err)
+						return nil
+					}
+
+					fin2 := make(chan *Peer) // close-only
+					Init(p2, srv, ignMedia, noAccessDenied, fin2)
+					go processJoin(p2)
+
+					return srv
+				}
+
 				if forceDefaultServer, ok := ConfKey("force_default_server").(bool); !forceDefaultServer || !ok {
 					srvname, err := StorageKey("server:" + p2.Username())
 					if err != nil {
@@ -642,11 +672,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 						if !ok {
 							go p2.SendChatMsg("Could not connect you to your last server!")
 
-							fin2 := make(chan *Peer) // close-only
-							Init(p2, p, ignMedia, noAccessDenied, fin2)
-							go processJoin(p2)
-
-							fin <- p
+							fin <- defSrv()
 							return
 						}
 					}
@@ -655,11 +681,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 					if !ok {
 						go p2.SendChatMsg("Could not connect you to your last server!")
 
-						fin2 := make(chan *Peer) // close-only
-						Init(p2, p, ignMedia, noAccessDenied, fin2)
-						go processJoin(p2)
-
-						fin <- p
+						fin <- defSrv()
 						return
 					}
 
@@ -667,11 +689,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 					if err != nil {
 						go p2.SendChatMsg("Could not connect you to your last server!")
 
-						fin2 := make(chan *Peer) // close-only
-						Init(p2, p, ignMedia, noAccessDenied, fin2)
-						go processJoin(p2)
-
-						fin <- p
+						fin <- defSrv()
 						return
 					}
 
@@ -679,24 +697,16 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 					if err != nil {
 						go p2.SendChatMsg("Could not connect you to your last server!")
 
-						fin2 := make(chan *Peer) // close-only
-						Init(p2, p, ignMedia, noAccessDenied, fin2)
-						go processJoin(p2)
-
-						fin <- p
+						fin <- defSrv()
 						return
 					}
 
-					if straddr != p.Addr().String() {
+					if srvname != defaultSrv {
 						srv, err := Connect(conn, conn.RemoteAddr())
 						if err != nil {
 							go p2.SendChatMsg("Could not connect you to your last server!")
 
-							fin2 := make(chan *Peer) // close-only
-							Init(p2, p, ignMedia, noAccessDenied, fin2)
-							go processJoin(p2)
-
-							fin <- p
+							fin <- defSrv()
 							return
 						}
 
@@ -710,11 +720,7 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 					}
 				}
 
-				fin2 := make(chan *Peer) // close-only
-				Init(p2, p, ignMedia, noAccessDenied, fin2)
-				go processJoin(p2)
-
-				fin <- p
+				fin <- defSrv()
 				return
 			}
 		}
