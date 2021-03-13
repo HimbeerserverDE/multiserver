@@ -259,6 +259,21 @@ func (p *Peer) Redirect(newsrv string) error {
 		return err
 	}
 
+	// Reset moon
+	data = []byte{
+		1,
+		0, 8, 109, 111, 111, 110, 46, 112, 110, 103,
+		0, 16, 109, 111, 111, 110, 95, 116, 111, 110, 101, 109, 97, 112, 46, 112, 110, 103,
+	}
+	moonscale := make([]byte, 4)
+	binary.BigEndian.PutUint32(moonscale[0:4], math.Float32bits(1))
+	data = append(data, moonscale...)
+
+	_, err = p.Send(rudp.Pkt{Data: data})
+	if err != nil {
+		return err
+	}
+
 	// Update detached inventories
 	if len(detachedinvs[newsrv]) > 0 {
 		for i := range detachedinvs[newsrv] {
