@@ -26,8 +26,8 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 		data[1] = uint8(ToServerInit)
 		data[2] = uint8(0x1c)
 		binary.BigEndian.PutUint16(data[3:5], uint16(0x0000))
-		binary.BigEndian.PutUint16(data[5:7], uint16(0x0025))
-		binary.BigEndian.PutUint16(data[7:9], uint16(0x0027))
+		binary.BigEndian.PutUint16(data[5:7], uint16(ProtoMin))
+		binary.BigEndian.PutUint16(data[7:9], uint16(ProtoLatest))
 		binary.BigEndian.PutUint16(data[9:11], uint16(len(p.Username())))
 		copy(data[11:], []byte(p.Username()))
 
@@ -56,6 +56,8 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 
 			switch cmd := binary.BigEndian.Uint16(pkt.Data[0:2]); cmd {
 			case ToClientHello:
+				p2.protoVer = binary.BigEndian.Uint16(pkt.Data[5:7])
+
 				if pkt.Data[10]&AuthMechSRP > 0 {
 					// Compute and send SRP_BYTES_A
 					_, _, err := srp.NewClient([]byte(strings.ToLower(p.Username())), passPhrase)
@@ -232,13 +234,45 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 				// Process data
 				p2.username = string(pkt.Data[11:])
 
+				// Find protocol version
+				cliProtoMin := binary.BigEndian.Uint16(pkt.Data[5:7])
+				cliProtoMax := binary.BigEndian.Uint16(pkt.Data[7:9])
+				var protov uint16
+				if cliProtoMax >= ProtoMin || cliProtoMin <= ProtoLatest {
+					if cliProtoMax > ProtoLatest {
+						protov = ProtoLatest
+					} else {
+						protov = ProtoLatest
+					}
+				}
+
+				p2.protoVer = protov
+
+				if protov < ProtoMin || protov > ProtoLatest {
+					data := []byte{
+						0, ToClientAccessDenied,
+						AccessDeniedWrongVersion, 0, 0, 0, 0,
+					}
+
+					ack, err := p2.Send(rudp.Pkt{Data: data})
+					if err != nil {
+						log.Print(err)
+					}
+					<-ack
+
+					p2.SendDisco(0, true)
+					p2.Close()
+					fin <- p
+					return
+				}
+
 				// Send HELLO
 				data := make([]byte, 13+len(p2.Username()))
 				data[0] = uint8(0x00)
 				data[1] = uint8(ToClientHello)
 				data[2] = uint8(0x1c)
 				binary.BigEndian.PutUint16(data[3:5], uint16(0x0000))
-				binary.BigEndian.PutUint16(data[5:7], uint16(0x0027))
+				binary.BigEndian.PutUint16(data[5:7], uint16(protov))
 
 				// Check if user is banned
 				banned, bname, err := p2.IsBanned()

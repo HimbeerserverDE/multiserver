@@ -17,6 +17,8 @@ var connectedPeersMu sync.RWMutex
 type Peer struct {
 	*rudp.Peer
 
+	protoVer uint16
+
 	username string
 	srp_s    []byte
 	srp_A    []byte
@@ -51,6 +53,9 @@ type Peer struct {
 
 	inv *mt.Inv
 }
+
+// ProtoVer returns the protocol version of the Peer
+func (p *Peer) ProtoVer() uint16 { return p.protoVer }
 
 // Username returns the username of the Peer
 // if it isn't a server
