@@ -209,6 +209,39 @@ func (p *Peer) Redirect(newsrv string) error {
 		return err
 	}
 
+	// Reset sky
+	switch p.ProtoVer() {
+	case 39:
+		data = []byte{
+			0, ToClientSetSky,
+			0, 0, 0, 0,
+			0, 7, 114, 101, 103, 117, 108, 97, 114,
+			1,
+			255, 255, 255, 255,
+			255, 255, 255, 255,
+			0, 7, 100, 101, 102, 97, 117, 108, 116,
+			255, 97, 181, 245,
+			255, 144, 211, 245,
+			255, 180, 186, 250,
+			255, 186, 193, 240,
+			255, 0, 107, 255,
+			255, 64, 144, 255,
+			255, 100, 100, 100,
+		}
+	default:
+		data = []byte{
+			0, ToClientSetSky,
+			0, 0, 0, 0,
+			0, 7, 114, 101, 103, 117, 108, 97, 114,
+			0, 0,
+		}
+	}
+
+	_, err = p.Send(rudp.Pkt{Data: data})
+	if err != nil {
+		return err
+	}
+
 	// Update detached inventories
 	if len(detachedinvs[newsrv]) > 0 {
 		for i := range detachedinvs[newsrv] {
