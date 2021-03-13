@@ -9,8 +9,7 @@ import (
 
 var config map[interface{}]interface{}
 
-var defaultConfig []byte = []byte(`host: "0.0.0.0:33000"
-servers:
+var defaultConfig []byte = []byte(`servers:
   lobby:
     address: "127.0.0.1:30000"
 default_server: lobby

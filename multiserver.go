@@ -25,7 +25,7 @@ func main() {
 
 	host, ok := ConfKey("host").(string)
 	if !ok {
-		log.Fatal("Host not set or not a string")
+		host = "0.0.0.0:33000"
 	}
 
 	lc, err := net.ListenPacket("udp", host)

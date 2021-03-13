@@ -28,7 +28,6 @@ The configuration file is located in `WORKING_DIR/config/multiserver.yml`
 
 - Default config file
 ```yml
-host: "0.0.0.0:33000"
 servers:
   lobby:
     address: "127.0.0.1:30000"
@@ -39,7 +38,8 @@ force_default_server: true
 > `host` 
 ```
 Type: String
-Description: The IP address and port the proxy will be running on
+Description: The IP address and port the proxy will be running on,
+default is 0.0.0.0:33000
 ```
 > `player_limit`
 ```

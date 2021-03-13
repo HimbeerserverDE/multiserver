@@ -25,7 +25,10 @@ func Announce(action string) error {
 
 	log.Print("Updating server list announcement")
 
-	host := ConfKey("host").(string)
+	host, ok := ConfKey("host").(string)
+	if !ok {
+		host = "0.0.0.0:33000"
+	}
 
 	addr, err := net.ResolveUDPAddr("udp", host)
 	if err != nil {
@@ -74,8 +77,8 @@ func Announce(action string) error {
 		data["name"] = conf("serverlist_name")
 		data["description"] = conf("serverlist_desc")
 		data["version"] = "multiserver v1.9.2"
-		data["proto_min"] = 37
-		data["proto_max"] = 39
+		data["proto_min"] = ProtoMin
+		data["proto_max"] = ProtoLatest
 		data["url"] = conf("serverlist_display_url")
 		data["creative"] = confBool("serverlist_creative")
 		data["damage"] = confBool("serverlist_damage")
