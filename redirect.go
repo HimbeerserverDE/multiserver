@@ -266,8 +266,23 @@ func (p *Peer) Redirect(newsrv string) error {
 		0, 16, 109, 111, 111, 110, 95, 116, 111, 110, 101, 109, 97, 112, 46, 112, 110, 103,
 	}
 	moonscale := make([]byte, 4)
-	binary.BigEndian.PutUint32(moonscale[0:4], math.Float32bits(1))
+	binary.BigEndian.PutUint32(moonscale, math.Float32bits(1))
 	data = append(data, moonscale...)
+
+	_, err = p.Send(rudp.Pkt{Data: data})
+	if err != nil {
+		return err
+	}
+
+	// Reset stars
+	data = []byte{
+		1,
+		0, 0, 3, 232,
+		105, 235, 235, 255,
+	}
+	starscale := make([]byte, 4)
+	binary.BigEndian.PutUint32(starscale, math.Float32bits(1))
+	data = append(data, starscale...)
 
 	_, err = p.Send(rudp.Pkt{Data: data})
 	if err != nil {
