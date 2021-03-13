@@ -289,6 +289,20 @@ func (p *Peer) Redirect(newsrv string) error {
 		return err
 	}
 
+	// Reset cloud params
+	data = make([]byte, 28)
+	binary.BigEndian.PutUint32(data, math.Float32bits(0))
+	data = append(data, []byte{0, 0, 0, 0, 0, 0, 0, 0}...)
+	binary.BigEndian.PutUint32(data, math.Float32bits(0))
+	binary.BigEndian.PutUint32(data, math.Float32bits(0))
+	binary.BigEndian.PutUint32(data, math.Float32bits(0))
+	binary.BigEndian.PutUint32(data, math.Float32bits(0))
+
+	_, err = p.Send(rudp.Pkt{Data: data})
+	if err != nil {
+		return err
+	}
+
 	// Update detached inventories
 	if len(detachedinvs[newsrv]) > 0 {
 		for i := range detachedinvs[newsrv] {
