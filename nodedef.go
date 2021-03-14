@@ -23,7 +23,7 @@ type NodeDef struct {
 
 var nodeDefs map[string]map[uint16]*NodeDef
 
-// NodeDefByID returns the NodeDef that has the specified ID on a
+// NodeDefByName returns the NodeDef that has the specified name on a
 // minetest server
 func NodeDefByName(srv, name string) *NodeDef {
 	for _, def := range nodeDefs[srv] {
