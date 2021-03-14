@@ -173,6 +173,10 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 				return
 			case ToClientAuthAccept:
 				// Auth succeeded
+				defer func() {
+					fin <- p2
+				}()
+
 				ack, err := p2.Send(rudp.Pkt{Data: []byte{0, ToServerInit2, 0, 0}, ChNo: 1})
 				if err != nil {
 					log.Print(err)
@@ -711,7 +715,9 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 						}
 
 						fin2 := make(chan *Peer) // close-only
-						Init(p2, srv, ignMedia, noAccessDenied, fin2)
+						go Init(p2, srv, ignMedia, noAccessDenied, fin2)
+						<-fin2
+
 						go p2.updateDetachedInvs(srvname)
 						go processJoin(p2)
 

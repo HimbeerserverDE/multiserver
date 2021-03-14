@@ -70,6 +70,17 @@ func (p *Peer) Redirect(newsrv string) error {
 		return err
 	}
 
+	fin := make(chan *Peer) // close-only
+	go Init(p, srv, true, false, fin)
+	initOk := <-fin
+
+	if initOk == nil {
+		srv.SendDisco(0, true)
+		srv.Close()
+
+		return fmt.Errorf("initialization with server %s failed", newsrv)
+	}
+
 	// Reset formspec style
 	data := []byte{
 		0x00, ToClientFormspecPrepend,
@@ -319,10 +330,6 @@ func (p *Peer) Redirect(newsrv string) error {
 	}
 
 	p.Server().stopForwarding()
-
-	fin := make(chan *Peer) // close-only
-	go Init(p, srv, true, false, fin)
-	<-fin
 
 	p.SetServer(srv)
 

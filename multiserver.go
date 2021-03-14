@@ -7,7 +7,6 @@ package main
 import (
 	"log"
 	"net"
-	//"time"
 
 	"github.com/anon55555/mt/rudp"
 )
