@@ -337,11 +337,10 @@ func (p *Peer) Redirect(newsrv string) error {
 		binary.BigEndian.PutUint16(data[2:4], uint16(len(ch)))
 		copy(data[4:], []byte(ch))
 
-		ack, err := srv.Send(rudp.Pkt{Data: data})
+		_, err = srv.Send(rudp.Pkt{Data: data})
 		if err != nil {
 			log.Print(err)
 		}
-		<-ack
 	}
 
 	log.Print(p.Addr().String() + " redirected to " + newsrv)
