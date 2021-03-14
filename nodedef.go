@@ -5,6 +5,7 @@ import (
 	"compress/zlib"
 	"encoding/binary"
 	"io"
+	"sync"
 )
 
 var nodedef []byte
@@ -21,6 +22,7 @@ type NodeDef struct {
 	data []byte
 }
 
+var nodeDefsMu sync.RWMutex
 var nodeDefs map[string]map[uint16]*NodeDef
 
 // NodeDefByName returns the NodeDef that has the specified name on a
@@ -59,9 +61,23 @@ func (n *NodeDef) Data() []byte {
 	return n.data
 }
 
+// NodeDefs returns all node definitions
+func NodeDefs() map[string]map[uint16]*NodeDef {
+	nodeDefsMu.RLock()
+	defer nodeDefsMu.RUnlock()
+
+	return nodeDefs
+}
+
 func mergeNodedefs(mgrs map[string][]byte) error {
 	var total uint16
-	nodeDefs = make(map[string]map[uint16]*NodeDef)
+
+	nodeDefsMu.Lock()
+	defer nodeDefsMu.Unlock()
+
+	if nodeDefs == nil {
+		nodeDefs = make(map[string]map[uint16]*NodeDef)
+	}
 
 	var nextID uint16
 

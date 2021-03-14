@@ -41,7 +41,7 @@ func processBlockdata(p *Peer, pkt *rudp.Pkt) bool {
 		if contentID >= ContentUnknown && contentID <= ContentIgnore {
 			continue
 		}
-		newID := nodeDefs[srv][contentID].ID()
+		newID := NodeDefs()[srv][contentID].ID()
 		binary.BigEndian.PutUint16(nodes[2*i:2+2*i], newID)
 	}
 
@@ -74,7 +74,7 @@ func processAddnode(p *Peer, pkt *rudp.Pkt) bool {
 	srv := p.ServerName()
 
 	contentID := binary.BigEndian.Uint16(pkt.Data[8:10])
-	newID := nodeDefs[srv][contentID].ID()
+	newID := NodeDefs()[srv][contentID].ID()
 	binary.BigEndian.PutUint16(pkt.Data[8:10], newID)
 
 	return false
