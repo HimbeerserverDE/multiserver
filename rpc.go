@@ -178,6 +178,16 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 	case "<-UNBAN":
 		target := strings.Split(msg, " ")[2]
 		Unban(target)
+	case "<-GETSRVS":
+		var srvs string
+
+		servers := ConfKey("servers").(map[interface{}]interface{})
+		for server := range servers {
+			srvs += server.(string) + ","
+		}
+		srvs = srvs[:len(srvs)-1]
+
+		go p.doRpc("->SRVS "+srvs, rq)
 	case "<-MT2MT":
 		msg := strings.Join(strings.Split(msg, " ")[2:], " ")
 		rpcSrvMu.Lock()
