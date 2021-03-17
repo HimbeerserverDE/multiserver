@@ -663,7 +663,9 @@ func Init(p, p2 *Peer, ignMedia, noAccessDenied bool, fin chan *Peer) {
 					}
 
 					fin2 := make(chan *Peer) // close-only
-					Init(p2, srv, ignMedia, noAccessDenied, fin2)
+					go Init(p2, srv, ignMedia, noAccessDenied, fin2)
+					<-fin2
+
 					go processJoin(p2)
 
 					return srv

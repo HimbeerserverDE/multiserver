@@ -24,9 +24,13 @@ func processJoin(p *Peer) {
 	onlinePlayerMu.Lock()
 	defer onlinePlayerMu.Unlock()
 
+	cltSrv := p.ServerName()
+	for ; cltSrv == ""; cltSrv = p.ServerName() {
+	}
+
 	rpcSrvMu.Lock()
 	for srv := range rpcSrvs {
-		srv.doRpc("->JOIN "+p.Username(), "--")
+		srv.doRpc("->JOIN "+p.Username()+" "+cltSrv, "--")
 	}
 	rpcSrvMu.Unlock()
 
