@@ -193,7 +193,22 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 		rpcSrvMu.Lock()
 		for srv := range rpcSrvs {
 			if srv.Addr().String() != p.Addr().String() {
-				go srv.doRpc("->MT2MT "+msg, "--")
+				go srv.doRpc("->MT2MT true "+msg, "--")
+			}
+		}
+		rpcSrvMu.Unlock()
+	case "<-MSG2MT":
+		tosrv := strings.Split(msg, " ")[2]
+		addr, ok := ConfKey("servers:" + tosrv + ":address").(string)
+		if !ok || addr == p.Addr().String() {
+			return true
+		}
+
+		msg := strings.Join(strings.Split(msg, " ")[3:], " ")
+		rpcSrvMu.Lock()
+		for srv := range rpcSrvs {
+			if srv.Addr().String() == addr {
+				go srv.doRpc("->MT2MT false "+msg, "--")
 			}
 		}
 		rpcSrvMu.Unlock()
