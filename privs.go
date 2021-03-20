@@ -115,15 +115,15 @@ func readPrivItem(db *sql.DB, name string) (string, error) {
 	return r, err
 }
 
-// Privs returns the privileges of the Peer
-func (p *Peer) Privs() (map[string]bool, error) {
+// Privs returns the privileges of a player
+func Privs(name string) (map[string]bool, error) {
 	db, err := initAuthDB()
 	if err != nil {
 		return nil, err
 	}
 	defer db.Close()
 
-	eprivs, err := readPrivItem(db, p.Username())
+	eprivs, err := readPrivItem(db, name)
 	if err != nil {
 		return nil, err
 	}
@@ -131,20 +131,30 @@ func (p *Peer) Privs() (map[string]bool, error) {
 	return decodePrivs(eprivs), nil
 }
 
-// SetPrivs sets the privileges for the Peer
-func (p *Peer) SetPrivs(privs map[string]bool) error {
+// Privs returns the privileges of the Peer
+func (p *Peer) Privs() (map[string]bool, error) {
+	return Privs(p.Username())
+}
+
+// SetPrivs sets the privileges for a player
+func SetPrivs(name string, privs map[string]bool) error {
 	db, err := initAuthDB()
 	if err != nil {
 		return err
 	}
 	defer db.Close()
 
-	err = modPrivItem(db, p.Username(), encodePrivs(privs))
+	err = modPrivItem(db, name, encodePrivs(privs))
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// SetPrivs sets the privileges for the Peer
+func (p *Peer) SetPrivs(privs map[string]bool) error {
+	return SetPrivs(p.Username(), privs)
 }
 
 // CheckPrivs reports if the Peer has all ofthe specified privileges

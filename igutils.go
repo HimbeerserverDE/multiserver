@@ -247,35 +247,23 @@ func init() {
 			var r string
 
 			name := param
-			var p2 *Peer
 			if name == "" {
-				p2 = p
+				name = p.Username()
 				r += "Your privileges: "
 			} else {
-				p2 = PeerByUsername(name)
 				r += name + "'s privileges: "
 			}
 
-			if name != "" && !IsOnline(name) {
-				p.SendChatMsg(name + " is not online.")
-				return
-			}
-
-			privs, err := p2.Privs()
+			privs, err := Privs(name)
 			if err != nil {
 				log.Print(err)
 				p.SendChatMsg("An internal error occured while attempting to get the privileges.")
 				return
 			}
 
-			var privnames []string
-			for k, v := range privs {
-				if v {
-					privnames = append(privnames, k)
-				}
-			}
+			eprivs := encodePrivs(privs)
 
-			p.SendChatMsg(r + strings.Join(privnames, " "))
+			p.SendChatMsg(r + strings.Replace(eprivs, "|", " ", -1))
 		})
 
 	RegisterChatCommand("grant",
@@ -285,34 +273,30 @@ func init() {
 		func(p *Peer, param string) {
 			name := strings.Split(param, " ")[0]
 			var privnames string
-			var p2 *Peer
+
 			if len(strings.Split(param, " ")) < 2 {
-				p2 = p
 				privnames = name
+				name = p.Username()
 			} else {
-				p2 = PeerByUsername(name)
 				privnames = strings.Split(param, " ")[1]
 			}
 
-			if len(strings.Split(param, " ")) >= 2 && !IsOnline(name) {
-				p.SendChatMsg(name + " is not online.")
-				return
-			}
-
-			privs, err := p2.Privs()
+			privs, err := Privs(name)
 			if err != nil {
 				log.Print(err)
 				p.SendChatMsg("An internal error occured while attempting to get the privileges.")
 				return
 			}
+
 			splitprivs := strings.Split(strings.Replace(privnames, " ", "", -1), ",")
 			for i := range splitprivs {
 				privs[splitprivs[i]] = true
 			}
-			err = p2.SetPrivs(privs)
+
+			err = SetPrivs(name, privs)
 			if err != nil {
 				log.Print(err)
-				p.SendChatMsg("An internal error occured while attempting to get the privileges.")
+				p.SendChatMsg("An internal error occured while attempting to set the privileges.")
 				return
 			}
 
@@ -326,31 +310,27 @@ func init() {
 		func(p *Peer, param string) {
 			name := strings.Split(param, " ")[0]
 			var privnames string
-			var p2 *Peer
+
 			if len(strings.Split(param, " ")) < 2 {
-				p2 = p
 				privnames = name
+				name = p.Username()
 			} else {
-				p2 = PeerByUsername(name)
 				privnames = strings.Split(param, " ")[1]
 			}
 
-			if len(strings.Split(param, " ")) >= 2 && !IsOnline(name) {
-				p.SendChatMsg(name + " is not online.")
-				return
-			}
-
-			privs, err := p2.Privs()
+			privs, err := Privs(name)
 			if err != nil {
 				log.Print(err)
 				p.SendChatMsg("An internal error occured while attempting to get the privileges.")
 				return
 			}
+
 			splitprivs := strings.Split(strings.Replace(privnames, " ", "", -1), ",")
 			for i := range splitprivs {
 				privs[splitprivs[i]] = false
 			}
-			err = p2.SetPrivs(privs)
+
+			err = SetPrivs(name, privs)
 			if err != nil {
 				log.Print(err)
 				p.SendChatMsg("An internal error occured while attempting to set the privileges.")
