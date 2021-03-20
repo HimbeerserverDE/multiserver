@@ -387,8 +387,7 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 			}
 			return true
 		case ToServerModChannelJoin:
-			ch := string(pkt.Data[4:])
-			if ch == rpcCh {
+			deny := func() {
 				data := make([]byte, 5+len(rpcCh))
 				data[0] = uint8(0x00)
 				data[1] = uint8(ToClientModChannelSignal)
@@ -401,15 +400,24 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 					log.Print(err)
 				}
 				<-ack
+			}
 
+			chAllowed, ok := ConfKey("modchannels").(bool)
+			if ok && !chAllowed {
+				deny()
+				return true
+			}
+
+			ch := string(pkt.Data[4:])
+			if ch == rpcCh {
+				deny()
 				return true
 			}
 
 			src.modChs[ch] = true
 			return false
 		case ToServerModChannelLeave:
-			ch := string(pkt.Data[4:])
-			if ch == rpcCh {
+			deny := func() {
 				data := make([]byte, 5+len(rpcCh))
 				data[0] = uint8(0x00)
 				data[1] = uint8(ToClientModChannelSignal)
@@ -422,13 +430,28 @@ func processPktCommand(src, dst *Peer, pkt *rudp.Pkt) bool {
 					log.Print(err)
 				}
 				<-ack
+			}
 
+			chAllowed, ok := ConfKey("modchannels").(bool)
+			if ok && !chAllowed {
+				deny()
+				return true
+			}
+
+			ch := string(pkt.Data[4:])
+			if ch == rpcCh {
+				deny()
 				return true
 			}
 
 			src.modChs[ch] = false
 			return false
 		case ToServerModChannelMsg:
+			chAllowed, ok := ConfKey("modchannels").(bool)
+			if ok && !chAllowed {
+				return true
+			}
+
 			chlen := binary.BigEndian.Uint16(pkt.Data[2:4])
 			ch := string(pkt.Data[4 : 4+chlen])
 			if ch == rpcCh {

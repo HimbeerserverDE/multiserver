@@ -128,6 +128,12 @@ Type: Boolean
 Description: Whether to deny access if the password is empty,
 default is false
 ```
+> `modchannels`
+```
+Type: Boolean
+Description: Whether to allow clients to use modchannels,
+default is true
+```
 > `serverlist_url`
 ```
 Type: String
