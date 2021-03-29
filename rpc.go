@@ -116,29 +116,28 @@ func processRpc(c *Conn, r *bytes.Reader) bool {
 		name := strings.Split(msg, " ")[2]
 		privs := decodePrivs(strings.Join(strings.Split(msg, " ")[3:], " "))
 		hasprivs := "false"
-		if IsOnline(name) {
-			has, err := ConnByUsername(name).CheckPrivs(privs)
-			if err == nil && has {
-				hasprivs = "true"
-			}
+
+		has, err := CheckPrivs(name, privs)
+		if err == nil && has {
+			hasprivs = "true"
 		}
+
 		go c.doRpc("->HASPRIVS "+hasprivs, rq)
 	case "<-GETPRIVS":
 		name := strings.Split(msg, " ")[2]
 		var r string
-		if IsOnline(name) {
-			privs, err := ConnByUsername(name).Privs()
-			if err == nil {
-				r = strings.Replace(encodePrivs(privs), "|", ",", -1)
-			}
+
+		privs, err := Privs(name)
+		if err == nil {
+			r = strings.Replace(encodePrivs(privs), "|", ",", -1)
 		}
+
 		go c.doRpc("->PRIVS "+r, rq)
 	case "<-SETPRIVS":
 		name := strings.Split(msg, " ")[2]
 		privs := decodePrivs(strings.Join(strings.Split(msg, " ")[3:], " "))
-		if IsOnline(name) {
-			ConnByUsername(name).SetPrivs(privs)
-		}
+
+		SetPrivs(name, privs)
 	case "<-GETSRV":
 		name := strings.Split(msg, " ")[2]
 		var srv string
