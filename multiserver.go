@@ -5,6 +5,7 @@ media and definition multiplexing
 package main
 
 import (
+	"bytes"
 	"log"
 	"net"
 
@@ -48,7 +49,7 @@ func main() {
 
 		log.Print(clt.Addr(), " connected")
 
-		fin := make(chan *Peer)
+		fin := make(chan *Conn)
 		go Init(nil, clt, true, false, fin)
 
 		go func() {
@@ -61,16 +62,15 @@ func main() {
 				}
 
 				select {
-				case <-clt.Disco():
+				case <-clt.Closed():
 				default:
-					ack, err := clt.Send(rudp.Pkt{Data: data})
+					ack, err := clt.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
 					if err != nil {
 						log.Print(err)
 					}
 					<-ack
 				}
 
-				clt.SendDisco(0, true)
 				clt.Close()
 				return
 			}

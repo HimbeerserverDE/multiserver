@@ -35,7 +35,7 @@ func Announce(action string) error {
 		return err
 	}
 
-	peers := Peers()
+	conns := Conns()
 
 	mods, ok := ConfKey("serverlist_mods").([]string)
 	if !ok {
@@ -43,8 +43,8 @@ func Announce(action string) error {
 	}
 
 	clients_list := make([]string, 0)
-	for _, peer := range peers {
-		clients_list = append(clients_list, peer.Username())
+	for _, conn := range conns {
+		clients_list = append(clients_list, conn.Username())
 	}
 
 	maxPeers, ok := ConfKey("player_limit").(int)
@@ -86,7 +86,7 @@ func Announce(action string) error {
 		data["pvp"] = confBool("serverlist_pvp")
 		data["uptime"] = Uptime()
 		data["game_time"] = 0
-		data["clients"] = PeerCount()
+		data["clients"] = ConnCount()
 		data["clients_max"] = maxPeers
 		data["clients_list"] = clients_list
 		data["gameid"] = conf("serverlist_game")

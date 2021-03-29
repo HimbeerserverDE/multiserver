@@ -131,12 +131,12 @@ func Privs(name string) (map[string]bool, error) {
 	return decodePrivs(eprivs), nil
 }
 
-// Privs returns the privileges of the Peer
-func (p *Peer) Privs() (map[string]bool, error) {
-	return Privs(p.Username())
+// Privs returns the privileges of a Conn
+func (c *Conn) Privs() (map[string]bool, error) {
+	return Privs(c.Username())
 }
 
-// SetPrivs sets the privileges for a player
+// SetPrivs sets the privileges of a player
 func SetPrivs(name string, privs map[string]bool) error {
 	db, err := initAuthDB()
 	if err != nil {
@@ -152,27 +152,30 @@ func SetPrivs(name string, privs map[string]bool) error {
 	return nil
 }
 
-// SetPrivs sets the privileges for the Peer
-func (p *Peer) SetPrivs(privs map[string]bool) error {
-	return SetPrivs(p.Username(), privs)
+// SetPrivs sets the privileges of a Conn
+func (c *Conn) SetPrivs(privs map[string]bool) error {
+	return SetPrivs(c.Username(), privs)
 }
 
-// CheckPrivs reports if the Peer has all ofthe specified privileges
-func (p *Peer) CheckPrivs(req map[string]bool) (bool, error) {
-	privs, err := p.Privs()
+// CheckPrivs reports if a player has all of the specified privileges
+func CheckPrivs(name string, req map[string]bool) (bool, error) {
+	privs, err := Privs(name)
 	if err != nil {
 		return false, err
 	}
 
-	allow := true
 	for priv := range req {
 		if req[priv] && !privs[priv] {
-			allow = false
-			break
+			return false, nil
 		}
 	}
 
-	return allow, nil
+	return true, nil
+}
+
+// CheckPrivs reports if a Conn has all of the specified privileges
+func (c *Conn) CheckPrivs(req map[string]bool) (bool, error) {
+	return CheckPrivs(c.Username(), req)
 }
 
 func init() {

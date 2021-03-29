@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"log"
 	"os"
 	"time"
@@ -29,19 +30,19 @@ func End(crash, reconnect bool) {
 	}
 	data[6] = uint8(0x00)
 
-	for _, clt := range Peers() {
-		_, err := clt.Send(rudp.Pkt{Data: data})
+	r := bytes.NewReader(data)
+
+	for _, clt := range Conns() {
+		_, err := clt.Send(rudp.Pkt{Reader: r})
 		if err != nil {
 			log.Print(err)
 		}
 
-		clt.SendDisco(0, true)
 		clt.Close()
 	}
 
 	rpcSrvMu.Lock()
 	for srv := range rpcSrvs {
-		srv.SendDisco(0, true)
 		srv.Close()
 	}
 	rpcSrvMu.Unlock()

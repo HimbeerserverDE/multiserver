@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
+	"io"
 	"log"
 	"net"
 	"strconv"
@@ -31,43 +33,60 @@ const (
 )
 
 var rpcSrvMu sync.Mutex
-var rpcSrvs map[*Peer]struct{}
+var rpcSrvs map[*Conn]struct{}
 
-func (p *Peer) joinRpc() {
+func (c *Conn) joinRpc() {
 	data := make([]byte, 4+len(rpcCh))
 	data[0] = uint8(0x00)
 	data[1] = uint8(ToServerModChannelJoin)
 	binary.BigEndian.PutUint16(data[2:4], uint16(len(rpcCh)))
 	copy(data[4:], []byte(rpcCh))
 
-	ack, err := p.Send(rudp.Pkt{Data: data})
+	ack, err := c.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
 	if err != nil {
 		return
 	}
 	<-ack
 }
 
-func (p *Peer) leaveRpc() {
+func (c *Conn) leaveRpc() {
 	data := make([]byte, 4+len(rpcCh))
 	data[0] = uint8(0x00)
 	data[1] = uint8(ToServerModChannelLeave)
 	binary.BigEndian.PutUint16(data[2:4], uint16(len(rpcCh)))
 	copy(data[4:], []byte(rpcCh))
 
-	ack, err := p.Send(rudp.Pkt{Data: data})
+	ack, err := c.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
 	if err != nil {
 		return
 	}
 	<-ack
 }
 
-func processRpc(p *Peer, pkt rudp.Pkt) bool {
-	chlen := binary.BigEndian.Uint16(pkt.Data[2:4])
-	ch := string(pkt.Data[4 : 4+chlen])
-	senderlen := binary.BigEndian.Uint16(pkt.Data[4+chlen : 6+chlen])
-	sender := string(pkt.Data[6+chlen : 6+chlen+senderlen])
-	msglen := binary.BigEndian.Uint16(pkt.Data[6+chlen+senderlen : 8+chlen+senderlen])
-	msg := string(pkt.Data[8+chlen+senderlen : 8+chlen+senderlen+msglen])
+func processRpc(c *Conn, r *bytes.Reader) bool {
+	chlenBytes := make([]byte, 2)
+	r.Read(chlenBytes)
+	chlen := binary.BigEndian.Uint16(chlenBytes)
+
+	chBytes := make([]byte, chlen)
+	r.Read(chBytes)
+	ch := string(chBytes)
+
+	senderlenBytes := make([]byte, 2)
+	r.Read(senderlenBytes)
+	senderlen := binary.BigEndian.Uint16(senderlenBytes)
+
+	senderBytes := make([]byte, senderlen)
+	r.Read(senderBytes)
+	sender := string(senderBytes)
+
+	msglenBytes := make([]byte, 2)
+	r.Read(msglenBytes)
+	msglen := binary.BigEndian.Uint16(msglenBytes)
+
+	msgBytes := make([]byte, msglen)
+	r.Read(msgBytes)
+	msg := string(msgBytes)
 
 	if ch != rpcCh || sender != "" {
 		return false
@@ -83,63 +102,63 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 		if !ok {
 			return true
 		}
-		go p.doRpc("->DEFSRV "+defsrv, rq)
+		go c.doRpc("->DEFSRV "+defsrv, rq)
 	case "<-GETPEERCNT":
-		cnt := strconv.Itoa(PeerCount())
-		go p.doRpc("->PEERCNT "+cnt, rq)
+		cnt := strconv.Itoa(ConnCount())
+		go c.doRpc("->PEERCNT "+cnt, rq)
 	case "<-ISONLINE":
 		online := "false"
 		if IsOnline(strings.Join(strings.Split(msg, " ")[2:], " ")) {
 			online = "true"
 		}
-		go p.doRpc("->ISONLINE "+online, rq)
+		go c.doRpc("->ISONLINE "+online, rq)
 	case "<-CHECKPRIVS":
 		name := strings.Split(msg, " ")[2]
 		privs := decodePrivs(strings.Join(strings.Split(msg, " ")[3:], " "))
 		hasprivs := "false"
 		if IsOnline(name) {
-			has, err := PeerByUsername(name).CheckPrivs(privs)
+			has, err := ConnByUsername(name).CheckPrivs(privs)
 			if err == nil && has {
 				hasprivs = "true"
 			}
 		}
-		go p.doRpc("->HASPRIVS "+hasprivs, rq)
+		go c.doRpc("->HASPRIVS "+hasprivs, rq)
 	case "<-GETPRIVS":
 		name := strings.Split(msg, " ")[2]
 		var r string
 		if IsOnline(name) {
-			privs, err := PeerByUsername(name).Privs()
+			privs, err := ConnByUsername(name).Privs()
 			if err == nil {
 				r = strings.Replace(encodePrivs(privs), "|", ",", -1)
 			}
 		}
-		go p.doRpc("->PRIVS "+r, rq)
+		go c.doRpc("->PRIVS "+r, rq)
 	case "<-SETPRIVS":
 		name := strings.Split(msg, " ")[2]
 		privs := decodePrivs(strings.Join(strings.Split(msg, " ")[3:], " "))
 		if IsOnline(name) {
-			PeerByUsername(name).SetPrivs(privs)
+			ConnByUsername(name).SetPrivs(privs)
 		}
 	case "<-GETSRV":
 		name := strings.Split(msg, " ")[2]
 		var srv string
 		if IsOnline(name) {
-			srv = PeerByUsername(name).ServerName()
+			srv = ConnByUsername(name).ServerName()
 		}
-		go p.doRpc("->SRV "+srv, rq)
+		go c.doRpc("->SRV "+srv, rq)
 	case "<-REDIRECT":
 		name := strings.Split(msg, " ")[2]
 		tosrv := strings.Split(msg, " ")[3]
 		if IsOnline(name) {
-			go PeerByUsername(name).Redirect(tosrv)
+			go ConnByUsername(name).Redirect(tosrv)
 		}
 	case "<-GETADDR":
 		name := strings.Split(msg, " ")[2]
 		var addr string
 		if IsOnline(name) {
-			addr = PeerByUsername(name).Addr().String()
+			addr = ConnByUsername(name).Addr().String()
 		}
-		go p.doRpc("->ADDR "+addr, rq)
+		go c.doRpc("->ADDR "+addr, rq)
 	case "<-ISBANNED":
 		db, err := initAuthDB()
 		if err != nil {
@@ -163,17 +182,17 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 			r = "true"
 		}
 
-		go p.doRpc("->ISBANNED "+r, rq)
+		go c.doRpc("->ISBANNED "+r, rq)
 	case "<-BAN":
 		target := strings.Split(msg, " ")[2]
 		err := Ban(target)
 		if err != nil {
-			p2 := PeerByUsername(target)
-			if p2 == nil {
+			c2 := ConnByUsername(target)
+			if c2 == nil {
 				return true
 			}
 
-			p2.Ban()
+			c2.Ban()
 		}
 	case "<-UNBAN":
 		target := strings.Split(msg, " ")[2]
@@ -187,12 +206,12 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 		}
 		srvs = srvs[:len(srvs)-1]
 
-		go p.doRpc("->SRVS "+srvs, rq)
+		go c.doRpc("->SRVS "+srvs, rq)
 	case "<-MT2MT":
 		msg := strings.Join(strings.Split(msg, " ")[2:], " ")
 		rpcSrvMu.Lock()
 		for srv := range rpcSrvs {
-			if srv.Addr().String() != p.Addr().String() {
+			if srv.Addr().String() != c.Addr().String() {
 				go srv.doRpc("->MT2MT true "+msg, "--")
 			}
 		}
@@ -200,7 +219,7 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 	case "<-MSG2MT":
 		tosrv := strings.Split(msg, " ")[2]
 		addr, ok := ConfKey("servers:" + tosrv + ":address").(string)
-		if !ok || addr == p.Addr().String() {
+		if !ok || addr == c.Addr().String() {
 			return true
 		}
 
@@ -216,8 +235,8 @@ func processRpc(p *Peer, pkt rudp.Pkt) bool {
 	return true
 }
 
-func (p *Peer) doRpc(rpc, rq string) {
-	if !p.UseRpc() {
+func (c *Conn) doRpc(rpc, rq string) {
+	if !c.UseRpc() {
 		return
 	}
 
@@ -231,7 +250,7 @@ func (p *Peer) doRpc(rpc, rq string) {
 	binary.BigEndian.PutUint16(data[4+len(rpcCh):6+len(rpcCh)], uint16(len(msg)))
 	copy(data[6+len(rpcCh):6+len(rpcCh)+len(msg)], []byte(msg))
 
-	_, err := p.Send(rudp.Pkt{Data: data})
+	_, err := c.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
 	if err != nil {
 		return
 	}
@@ -242,7 +261,7 @@ func connectRpc() {
 
 	servers := ConfKey("servers").(map[interface{}]interface{})
 	for server := range servers {
-		clt := &Peer{username: "rpc"}
+		clt := &Conn{username: "rpc"}
 
 		straddr := ConfKey("servers:" + server.(string) + ":address")
 
@@ -258,13 +277,13 @@ func connectRpc() {
 			continue
 		}
 
-		srv, err := Connect(conn, conn.RemoteAddr())
+		srv, err := Connect(conn)
 		if err != nil {
 			log.Print(err)
 			continue
 		}
 
-		fin := make(chan *Peer) // close-only
+		fin := make(chan *Conn) // close-only
 		go Init(clt, srv, true, true, fin)
 
 		go func() {
@@ -280,7 +299,7 @@ func connectRpc() {
 	}
 }
 
-func handleRpc(srv *Peer) {
+func handleRpc(srv *Conn) {
 	srv.MakeRpcOnly()
 	for {
 		pkt, err := srv.Recv()
@@ -296,23 +315,38 @@ func handleRpc(srv *Peer) {
 			continue
 		}
 
-		switch cmd := binary.BigEndian.Uint16(pkt.Data[0:2]); cmd {
+		r := ByteReader(pkt)
+
+		cmdBytes := make([]byte, 2)
+		r.Read(cmdBytes)
+		switch cmd := binary.BigEndian.Uint16(cmdBytes); cmd {
 		case ToClientModChannelSignal:
-			chlen := binary.BigEndian.Uint16(pkt.Data[3:5])
-			ch := string(pkt.Data[5 : 5+chlen])
+			r.Seek(1, io.SeekCurrent)
+
+			chlenBytes := make([]byte, 2)
+			r.Read(chlenBytes)
+			chlen := binary.BigEndian.Uint16(chlenBytes)
+
+			chBytes := make([]byte, chlen)
+			r.Read(chBytes)
+			ch := string(chBytes)
+
+			state, _ := r.ReadByte()
+
 			if ch == rpcCh {
-				switch sig := pkt.Data[2]; sig {
+				r.Seek(2, io.SeekStart)
+
+				switch sig, _ := r.ReadByte(); sig {
 				case ModChSigJoinOk:
 					srv.SetUseRpc(true)
 				case ModChSigSetState:
-					state := pkt.Data[5+chlen]
 					if state == ModChStateRO {
 						srv.SetUseRpc(false)
 					}
 				}
 			}
 		case ToClientModChannelMsg:
-			processRpc(srv, pkt)
+			processRpc(srv, r)
 		}
 	}
 }
@@ -322,35 +356,34 @@ func OptimizeRPCConns() {
 	defer rpcSrvMu.Unlock()
 
 ServerLoop:
-	for p := range rpcSrvs {
-		for _, p2 := range Peers() {
-			if p2.Server() == nil {
+	for c := range rpcSrvs {
+		for _, c2 := range Conns() {
+			if c2.Server() == nil {
 				continue
 			}
-			if p2.Server().Addr().String() == p.Addr().String() {
-				if p.NoClt() {
-					p.SendDisco(0, true)
-					p.Close()
+			if c2.Server().Addr().String() == c.Addr().String() {
+				if c.NoClt() {
+					c.Close()
 				} else {
-					p.SetUseRpc(false)
-					p.leaveRpc()
+					c.SetUseRpc(false)
+					c.leaveRpc()
 				}
 
-				delete(rpcSrvs, p)
+				delete(rpcSrvs, c)
 
-				p3 := p2.Server()
-				p3.SetUseRpc(true)
-				p3.joinRpc()
+				c3 := c2.Server()
+				c3.SetUseRpc(true)
+				c3.joinRpc()
 
-				rpcSrvs[p3] = struct{}{}
+				rpcSrvs[c3] = struct{}{}
 
 				go func() {
-					<-p3.Disco()
+					<-c3.Closed()
 					rpcSrvMu.Lock()
-					delete(rpcSrvs, p3)
+					delete(rpcSrvs, c3)
 					rpcSrvMu.Unlock()
 
-					for p2.Server().Addr().String() == p3.Addr().String() {
+					for c2.Server().Addr().String() == c3.Addr().String() {
 					}
 					OptimizeRPCConns()
 				}()
@@ -367,7 +400,7 @@ func reconnectRpc(media bool) {
 	servers := ConfKey("servers").(map[interface{}]interface{})
 ServerLoop:
 	for server := range servers {
-		clt := &Peer{username: "rpc"}
+		clt := &Conn{username: "rpc"}
 
 		straddr := ConfKey("servers:" + server.(string) + ":address").(string)
 
@@ -398,13 +431,13 @@ ServerLoop:
 			continue
 		}
 
-		srv, err := Connect(conn, conn.RemoteAddr())
+		srv, err := Connect(conn)
 		if err != nil {
 			log.Print(err)
 			continue
 		}
 
-		fin := make(chan *Peer) // close-only
+		fin := make(chan *Conn) // close-only
 		go Init(clt, srv, true, true, fin)
 
 		go func() {
@@ -422,7 +455,7 @@ ServerLoop:
 
 func init() {
 	rpcSrvMu.Lock()
-	rpcSrvs = make(map[*Peer]struct{})
+	rpcSrvs = make(map[*Conn]struct{})
 	rpcSrvMu.Unlock()
 
 	reconnect, ok := ConfKey("server_reintegration_interval").(int)

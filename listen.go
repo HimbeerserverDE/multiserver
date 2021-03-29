@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"net"
 	"sync"
@@ -15,8 +16,8 @@ type Listener struct {
 	*rudp.Listener
 }
 
-var peerMu sync.RWMutex
-var peers map[*Peer]struct{}
+var connMu sync.RWMutex
+var conns map[*Conn]struct{}
 
 func Listen(conn net.PacketConn) *Listener {
 	return &Listener{
@@ -24,27 +25,27 @@ func Listen(conn net.PacketConn) *Listener {
 	}
 }
 
-// Accept waits for and returns a connecting Peer
+// Accept waits for and returns a connecting Conn
 // You should keep calling this until it returns ErrClosed
 // so it doesn't leak a goroutine
-func (l *Listener) Accept() (*Peer, error) {
+func (l *Listener) Accept() (*Conn, error) {
 	rp, err := l.Listener.Accept()
 	if err != nil {
 		return nil, err
 	}
 
-	clt := &Peer{Peer: rp}
+	clt := &Conn{Conn: rp}
 
-	peerMu.Lock()
-	peers[clt] = struct{}{}
-	peerMu.Unlock()
+	connMu.Lock()
+	conns[clt] = struct{}{}
+	connMu.Unlock()
 
 	go func() {
-		<-clt.Disco()
+		<-clt.Closed()
 
-		peerMu.Lock()
-		delete(peers, clt)
-		peerMu.Unlock()
+		connMu.Lock()
+		delete(conns, clt)
+		connMu.Unlock()
 	}()
 
 	clt.aoIDs = make(map[uint16]bool)
@@ -53,18 +54,18 @@ func (l *Listener) Accept() (*Peer, error) {
 	clt.sounds = make(map[int32]bool)
 	clt.inv = &mt.Inv{}
 
-	maxPeers, ok := ConfKey("player_limit").(int)
+	maxConns, ok := ConfKey("player_limit").(int)
 	if !ok {
-		maxPeers = int(^uint(0) >> 1)
+		maxConns = int(^uint(0) >> 1)
 	}
 
-	if PeerCount() >= maxPeers {
+	if ConnCount() >= maxConns {
 		data := []byte{
 			0, ToClientAccessDenied,
 			AccessDeniedTooManyUsers, 0, 0, 0, 0,
 		}
 
-		_, err := clt.Send(rudp.Pkt{Data: data})
+		_, err := clt.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
 		if err != nil {
 			return nil, err
 		}
@@ -72,43 +73,43 @@ func (l *Listener) Accept() (*Peer, error) {
 		return nil, ErrPlayerLimitReached
 	}
 
-	connectedPeersMu.Lock()
-	connectedPeers++
-	connectedPeersMu.Unlock()
+	connectedConnsMu.Lock()
+	connectedConns++
+	connectedConnsMu.Unlock()
 
 	return clt, nil
 }
 
-// PeerByUsername returns the Peer that is using the specified name
+// ConnByUsername returns the Conn that is using the specified name
 // for authentication
-func PeerByUsername(name string) *Peer {
-	peerMu.RLock()
-	defer peerMu.RUnlock()
+func ConnByUsername(name string) *Conn {
+	connMu.RLock()
+	defer connMu.RUnlock()
 
-	for p := range peers {
-		if p.Username() == name {
-			return p
+	for c := range conns {
+		if c.Username() == name {
+			return c
 		}
 	}
 
 	return nil
 }
 
-// Peers returns an array containing all connected client Peers
-func Peers() []*Peer {
-	peerMu.RLock()
-	defer peerMu.RUnlock()
+// Conns returns an array containing all connected client Conns
+func Conns() []*Conn {
+	connMu.RLock()
+	defer connMu.RUnlock()
 
-	var r []*Peer
-	for p := range peers {
-		r = append(r, p)
+	var r []*Conn
+	for c := range conns {
+		r = append(r, c)
 	}
 	return r
 }
 
 func init() {
-	peerMu.Lock()
-	defer peerMu.Unlock()
+	connMu.Lock()
+	defer connMu.Unlock()
 
-	peers = make(map[*Peer]struct{})
+	conns = make(map[*Conn]struct{})
 }

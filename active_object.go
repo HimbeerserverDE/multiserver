@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/binary"
 	"log"
 
@@ -23,20 +24,23 @@ const (
 	AoCmdSetAnimSpeed
 )
 
-func processAoRmAdd(p *Peer, data []byte) []byte {
-	countRm := binary.BigEndian.Uint16(data[2:4])
+func processAoRmAdd(c *Conn, r *bytes.Reader) []byte {
+	data := make([]byte, r.Len())
+	r.Read(data)
+
+	countRm := binary.BigEndian.Uint16(data[0:2])
 	var aoRm []uint16
 	for i := uint16(0); i < countRm; i += 2 {
-		id := binary.BigEndian.Uint16(data[4+i : 6+i])
-		if id == p.localPlayerCao {
-			id = p.currentPlayerCao
+		id := binary.BigEndian.Uint16(data[2+i : 4+i])
+		if id == c.localPlayerCao {
+			id = c.currentPlayerCao
 		}
 		aoRm = append(aoRm, id)
 	}
 
-	countAdd := binary.BigEndian.Uint16(data[4+countRm*2 : 6+countRm*2])
+	countAdd := binary.BigEndian.Uint16(data[2+countRm*2 : 4+countRm*2])
 	var aoAdd []uint16
-	si := 6 + uint32(countRm)*2
+	si := 4 + uint32(countRm)*2
 	for i := uint32(0); i < uint32(countAdd); i++ {
 		id := binary.BigEndian.Uint16(data[si : 2+si])
 
@@ -44,8 +48,8 @@ func processAoRmAdd(p *Peer, data []byte) []byte {
 
 		namelen := binary.BigEndian.Uint16(data[8+si : 10+si])
 		name := data[10+si : 10+si+uint32(namelen)]
-		if string(name) == p.Username() {
-			if p.initAoReceived {
+		if string(name) == c.Username() {
+			if c.initAoReceived {
 				initData := data[7+si : 7+si+initDataLen]
 
 				// Read the messages from the packet
@@ -65,13 +69,13 @@ func processAoRmAdd(p *Peer, data []byte) []byte {
 				msgpkt := []byte{0x00, ToClientActiveObjectMessages}
 				for _, msg := range msgs {
 					msgdata := make([]byte, 4+len(msg))
-					binary.BigEndian.PutUint16(msgdata[0:2], p.localPlayerCao)
+					binary.BigEndian.PutUint16(msgdata[0:2], c.localPlayerCao)
 					binary.BigEndian.PutUint16(msgdata[2:4], uint16(len(msg)))
-					copy(msgdata[4:], aoMsgReplaceIDs(p, msg))
+					copy(msgdata[4:], aoMsgReplaceIDs(c, msg))
 					msgpkt = append(msgpkt, msgdata...)
 				}
 
-				ack, err := p.Send(rudp.Pkt{Data: msgpkt})
+				ack, err := c.Send(rudp.Pkt{Reader: bytes.NewReader(msgpkt)})
 				if err != nil {
 					log.Print(err)
 				}
@@ -79,18 +83,18 @@ func processAoRmAdd(p *Peer, data []byte) []byte {
 
 				binary.BigEndian.PutUint16(data[4+countRm*2:6+countRm*2], countAdd-1)
 				data = append(data[:si], data[7+si+initDataLen:]...)
-				p.currentPlayerCao = id
+				c.currentPlayerCao = id
 				si -= 7 + initDataLen
 			} else {
-				p.initAoReceived = true
-				p.localPlayerCao = id
-				p.currentPlayerCao = id
+				c.initAoReceived = true
+				c.localPlayerCao = id
+				c.currentPlayerCao = id
 			}
 
 			si += 7 + initDataLen
 			continue
-		} else if id == p.localPlayerCao {
-			id = p.currentPlayerCao
+		} else if id == c.localPlayerCao {
+			id = c.currentPlayerCao
 			binary.BigEndian.PutUint16(data[si:2+si], id)
 		}
 
@@ -99,63 +103,68 @@ func processAoRmAdd(p *Peer, data []byte) []byte {
 		si += 7 + initDataLen
 	}
 
-	p.redirectMu.Lock()
+	c.redirectMu.Lock()
 	for i := range aoAdd {
 		if aoAdd[i] != 0 {
-			p.aoIDs[aoAdd[i]] = true
+			c.aoIDs[aoAdd[i]] = true
 		}
 	}
 
 	for i := range aoRm {
-		p.aoIDs[aoRm[i]] = false
+		c.aoIDs[aoRm[i]] = false
 	}
-	p.redirectMu.Unlock()
+	c.redirectMu.Unlock()
 
 	return data
 }
 
-func processAoMsgs(p *Peer, data []byte) []byte {
-	si := uint32(2)
+func processAoMsgs(c *Conn, r *bytes.Reader) []byte {
+	data := make([]byte, r.Len())
+	r.Read(data)
+
+	si := uint32(0)
 	for si < uint32(len(data)) {
 		id := binary.BigEndian.Uint16(data[si : 2+si])
 		msglen := binary.BigEndian.Uint16(data[2+si : 4+si])
 		msg := data[4+si : 4+si+uint32(msglen)]
-		msg = aoMsgReplaceIDs(p, msg)
+		msg = aoMsgReplaceIDs(c, msg)
 		copy(data[4+si:4+si+uint32(msglen)], msg)
 
-		if id == p.currentPlayerCao {
-			id = p.localPlayerCao
+		if id == c.currentPlayerCao {
+			id = c.localPlayerCao
 			binary.BigEndian.PutUint16(data[si:2+si], id)
-		} else if id == p.localPlayerCao {
-			id = p.currentPlayerCao
+		} else if id == c.localPlayerCao {
+			id = c.currentPlayerCao
 			binary.BigEndian.PutUint16(data[si:2+si], id)
 		}
 
 		si += 4 + uint32(msglen)
 	}
+
 	return data
 }
 
-func aoMsgReplaceIDs(p *Peer, data []byte) []byte {
+func aoMsgReplaceIDs(c *Conn, data []byte) []byte {
 	switch cmd := data[0]; cmd {
 	case AoCmdAttachTo:
 		id := binary.BigEndian.Uint16(data[1:3])
-		if id == p.currentPlayerCao {
-			id = p.localPlayerCao
+		if id == c.currentPlayerCao {
+			id = c.localPlayerCao
 			binary.BigEndian.PutUint16(data[1:3], id)
-		} else if id == p.localPlayerCao {
-			id = p.currentPlayerCao
+		} else if id == c.localPlayerCao {
+			id = c.currentPlayerCao
 			binary.BigEndian.PutUint16(data[1:3], id)
 		}
 	case AoCmdSpawnInfant:
 		id := binary.BigEndian.Uint16(data[1:3])
-		if id == p.currentPlayerCao {
-			id = p.localPlayerCao
+		if id == c.currentPlayerCao {
+			id = c.localPlayerCao
 			binary.BigEndian.PutUint16(data[1:3], id)
-		} else if id == p.localPlayerCao {
-			id = p.currentPlayerCao
+		} else if id == c.localPlayerCao {
+			id = c.currentPlayerCao
 			binary.BigEndian.PutUint16(data[1:3], id)
 		}
 	}
+
 	return data
 }

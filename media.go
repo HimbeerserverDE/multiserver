@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -16,8 +18,6 @@ var media map[string]*mediaFile
 var nodedefs map[string][]byte
 var itemdefs map[string][]byte
 var detachedinvs map[string][][]byte
-var movement []byte
-var timeofday []byte
 
 type mediaFile struct {
 	digest  []byte
@@ -25,13 +25,13 @@ type mediaFile struct {
 	noCache bool
 }
 
-func (p *Peer) fetchMedia() {
-	if !p.IsSrv() {
+func (c *Conn) fetchMedia() {
+	if !c.IsSrv() {
 		return
 	}
 
 	for {
-		pkt, err := p.Recv()
+		pkt, err := c.Recv()
 		if err != nil {
 			if errors.Is(err, net.ErrClosed) {
 				return
@@ -41,57 +41,79 @@ func (p *Peer) fetchMedia() {
 			continue
 		}
 
-		switch cmd := binary.BigEndian.Uint16(pkt.Data[0:2]); cmd {
+		r := ByteReader(pkt)
+
+		cmdBytes := make([]byte, 2)
+		r.Read(cmdBytes)
+		switch cmd := binary.BigEndian.Uint16(cmdBytes); cmd {
 		case ToClientNodedef:
 			servers := ConfKey("servers").(map[interface{}]interface{})
 			var srvname string
 			for server := range servers {
-				if ConfKey("servers:"+server.(string)+":address") == p.Addr().String() {
+				if ConfKey("servers:"+server.(string)+":address") == c.Addr().String() {
 					srvname = server.(string)
 					break
 				}
 			}
-			nodedefs[srvname] = pkt.Data[6:]
+
+			r.Seek(6, io.SeekStart)
+
+			nodedefs[srvname] = make([]byte, r.Len())
+			r.Read(nodedefs[srvname])
 		case ToClientItemdef:
 			servers := ConfKey("servers").(map[interface{}]interface{})
 			var srvname string
 			for server := range servers {
-				if ConfKey("servers:"+server.(string)+":address") == p.Addr().String() {
+				if ConfKey("servers:"+server.(string)+":address") == c.Addr().String() {
 					srvname = server.(string)
 					break
 				}
 			}
-			itemdefs[srvname] = pkt.Data[6:]
-		case ToClientMovement:
-			movement = pkt.Data[2:]
+
+			r.Seek(6, io.SeekStart)
+
+			itemdefs[srvname] = make([]byte, r.Len())
+			r.Read(itemdefs[srvname])
 		case ToClientDetachedInventory:
 			servers := ConfKey("servers").(map[interface{}]interface{})
 			var srvname string
 			for server := range servers {
-				if ConfKey("servers:"+server.(string)+":address") == p.Addr().String() {
+				if ConfKey("servers:"+server.(string)+":address") == c.Addr().String() {
 					srvname = server.(string)
 					break
 				}
 			}
-			detachedinvs[srvname] = append(detachedinvs[srvname], pkt.Data[2:])
-		case ToClientTimeOfDay:
-			timeofday = pkt.Data[2:]
+
+			inv := make([]byte, r.Len())
+			r.Read(inv)
+
+			detachedinvs[srvname] = append(detachedinvs[srvname], inv)
 		case ToClientAnnounceMedia:
 			var rq []string
-			count := binary.BigEndian.Uint16(pkt.Data[2:4])
-			si := uint32(4)
+
+			countBytes := make([]byte, 2)
+			r.Read(countBytes)
+			count := binary.BigEndian.Uint16(countBytes)
+
 			for i := uint16(0); i < count; i++ {
-				namelen := binary.BigEndian.Uint16(pkt.Data[si : 2+si])
-				name := pkt.Data[2+si : 2+si+uint32(namelen)]
-				diglen := binary.BigEndian.Uint16(pkt.Data[2+si+uint32(namelen) : 4+si+uint32(namelen)])
-				digest := pkt.Data[4+si+uint32(namelen) : 4+si+uint32(namelen)+uint32(diglen)]
+				namelenBytes := make([]byte, 2)
+				r.Read(namelenBytes)
+				namelen := binary.BigEndian.Uint16(namelenBytes)
+
+				name := make([]byte, namelen)
+				r.Read(name)
+
+				diglenBytes := make([]byte, 2)
+				r.Read(diglenBytes)
+				diglen := binary.BigEndian.Uint16(diglenBytes)
+
+				digest := make([]byte, diglen)
+				r.Read(digest)
 
 				if media[string(name)] == nil && !isCached(string(name), digest) {
 					rq = append(rq, string(name))
 					media[string(name)] = &mediaFile{digest: digest}
 				}
-
-				si += 4 + uint32(namelen) + uint32(diglen)
 			}
 
 			// Request the media
@@ -111,46 +133,66 @@ func (p *Peer) fetchMedia() {
 				sj += 2 + len(rq[f])
 			}
 
-			_, err := p.Send(rudp.Pkt{Data: data, ChNo: 1})
+			_, err := c.Send(rudp.Pkt{
+				Reader: bytes.NewReader(data),
+				PktInfo: rudp.PktInfo{
+					Channel: 1,
+				},
+			})
+
 			if err != nil {
 				log.Print(err)
 				continue
 			}
 		case ToClientMedia:
-			bunchcount := binary.BigEndian.Uint16(pkt.Data[2:4])
-			bunch := binary.BigEndian.Uint16(pkt.Data[4:6])
-			filecount := binary.BigEndian.Uint32(pkt.Data[6:10])
-			si := uint32(10)
+			bunchcountBytes := make([]byte, 2)
+			r.Read(bunchcountBytes)
+			bunchcount := binary.BigEndian.Uint16(bunchcountBytes)
+
+			bunchBytes := make([]byte, 2)
+			r.Read(bunchBytes)
+			bunch := binary.BigEndian.Uint16(bunchBytes)
+
+			filecountBytes := make([]byte, 4)
+			r.Read(filecountBytes)
+			filecount := binary.BigEndian.Uint32(filecountBytes)
+
 			for i := uint32(0); i < filecount; i++ {
-				namelen := binary.BigEndian.Uint16(pkt.Data[si : 2+si])
-				name := pkt.Data[2+si : 2+si+uint32(namelen)]
-				datalen := binary.BigEndian.Uint32(pkt.Data[2+si+uint32(namelen) : 6+si+uint32(namelen)])
-				data := pkt.Data[6+si+uint32(namelen) : 6+uint32(si)+uint32(namelen)+datalen]
+				namelenBytes := make([]byte, 2)
+				r.Read(namelenBytes)
+				namelen := binary.BigEndian.Uint16(namelenBytes)
+
+				name := make([]byte, namelen)
+				r.Read(name)
+
+				datalenBytes := make([]byte, 4)
+				r.Read(datalenBytes)
+				datalen := binary.BigEndian.Uint32(datalenBytes)
+
+				data := make([]byte, datalen)
+				r.Read(data)
 
 				if media[string(name)] != nil && len(media[string(name)].data) == 0 {
 					media[string(name)].data = data
 				}
-
-				si += 6 + uint32(namelen) + datalen
 			}
 
 			if bunch >= bunchcount-1 {
-				p.SendDisco(0, true)
-				p.Close()
+				c.Close()
 				return
 			}
 		}
 	}
 }
 
-func (p *Peer) updateDetachedInvs(srvname string) {
+func (c *Conn) updateDetachedInvs(srvname string) {
 	for i := range detachedinvs[srvname] {
 		data := make([]byte, 2+len(detachedinvs[srvname][i]))
 		data[0] = uint8(0x00)
 		data[1] = uint8(ToClientDetachedInventory)
 		copy(data[2:], detachedinvs[srvname][i])
 
-		ack, err := p.Send(rudp.Pkt{Data: data})
+		ack, err := c.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
 		if err != nil {
 			log.Print(err)
 			continue
@@ -159,7 +201,7 @@ func (p *Peer) updateDetachedInvs(srvname string) {
 	}
 }
 
-func (p *Peer) announceMedia() {
+func (c *Conn) announceMedia() {
 	srvname, ok := ConfKey("default_server").(string)
 	if !ok {
 		log.Print("Default server name not set or not a string")
@@ -172,7 +214,7 @@ func (p *Peer) announceMedia() {
 	binary.BigEndian.PutUint32(data[2:6], uint32(len(nodedef)))
 	copy(data[6:], nodedef)
 
-	ack, err := p.Send(rudp.Pkt{Data: data})
+	ack, err := c.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
 	if err != nil {
 		log.Print(err)
 	}
@@ -184,35 +226,13 @@ func (p *Peer) announceMedia() {
 	binary.BigEndian.PutUint32(data[2:6], uint32(len(itemdef)))
 	copy(data[6:], itemdef)
 
-	ack, err = p.Send(rudp.Pkt{Data: data})
+	ack, err = c.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
 	if err != nil {
 		log.Print(err)
 	}
 	<-ack
 
-	p.updateDetachedInvs(srvname)
-
-	data = make([]byte, 2+len(movement))
-	data[0] = uint8(0x00)
-	data[1] = uint8(ToClientMovement)
-	copy(data[2:], movement)
-
-	ack, err = p.Send(rudp.Pkt{Data: data})
-	if err != nil {
-		log.Print(err)
-	}
-	<-ack
-
-	data = make([]byte, 2+len(timeofday))
-	data[0] = uint8(0x00)
-	data[1] = uint8(ToClientTimeOfDay)
-	copy(data[2:], timeofday)
-
-	ack, err = p.Send(rudp.Pkt{Data: data})
-	if err != nil {
-		log.Print(err)
-	}
-	<-ack
+	c.updateDetachedInvs(srvname)
 
 	csmrf, ok := ConfKey("csm_restriction_flags").(int)
 	if !ok {
@@ -226,7 +246,7 @@ func (p *Peer) announceMedia() {
 	binary.BigEndian.PutUint32(data[6:10], uint32(csmrf))
 	binary.BigEndian.PutUint32(data[10:], uint32(0))
 
-	ack, err = p.Send(rudp.Pkt{Data: data})
+	ack, err = c.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
 	if err != nil {
 		log.Print(err)
 	}
@@ -252,7 +272,7 @@ func (p *Peer) announceMedia() {
 	data[si] = uint8(0x00)
 	data[1+si] = uint8(0x00)
 
-	ack, err = p.Send(rudp.Pkt{Data: data})
+	ack, err = c.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
 	if err != nil {
 		log.Print(err)
 		return
@@ -260,7 +280,7 @@ func (p *Peer) announceMedia() {
 	<-ack
 }
 
-func (p *Peer) sendMedia(rqdata []byte) {
+func (c *Conn) sendMedia(rqdata []byte) {
 	var rq []string
 	count := binary.BigEndian.Uint16(rqdata[0:2])
 	si := uint16(2)
@@ -295,7 +315,13 @@ func (p *Peer) sendMedia(rqdata []byte) {
 	data[sj] = uint8(0x00)
 	data[1+sj] = uint8(0x00)
 
-	ack, err := p.Send(rudp.Pkt{Data: data, ChNo: 2})
+	ack, err := c.Send(rudp.Pkt{
+		Reader: bytes.NewReader(data),
+		PktInfo: rudp.PktInfo{
+			Channel: 2,
+		},
+	})
+
 	if err != nil {
 		log.Print(err)
 		return
@@ -377,7 +403,7 @@ func loadMedia(servers map[string]struct{}) {
 
 	loadMediaCache()
 
-	clt := &Peer{username: "media"}
+	clt := &Conn{username: "media"}
 
 	for server := range servers {
 		straddr := ConfKey("servers:" + server + ":address")
@@ -392,13 +418,13 @@ func loadMedia(servers map[string]struct{}) {
 			log.Fatal(err)
 		}
 
-		srv, err := Connect(conn, conn.RemoteAddr())
+		srv, err := Connect(conn)
 		if err != nil {
 			log.Print(err)
 			continue
 		}
 
-		fin := make(chan *Peer) // close-only
+		fin := make(chan *Conn) // close-only
 		go Init(clt, srv, false, true, fin)
 		<-fin
 

@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"encoding/binary"
+	"io"
 	"log"
 	"strings"
 	"time"
@@ -15,17 +17,17 @@ var ChatCommandPrefix string = "#"
 type chatCommand struct {
 	help     string
 	privs    map[string]bool
-	function func(*Peer, string)
+	function func(*Conn, string)
 }
 
 var chatCommands map[string]chatCommand
-var onChatMsg []func(*Peer, string) bool
+var onChatMsg []func(*Conn, string) bool
 
-var onServerChatMsg []func(*Peer, string) bool
+var onServerChatMsg []func(*Conn, string) bool
 
 // RegisterChatCommand registers a callback function that is called
 // when a client executes the command and has the required privileges
-func RegisterChatCommand(name string, privs map[string]bool, help string, function func(*Peer, string)) {
+func RegisterChatCommand(name string, privs map[string]bool, help string, function func(*Conn, string)) {
 	chatCommands[name] = chatCommand{
 		privs:    privs,
 		help:     help,
@@ -40,7 +42,7 @@ func (c chatCommand) Help() string { return c.help }
 // when a client sends a chat message
 // If a callback function returns true the message is not forwarded
 // to the minetest server
-func RegisterOnChatMessage(function func(*Peer, string) bool) {
+func RegisterOnChatMessage(function func(*Conn, string) bool) {
 	onChatMsg = append(onChatMsg, function)
 }
 
@@ -48,19 +50,24 @@ func RegisterOnChatMessage(function func(*Peer, string) bool) {
 // that is called when a server sends a chat message
 // If a callback function returns true the message is not forwarded
 // to the minetest clients
-func RegisterOnServerChatMessage(function func(*Peer, string) bool) {
+func RegisterOnServerChatMessage(function func(*Conn, string) bool) {
 	onServerChatMsg = append(onServerChatMsg, function)
 }
 
-func processChatMessage(p *Peer, pkt rudp.Pkt) bool {
-	s := string(narrow(pkt.Data[4:]))
+func processChatMessage(c *Conn, pkt rudp.Pkt) bool {
+	r := ByteReader(pkt)
+
+	wstr := make([]byte, r.Len()-4)
+	r.ReadAt(wstr, 4)
+
+	s := string(narrow(wstr))
 	if strings.HasPrefix(s, ChatCommandPrefix) {
 		// Chat command
 		s = strings.Replace(s, ChatCommandPrefix, "", 1)
 		params := strings.Split(s, " ")
 
 		// Priv check
-		allow, err := p.CheckPrivs(chatCommands[params[0]].privs)
+		allow, err := c.CheckPrivs(chatCommands[params[0]].privs)
 		if err != nil {
 			log.Print(err)
 			return true
@@ -85,7 +92,7 @@ func processChatMessage(p *Peer, pkt rudp.Pkt) bool {
 			data[11+len(wstr)] = uint8(0x00)
 			binary.BigEndian.PutUint32(data[12+len(wstr):16+len(wstr)], uint32(time.Now().Unix()))
 
-			ack, err := p.Send(rudp.Pkt{Data: data})
+			ack, err := c.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
 			if err != nil {
 				log.Print(err)
 			}
@@ -115,7 +122,7 @@ func processChatMessage(p *Peer, pkt rudp.Pkt) bool {
 			data[11+len(wstr)] = uint8(0x00)
 			binary.BigEndian.PutUint32(data[12+len(wstr):16+len(wstr)], uint32(time.Now().Unix()))
 
-			ack, err := p.Send(rudp.Pkt{Data: data})
+			ack, err := c.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
 			if err != nil {
 				log.Print(err)
 			}
@@ -124,13 +131,13 @@ func processChatMessage(p *Peer, pkt rudp.Pkt) bool {
 			return true
 		}
 
-		chatCommands[params[0]].function(p, strings.Join(params[1:], " "))
+		chatCommands[params[0]].function(c, strings.Join(params[1:], " "))
 		return true
 	} else {
 		// Regular message
 		noforward := false
 		for i := range onChatMsg {
-			if onChatMsg[i](p, s) {
+			if onChatMsg[i](c, s) {
 				noforward = true
 			}
 		}
@@ -138,20 +145,27 @@ func processChatMessage(p *Peer, pkt rudp.Pkt) bool {
 	}
 }
 
-func processServerChatMessage(p *Peer, pkt rudp.Pkt) bool {
-	s := string(narrow(pkt.Data[4:]))
+func processServerChatMessage(c *Conn, pkt rudp.Pkt) bool {
+	r := ByteReader(pkt)
+
+	r.Seek(4, io.SeekStart)
+
+	wstr := make([]byte, r.Len())
+	r.Read(wstr)
+
+	s := string(narrow(wstr))
 	noforward := false
 	for i := range onServerChatMsg {
-		if onServerChatMsg[i](p, s) {
+		if onServerChatMsg[i](c, s) {
 			noforward = true
 		}
 	}
 	return noforward
 }
 
-// SendChatMsg sends a chat message to the Peer if it isn't a server
-func (p *Peer) SendChatMsg(msg string) {
-	if p.IsSrv() {
+// SendChatMsg sends a chat message to a Conn if it isn't a server
+func (c *Conn) SendChatMsg(msg string) {
+	if c.IsSrv() {
 		return
 	}
 
@@ -172,17 +186,17 @@ func (p *Peer) SendChatMsg(msg string) {
 	data[11+len(wstr)] = uint8(0x00)
 	binary.BigEndian.PutUint32(data[12+len(wstr):16+len(wstr)], uint32(time.Now().Unix()))
 
-	ack, err := p.Send(rudp.Pkt{Data: data})
+	ack, err := c.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
 	if err != nil {
 		log.Print(err)
 	}
 	<-ack
 }
 
-// ChatSendAll sends a chat message to all connected client Peers
+// ChatSendAll sends a chat message to all connected client Conns
 func ChatSendAll(msg string) {
-	for _, p := range Peers() {
-		go p.SendChatMsg(msg)
+	for _, c := range Conns() {
+		go c.SendChatMsg(msg)
 	}
 }
 

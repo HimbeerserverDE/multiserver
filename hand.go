@@ -6,26 +6,26 @@ import (
 	"github.com/anon55555/mt"
 )
 
-func (p *Peer) UpdateHandCapabs() error {
-	l := p.Inv().List("hand")
+func (c *Conn) UpdateHandCapabs() error {
+	l := c.Inv().List("hand")
 	if l == nil {
-		*p.inv = mt.Inv(append([]mt.NamedInvList(*p.inv), mt.NamedInvList{
+		*c.inv = mt.Inv(append([]mt.NamedInvList(*c.inv), mt.NamedInvList{
 			Name: "hand",
 			InvList: mt.InvList{
 				Width: 1,
 			},
 		}))
-		l = p.Inv().List("hand")
+		l = c.Inv().List("hand")
 	}
 
 	var hand mt.Stack
 
-	if len(l.Stacks) == 1 && l.Stacks[0].Name != "multiserver:hand_"+p.ServerName() {
+	if len(l.Stacks) == 1 && l.Stacks[0].Name != "multiserver:hand_"+c.ServerName() {
 		hand = l.Stacks[0]
 
-		caps := handcapabs[p.ServerName()]
+		caps := handcapabs[c.ServerName()]
 		if caps == nil {
-			return fmt.Errorf("hand tool capabilities of server %s missing", p.ServerName())
+			return fmt.Errorf("hand tool capabilities of server %s missing", c.ServerName())
 		}
 
 		s, err := caps.SerializeJSON()
@@ -37,7 +37,7 @@ func (p *Peer) UpdateHandCapabs() error {
 	} else {
 		hand = mt.Stack{
 			Item: mt.Item{
-				Name: "multiserver:hand_" + p.ServerName(),
+				Name: "multiserver:hand_" + c.ServerName(),
 			},
 			Count: 1,
 		}

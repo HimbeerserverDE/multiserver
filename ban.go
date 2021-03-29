@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/binary"
 	"errors"
@@ -116,15 +117,15 @@ func BanList() (map[string]string, error) {
 	return r, nil
 }
 
-// IsBanned reports whether a Peer is banned
-func (p *Peer) IsBanned() (bool, string, error) {
+// IsBanned reports whether a Conn is banned
+func (c *Conn) IsBanned() (bool, string, error) {
 	db, err := initAuthDB()
 	if err != nil {
 		return true, "", err
 	}
 	defer db.Close()
 
-	addr := p.Addr().(*net.UDPAddr).IP.String()
+	addr := c.Addr().(*net.UDPAddr).IP.String()
 
 	name, err := readBanItem(db, addr)
 	if err != nil {
@@ -134,15 +135,15 @@ func (p *Peer) IsBanned() (bool, string, error) {
 	return name != "", name, nil
 }
 
-// Ban adds a Peer to the ban list
-func (p *Peer) Ban() error {
-	banned, _, err := p.IsBanned()
+// Ban adds a Conn to the ban list
+func (c *Conn) Ban() error {
+	banned, _, err := c.IsBanned()
 	if err != nil {
 		return err
 	}
 
 	if banned {
-		return fmt.Errorf("ip address %s is already banned", p.Addr().String())
+		return fmt.Errorf("ip address %s is already banned", c.Addr().String())
 	}
 
 	db, err := initAuthDB()
@@ -151,8 +152,8 @@ func (p *Peer) Ban() error {
 	}
 	defer db.Close()
 
-	name := p.Username()
-	addr := p.Addr().(*net.UDPAddr).IP.String()
+	name := c.Username()
+	addr := c.Addr().(*net.UDPAddr).IP.String()
 
 	err = addBanItem(db, addr, name)
 	if err != nil {
@@ -171,14 +172,13 @@ func (p *Peer) Ban() error {
 	data[5+l] = uint8(0x00)
 	data[6+l] = uint8(0x00)
 
-	ack, err := p.Send(rudp.Pkt{Data: data})
+	ack, err := c.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
 	if err != nil {
 		return err
 	}
 	<-ack
 
-	p.SendDisco(0, true)
-	p.Close()
+	c.Close()
 
 	return nil
 }

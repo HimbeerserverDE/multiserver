@@ -5,56 +5,56 @@ import "sync"
 var onlinePlayers map[string]bool
 var onlinePlayerMu sync.RWMutex
 
-var onJoinPlayer []func(*Peer)
-var onLeavePlayer []func(*Peer)
+var onJoinPlayer []func(*Conn)
+var onLeavePlayer []func(*Conn)
 
 // RegisterOnJoinPlayer registers a callback function that is called
-// when a TOSERVER_CLIENT_READY pkt is received from the Peer
-func RegisterOnJoinPlayer(function func(*Peer)) {
+// when a TOSERVER_CLIENT_READY pkt is received from the Conn
+func RegisterOnJoinPlayer(function func(*Conn)) {
 	onJoinPlayer = append(onJoinPlayer, function)
 }
 
 // RegisterOnLeavePlayer registers a callback function that is called
-// when a client Peer disconnects
-func RegisterOnLeavePlayer(function func(*Peer)) {
+// when a client Conn disconnects
+func RegisterOnLeavePlayer(function func(*Conn)) {
 	onLeavePlayer = append(onLeavePlayer, function)
 }
 
-func processJoin(p *Peer) {
+func processJoin(c *Conn) {
 	onlinePlayerMu.Lock()
 	defer onlinePlayerMu.Unlock()
 
-	cltSrv := p.ServerName()
-	for ; cltSrv == ""; cltSrv = p.ServerName() {
+	cltSrv := c.ServerName()
+	for ; cltSrv == ""; cltSrv = c.ServerName() {
 	}
 
 	rpcSrvMu.Lock()
 	for srv := range rpcSrvs {
-		srv.doRpc("->JOIN "+p.Username()+" "+cltSrv, "--")
+		srv.doRpc("->JOIN "+c.Username()+" "+cltSrv, "--")
 	}
 	rpcSrvMu.Unlock()
 
-	onlinePlayers[p.Username()] = true
+	onlinePlayers[c.Username()] = true
 	for i := range onJoinPlayer {
-		onJoinPlayer[i](p)
+		onJoinPlayer[i](c)
 	}
 
 	go OptimizeRPCConns()
 }
 
-func processLeave(p *Peer) {
+func processLeave(c *Conn) {
 	onlinePlayerMu.Lock()
 	defer onlinePlayerMu.Unlock()
 
 	rpcSrvMu.Lock()
 	for srv := range rpcSrvs {
-		srv.doRpc("->LEAVE "+p.Username(), "--")
+		srv.doRpc("->LEAVE "+c.Username(), "--")
 	}
 	rpcSrvMu.Unlock()
 
-	onlinePlayers[p.Username()] = false
+	onlinePlayers[c.Username()] = false
 	for i := range onLeavePlayer {
-		onLeavePlayer[i](p)
+		onLeavePlayer[i](c)
 	}
 }
 

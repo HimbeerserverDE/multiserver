@@ -5,32 +5,33 @@ import (
 	"compress/zlib"
 	"encoding/binary"
 	"io"
-
-	"github.com/anon55555/mt/rudp"
 )
 
 const NodeCount = 16 * 16 * 16
 
-func processBlockdata(p *Peer, pkt *rudp.Pkt) bool {
-	srv := p.ServerName()
+func processBlockdata(c *Conn, r *bytes.Reader) ([]byte, bool) {
+	srv := c.ServerName()
 
-	x := int16(binary.BigEndian.Uint16(pkt.Data[2:4]))
-	y := int16(binary.BigEndian.Uint16(pkt.Data[4:6]))
-	z := int16(binary.BigEndian.Uint16(pkt.Data[6:8]))
+	posData := make([]byte, 6)
+	r.Read(posData)
 
-	p.blocks = append(p.blocks, [3]int16{x, y, z})
+	x := int16(binary.BigEndian.Uint16(posData[0:2]))
+	y := int16(binary.BigEndian.Uint16(posData[2:4]))
+	z := int16(binary.BigEndian.Uint16(posData[4:6]))
 
-	r := bytes.NewReader(pkt.Data[13:])
+	c.blocks = append(c.blocks, [3]int16{x, y, z})
+
+	r.Seek(13, io.SeekStart)
 
 	zr, err := zlib.NewReader(r)
 	if err != nil {
-		return true
+		return nil, true
 	}
 
 	buf := &bytes.Buffer{}
 	_, err = io.Copy(buf, zr)
 	if err != nil {
-		return true
+		return nil, true
 	}
 	zr.Close()
 
@@ -52,30 +53,39 @@ func processBlockdata(p *Peer, pkt *rudp.Pkt) bool {
 
 	recompNodes := recompBuf.Bytes()
 
-	meta := make([]byte, 65536)
-	n, err := r.Read(meta)
-	if err != nil {
-		return true
-	}
+	meta := make([]byte, r.Len())
+	r.Read(meta)
 
-	meta = meta[:n]
+	r.Seek(2, io.SeekStart)
 
-	data := make([]byte, 13+len(recompNodes)+len(meta))
-	copy(data[:13], pkt.Data[:13])
-	copy(data[13:13+len(recompNodes)], recompNodes)
-	copy(data[13+len(recompNodes):], meta)
+	blockMeta := make([]byte, 11)
+	r.Read(blockMeta)
 
-	pkt.Data = data
+	data := make([]byte, 11+len(recompNodes)+len(meta))
+	copy(data[:11], blockMeta)
+	copy(data[11:11+len(recompNodes)], recompNodes)
+	copy(data[11+len(recompNodes):], meta)
 
-	return false
+	return data, false
 }
 
-func processAddnode(p *Peer, pkt *rudp.Pkt) bool {
-	srv := p.ServerName()
+func processAddnode(c *Conn, r *bytes.Reader) []byte {
+	srv := c.ServerName()
 
-	contentID := binary.BigEndian.Uint16(pkt.Data[8:10])
+	r.Seek(8, io.SeekStart)
+
+	idBytes := make([]byte, 2)
+	r.Read(idBytes)
+
+	contentID := binary.BigEndian.Uint16(idBytes)
 	newID := NodeDefs()[srv][contentID].ID()
-	binary.BigEndian.PutUint16(pkt.Data[8:10], newID)
 
-	return false
+	r.Seek(2, io.SeekStart)
+
+	data := make([]byte, r.Len())
+	r.Read(data)
+
+	binary.BigEndian.PutUint16(data[6:8], newID)
+
+	return data
 }

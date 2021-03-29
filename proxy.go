@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"log"
 	"net"
@@ -9,27 +10,23 @@ import (
 )
 
 // Proxy processes and forwards packets from src to dst
-func Proxy(src, dst *Peer) {
+func Proxy(src, dst *Conn) {
 	if src == nil {
 		data := []byte{
 			0, ToClientAccessDenied,
 			AccessDeniedServerFail, 0, 0, 0, 0,
 		}
 
-		_, err := dst.Send(rudp.Pkt{Data: data})
+		_, err := dst.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
 		if err != nil {
 			log.Print(err)
 		}
 
-		dst.SendDisco(0, true)
 		dst.Close()
 		processLeave(dst)
-
 		return
 	} else if dst == nil {
-		src.SendDisco(0, true)
 		src.Close()
-
 		return
 	}
 
@@ -42,16 +39,16 @@ func Proxy(src, dst *Peer) {
 		}
 		if err != nil {
 			if errors.Is(err, net.ErrClosed) {
-				msg := src.Addr().String() + " disconnected"
-				if src.TimedOut() {
-					msg += " (timed out)"
+				if err = src.WhyClosed(); err != nil {
+					log.Print(src.Addr().String(), " disconnected with error: ", err)
+				} else {
+					log.Print(src.Addr().String(), " disconnected")
 				}
-				log.Print(msg)
 
 				if !src.IsSrv() {
-					connectedPeersMu.Lock()
-					connectedPeers--
-					connectedPeersMu.Unlock()
+					connectedConnsMu.Lock()
+					connectedConns--
+					connectedConnsMu.Unlock()
 
 					processLeave(src)
 				}
@@ -74,6 +71,5 @@ func Proxy(src, dst *Peer) {
 		}
 	}
 
-	dst.SendDisco(0, true)
 	dst.Close()
 }
