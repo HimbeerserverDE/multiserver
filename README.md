@@ -134,6 +134,12 @@ Type: Boolean
 Description: Whether to allow clients to use modchannels,
 default is true
 ```
+> `force_latest_proto`
+```
+Type: Boolean
+Description: Whether to force clients to use the latest protocol version,
+default is false
+```
 > `serverlist_url`
 ```
 Type: String

@@ -15,8 +15,7 @@ import (
 	"github.com/anon55555/mt/rudp"
 )
 
-// Init authenticates to the server srv
-// and finishes the initialisation process if ignMedia is true
+// Init completes the initialisation of a connection to a server or client c2
 func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 	defer close(fin)
 
@@ -267,6 +266,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 			}
 		}
 	} else {
+		// We're trying to initialize a client
 		for {
 			pkt, err := c2.Recv()
 			if err != nil {
@@ -325,7 +325,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 
 				c2.protoVer = protov
 
-				if protov < ProtoMin || protov > ProtoLatest {
+				if strict, ok := ConfKey("force_latest_proto").(bool); (ok && strict) && (protov != ProtoLatest) || protov < ProtoMin || protov > ProtoLatest {
 					data := []byte{
 						0, ToClientAccessDenied,
 						AccessDeniedWrongVersion, 0, 0, 0, 0,
