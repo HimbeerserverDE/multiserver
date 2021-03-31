@@ -158,29 +158,35 @@ func processAoRmAdd(c *Conn, r *bytes.Reader) []byte {
 }
 
 func processAoMsgs(c *Conn, r *bytes.Reader) []byte {
-	data := make([]byte, r.Len())
-	r.Read(data)
+	w := &bytes.Buffer{}
 
-	si := uint32(0)
-	for si < uint32(len(data)) {
-		id := binary.BigEndian.Uint16(data[si : 2+si])
-		msglen := binary.BigEndian.Uint16(data[2+si : 4+si])
-		msg := data[4+si : 4+si+uint32(msglen)]
+	for r.Len() >= 4 {
+		idBytes := make([]byte, 2)
+		r.Read(idBytes)
+		id := binary.BigEndian.Uint16(idBytes)
+
+		msglenBytes := make([]byte, 2)
+		r.Read(msglenBytes)
+		msglen := binary.BigEndian.Uint16(msglenBytes)
+
+		msg := make([]byte, msglen)
+		r.Read(msg)
+
 		msg = aoMsgReplaceIDs(c, msg)
-		copy(data[4+si:4+si+uint32(msglen)], msg)
 
 		if id == c.currentPlayerCao {
 			id = c.localPlayerCao
-			binary.BigEndian.PutUint16(data[si:2+si], id)
 		} else if id == c.localPlayerCao {
 			id = c.currentPlayerCao
-			binary.BigEndian.PutUint16(data[si:2+si], id)
 		}
 
-		si += 4 + uint32(msglen)
+		binary.BigEndian.PutUint16(idBytes, id)
+		w.Write(idBytes)
+		w.Write(msglenBytes)
+		w.Write(msg)
 	}
 
-	return data
+	return w.Bytes()
 }
 
 func aoMsgReplaceIDs(c *Conn, data []byte) []byte {
