@@ -165,7 +165,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 
 				c.srp_K = K
 
-				M := srp.CalculateM([]byte(c.Username()), s, c.srp_A, B, c.srp_K)
+				M := srp.ClientProof([]byte(c.Username()), s, c.srp_A, B, c.srp_K)
 
 				data := make([]byte, 4+len(M))
 				data[0] = uint8(0x00)
@@ -670,7 +670,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 				M := make([]byte, lenM)
 				r.Read(M)
 
-				M2 := srp.CalculateM([]byte(c2.Username()), c2.srp_s, c2.srp_A, c2.srp_B, c2.srp_K)
+				M2 := srp.ClientProof([]byte(c2.Username()), c2.srp_s, c2.srp_A, c2.srp_B, c2.srp_K)
 
 				if subtle.ConstantTimeCompare(M, M2) == 1 {
 					// Password is correct

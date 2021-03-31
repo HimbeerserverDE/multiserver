@@ -477,7 +477,7 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 				M := make([]byte, lenM)
 				r.Read(M)
 
-				M2 := srp.CalculateM([]byte(src.Username()), src.srp_s, src.srp_A, src.srp_B, src.srp_K)
+				M2 := srp.ClientProof([]byte(src.Username()), src.srp_s, src.srp_A, src.srp_B, src.srp_K)
 
 				if subtle.ConstantTimeCompare(M, M2) == 1 {
 					// Password is correct
