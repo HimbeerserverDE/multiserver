@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
+	"io"
 	"log"
 
 	"github.com/anon55555/mt/rudp"
@@ -25,44 +26,78 @@ const (
 )
 
 func processAoRmAdd(c *Conn, r *bytes.Reader) []byte {
-	data := make([]byte, r.Len())
-	r.Read(data)
+	w := &bytes.Buffer{}
 
-	countRm := binary.BigEndian.Uint16(data[0:2])
+	countRmBytes := make([]byte, 2)
+	r.Read(countRmBytes)
+	w.Write(countRmBytes)
+	countRm := binary.BigEndian.Uint16(countRmBytes)
+
 	var aoRm []uint16
-	for i := uint16(0); i < countRm; i += 2 {
-		id := binary.BigEndian.Uint16(data[2+i : 4+i])
+	for i := uint16(0); i < countRm; i++ {
+		idBytes := make([]byte, 2)
+		r.Read(idBytes)
+		w.Write(idBytes)
+		id := binary.BigEndian.Uint16(idBytes)
+
 		if id == c.localPlayerCao {
 			id = c.currentPlayerCao
 		}
 		aoRm = append(aoRm, id)
 	}
 
-	countAdd := binary.BigEndian.Uint16(data[2+countRm*2 : 4+countRm*2])
+	countAddBytes := make([]byte, 2)
+	r.Read(countAddBytes)
+	w.Write(countAddBytes)
+	countAdd := binary.BigEndian.Uint16(countAddBytes)
+
 	var aoAdd []uint16
-	si := 4 + uint32(countRm)*2
-	for i := uint32(0); i < uint32(countAdd); i++ {
-		id := binary.BigEndian.Uint16(data[si : 2+si])
+	for i := uint16(0); i < countAdd; i++ {
+		idBytes := make([]byte, 2)
+		r.Read(idBytes)
+		id := binary.BigEndian.Uint16(idBytes)
 
-		initDataLen := binary.BigEndian.Uint32(data[3+si : 7+si])
+		typeByte, _ := r.ReadByte()
 
-		namelen := binary.BigEndian.Uint16(data[8+si : 10+si])
-		name := data[10+si : 10+si+uint32(namelen)]
+		initDataLenBytes := make([]byte, 4)
+		r.Read(initDataLenBytes)
+		initDataLen := binary.BigEndian.Uint32(initDataLenBytes)
+
+		initData := make([]byte, initDataLen)
+		r.Read(initData)
+
+		dr := bytes.NewReader(initData)
+
+		dr.Seek(1, io.SeekStart)
+
+		namelenBytes := make([]byte, 2)
+		dr.Read(namelenBytes)
+		namelen := binary.BigEndian.Uint16(namelenBytes)
+
+		name := make([]byte, namelen)
+		dr.Read(name)
+
 		if string(name) == c.Username() {
 			if c.initAoReceived {
-				initData := data[7+si : 7+si+initDataLen]
-
 				// Read the messages from the packet
 				// They need to be forwarded
-				msgcount := uint8(initData[32+namelen])
-				var msgs [][]byte
-				sj := uint16(33 + namelen)
-				for j := uint8(0); j < msgcount; j++ {
-					msglen := binary.BigEndian.Uint16(initData[2+sj : 4+sj])
-					msg := initData[4+sj : 4+sj+msglen]
-					msgs = append(msgs, msg)
+				dr.Seek(30, io.SeekCurrent)
 
-					sj += 4 + msglen
+				msgcountByte, _ := dr.ReadByte()
+				msgcount := uint8(msgcountByte)
+
+				var msgs [][]byte
+				for j := uint8(0); j < msgcount; j++ {
+					dr.Seek(2, io.SeekCurrent)
+
+					msglenBytes := make([]byte, 2)
+					dr.Read(msglenBytes)
+					msglen := binary.BigEndian.Uint16(msglenBytes)
+
+					msg := make([]byte, msglen)
+					dr.Read(msg)
+
+					msgs = append(msgs, msg)
 				}
 
 				// Generate message packet
@@ -81,26 +116,30 @@ func processAoRmAdd(c *Conn, r *bytes.Reader) []byte {
 				}
 				<-ack
 
+				data := w.Bytes()
 				binary.BigEndian.PutUint16(data[4+countRm*2:6+countRm*2], countAdd-1)
-				data = append(data[:si], data[7+si+initDataLen:]...)
+				w = bytes.NewBuffer(data)
+
 				c.currentPlayerCao = id
-				si -= 7 + initDataLen
+				continue
 			} else {
 				c.initAoReceived = true
 				c.localPlayerCao = id
 				c.currentPlayerCao = id
 			}
-
-			si += 7 + initDataLen
-			continue
 		} else if id == c.localPlayerCao {
 			id = c.currentPlayerCao
-			binary.BigEndian.PutUint16(data[si:2+si], id)
 		}
 
-		aoAdd = append(aoAdd, id)
+		if string(name) != c.Username() {
+			aoAdd = append(aoAdd, id)
+		}
 
-		si += 7 + initDataLen
+		binary.BigEndian.PutUint16(idBytes, id)
+		w.Write(idBytes)
+		w.WriteByte(typeByte)
+		w.Write(initDataLenBytes)
+		w.Write(initData)
 	}
 
 	c.redirectMu.Lock()
@@ -115,7 +154,7 @@ func processAoRmAdd(c *Conn, r *bytes.Reader) []byte {
 	}
 	c.redirectMu.Unlock()
 
-	return data
+	return w.Bytes()
 }
 
 func processAoMsgs(c *Conn, r *bytes.Reader) []byte {
