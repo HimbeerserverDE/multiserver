@@ -28,56 +28,36 @@ const (
 func processAoRmAdd(c *Conn, r *bytes.Reader) []byte {
 	w := &bytes.Buffer{}
 
-	countRmBytes := make([]byte, 2)
-	r.Read(countRmBytes)
-	w.Write(countRmBytes)
-	countRm := binary.BigEndian.Uint16(countRmBytes)
+	countRm := ReadUint16(r)
+	WriteUint16(w, countRm)
 
 	var aoRm []uint16
 	for i := uint16(0); i < countRm; i++ {
-		idBytes := make([]byte, 2)
-		r.Read(idBytes)
-		w.Write(idBytes)
-		id := binary.BigEndian.Uint16(idBytes)
+		id := ReadUint16(r)
 
 		if id == c.localPlayerCao {
 			id = c.currentPlayerCao
 		}
+
+		WriteUint16(w, id)
 		aoRm = append(aoRm, id)
 	}
 
-	countAddBytes := make([]byte, 2)
-	r.Read(countAddBytes)
-	w.Write(countAddBytes)
-	countAdd := binary.BigEndian.Uint16(countAddBytes)
+	countAdd := ReadUint16(r)
+	WriteUint16(w, countAdd)
 
 	var aoAdd []uint16
 	for i := uint16(0); i < countAdd; i++ {
-		idBytes := make([]byte, 2)
-		r.Read(idBytes)
-		id := binary.BigEndian.Uint16(idBytes)
-
-		typeByte, _ := r.ReadByte()
-
-		initDataLenBytes := make([]byte, 4)
-		r.Read(initDataLenBytes)
-		initDataLen := binary.BigEndian.Uint32(initDataLenBytes)
-
-		initData := make([]byte, initDataLen)
-		r.Read(initData)
+		id := ReadUint16(r)
+		objType := ReadUint8(r)
+		initData := ReadBytes32(r)
 
 		dr := bytes.NewReader(initData)
-
 		dr.Seek(1, io.SeekStart)
 
-		namelenBytes := make([]byte, 2)
-		dr.Read(namelenBytes)
-		namelen := binary.BigEndian.Uint16(namelenBytes)
+		name := string(ReadBytes16(dr))
 
-		name := make([]byte, namelen)
-		dr.Read(name)
-
-		if string(name) == c.Username() {
+		if name == c.Username() {
 			if c.initAoReceived {
 				// Read the messages from the packet
 				// They need to be forwarded
@@ -131,15 +111,13 @@ func processAoRmAdd(c *Conn, r *bytes.Reader) []byte {
 			id = c.currentPlayerCao
 		}
 
-		if string(name) != c.Username() {
+		if name != c.Username() {
 			aoAdd = append(aoAdd, id)
 		}
 
-		binary.BigEndian.PutUint16(idBytes, id)
-		w.Write(idBytes)
-		w.WriteByte(typeByte)
-		w.Write(initDataLenBytes)
-		w.Write(initData)
+		WriteUint16(w, id)
+		WriteUint8(w, objType)
+		WriteBytes32(w, initData)
 	}
 
 	c.redirectMu.Lock()
