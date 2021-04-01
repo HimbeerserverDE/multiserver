@@ -57,13 +57,13 @@ func addPrivItem(db *sql.DB, name string) error {
 		?,
 		""
 	);`, name)
-	return nil
+	return err
 }
 
 // modPrivItem updates a priv DB entry
 func modPrivItem(db *sql.DB, name, privs string) error {
 	_, err := db.Exec(`UPDATE privileges SET privileges = ? WHERE name = ?;`, name)
-	return nil
+	return err
 }
 
 // readPrivItem selects and reads a priv DB entry

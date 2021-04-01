@@ -57,6 +57,6 @@ func StorageKey(key string) (string, error) {
 	defer db.Close()
 
 	var r string
-	err := db.QueryRow(`SELECT value FROM storage WHERE key = ?;`, key).Scan(&r)
+	err = db.QueryRow(`SELECT value FROM storage WHERE key = ?;`, key).Scan(&r)
 	return r, err
 }
