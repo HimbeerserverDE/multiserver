@@ -70,6 +70,6 @@ func ReadBytes16(r io.Reader) []byte {
 }
 
 func WriteBytes16(w io.Writer, v []byte) {
-	WriteUint16(w, len(v))
+	WriteUint16(w, uint16(len(v)))
 	w.Write(v)
 }
