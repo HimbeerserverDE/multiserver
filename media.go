@@ -245,7 +245,12 @@ func (c *Conn) sendMedia(r *bytes.Reader) {
 		WriteBytes16(w, []byte(rq[f]))
 		WriteBytes32(w, media[rq[f]].data)
 	}
-	WriteBytes16(w, []byte{}) // remote media server url
+
+	remote, ok := ConfKey("remote_media_server").(string)
+	if !ok {
+		remote = ""
+	}
+	WriteBytes16(w, []byte(remote))
 
 	ack, err := c.Send(rudp.Pkt{
 		Reader: w,

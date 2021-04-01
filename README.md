@@ -140,6 +140,12 @@ Type: Boolean
 Description: Whether to force clients to use the latest protocol version,
 default is false
 ```
+> `remote_media_server`
+```
+Type: String
+Description: The address of a remote media server, no OOB sending
+of media if unset
+```
 > `serverlist_url`
 ```
 Type: String
