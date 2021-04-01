@@ -263,11 +263,7 @@ func mergeItemdefs(mgrs map[string][]byte) error {
 
 			itemName := string(ReadBytes16(dr))
 
-			desclen := ReadUint16(dr)
-			invImgLen := ReadUint16(dr)
-			wieldImgLen := ReadUint16(dr)
-
-			dr.Seek(16, io.SeekCurrent)
+			dr.Seek(22, io.SeekCurrent)
 
 			capablen := ReadUint16(dr)
 
