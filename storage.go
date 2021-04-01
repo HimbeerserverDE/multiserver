@@ -14,88 +14,16 @@ func initStorageDB() (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	if db == nil {
-		panic("DB is nil")
-	}
 
-	sql_table := `CREATE TABLE IF NOT EXISTS storage (
+	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS storage (
 		key VARCHAR(512) NOT NULL,
 		value VARCHAR(512) NOT NULL
-	);
-	`
-
-	_, err = db.Exec(sql_table)
-	if err != nil {
+	);`); err != nil {
+		db.Close()
 		return nil, err
 	}
 
 	return db, nil
-}
-
-func modOrAddStorageItem(db *sql.DB, key, value string) error {
-	deleteStorageItem(db, key)
-
-	sql_addStorageItem := `INSERT INTO storage (
-		key,
-		value
-	) VALUES (
-		?,
-		?
-	);
-	`
-
-	stmt, err := db.Prepare(sql_addStorageItem)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(key, value)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func readStorageItem(db *sql.DB, key string) (string, error) {
-	sql_readStorageItem := `SELECT value FROM storage WHERE key = ?;`
-
-	stmt, err := db.Prepare(sql_readStorageItem)
-	if err != nil {
-		return "", err
-	}
-	defer stmt.Close()
-
-	rows, err := stmt.Query(key)
-	if err != nil {
-		return "", err
-	}
-
-	var r string
-
-	for rows.Next() {
-		err = rows.Scan(&r)
-	}
-
-	return r, err
-}
-
-func deleteStorageItem(db *sql.DB, key string) error {
-	sql_deleteStorageItem := `DELETE FROM storage WHERE key = ?;`
-
-	stmt, err := db.Prepare(sql_deleteStorageItem)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(key)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // SetStorageKey sets an entry in the storage database
@@ -107,10 +35,17 @@ func SetStorageKey(key, value string) error {
 	defer db.Close()
 
 	if value == "" {
-		return deleteStorageItem(db, key)
+		_, err = db.Exec(`DELETE FROM storage WHERE key = ?;`)
+	} else {
+		_, err = db.Exec(`REPLACE INTO storage (
+			key,
+			value
+		) VALUES (
+			?,
+			?
+		);`, key, value)
 	}
-
-	return modOrAddStorageItem(db, key, value)
+	return err
 }
 
 // StorageKey returns an entry from the storage database
@@ -121,5 +56,7 @@ func StorageKey(key string) (string, error) {
 	}
 	defer db.Close()
 
-	return readStorageItem(db, key)
+	var r string
+	err := db.QueryRow(`SELECT value FROM storage WHERE key = ?;`, key).Scan(&r)
+	return r, err
 }
