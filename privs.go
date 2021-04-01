@@ -50,68 +50,26 @@ func decodePrivs(s string) map[string]bool {
 
 // addPrivItem inserts a priv DB entry
 func addPrivItem(db *sql.DB, name string) error {
-	sql_addPrivItem := `INSERT INTO privileges (
+	_, err := db.Exec(`INSERT INTO privileges (
 		name,
 		privileges
 	) VALUES (
 		?,
 		""
-	);
-	`
-
-	stmt, err := db.Prepare(sql_addPrivItem)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(name)
-	if err != nil {
-		return err
-	}
-
+	);`, name)
 	return nil
 }
 
 // modPrivItem updates a priv DB entry
 func modPrivItem(db *sql.DB, name, privs string) error {
-	sql_modPrivItem := `UPDATE privileges SET privileges = ? WHERE name = ?;`
-
-	stmt, err := db.Prepare(sql_modPrivItem)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(privs, name)
-	if err != nil {
-		return err
-	}
-
+	_, err := db.Exec(`UPDATE privileges SET privileges = ? WHERE name = ?;`, name)
 	return nil
 }
 
 // readPrivItem selects and reads a priv DB entry
 func readPrivItem(db *sql.DB, name string) (string, error) {
-	sql_readPrivItem := `SELECT privileges FROM privileges WHERE name = ?;`
-
-	stmt, err := db.Prepare(sql_readPrivItem)
-	if err != nil {
-		return "", err
-	}
-	defer stmt.Close()
-
-	rows, err := stmt.Query(name)
-	if err != nil {
-		return "", err
-	}
-
 	var r string
-
-	for rows.Next() {
-		err = rows.Scan(&r)
-	}
-
+	err := db.QueryRow(`SELECT privileges FROM privileges WHERE name = ?;`, name).Scan(&r)
 	return r, err
 }
 

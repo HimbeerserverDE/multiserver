@@ -16,88 +16,38 @@ var ErrInvalidAddress = errors.New("invalid ip address format")
 
 // addBanItem inserts a ban DB entry
 func addBanItem(db *sql.DB, addr, name string) error {
-	sql_addBanItem := `INSERT INTO ban (
+	_, err := db.Exec(`INSERT INTO ban (
 		addr,
 		name
 	) VALUES (
 		?,
 		?
-	);
-	`
-
-	stmt, err := db.Prepare(sql_addBanItem)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(addr, name)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	);`, name)
+	return err
 }
 
 // readBanItem selects and reads a ban DB entry
 func readBanItem(db *sql.DB, addr string) (string, error) {
-	sql_readBanItem := `SELECT name FROM ban WHERE addr = ?;`
-
-	stmt, err := db.Prepare(sql_readBanItem)
-	if err != nil {
-		return "", err
-	}
-	defer stmt.Close()
-
-	rows, err := stmt.Query(addr)
-	if err != nil {
-		return "", err
-	}
-
 	var r string
-
-	for rows.Next() {
-		err = rows.Scan(&r)
-	}
-
+	err := db.QueryRow(`SELECT name FROM ban WHERE addr = ?;`, addr).Scan(&r)
 	return r, err
 }
 
 // deleteBanItem deletes a ban DB entry
 func deleteBanItem(db *sql.DB, name string) error {
-	sql_deleteBanItem := `DELETE FROM ban WHERE name = ? OR addr = ?;`
-
-	stmt, err := db.Prepare(sql_deleteBanItem)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(name, name)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, err := db.Exec(`DELETE FROM ban WHERE name = ? OR addr = ?;`, name)
+	return err
 }
 
 // BanList returns the list of banned players and IP addresses
 func BanList() (map[string]string, error) {
-	sql_readBanItems := `SELECT addr, name FROM ban;`
-
 	db, err := initAuthDB()
 	if err != nil {
 		return nil, err
 	}
 	defer db.Close()
 
-	stmt, err := db.Prepare(sql_readBanItems)
-	if err != nil {
-		return nil, err
-	}
-	defer stmt.Close()
-
-	rows, err := stmt.Query()
+	rows, err := db.Query(`SELECT addr, name FROM ban;`)
 	if err != nil {
 		return nil, err
 	}

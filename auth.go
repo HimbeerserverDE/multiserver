@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	AuthMechSRP      = 0x00000002
-	AuthMechFirstSRP = 0x00000004
+	_ = 1 << iota
+	AuthMechSRP
+	AuthMechFirstSRP
 )
 
 var passPhrase []byte
@@ -51,26 +52,22 @@ func initAuthDB() (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	if db == nil {
-		panic("DB is nil")
-	}
 
-	sql_table := `CREATE TABLE IF NOT EXISTS auth (
-		name VARCHAR(32) NOT NULL,
-		password VARCHAR(512) NOT NULL
-	);
-	CREATE TABLE IF NOT EXISTS privileges (
-		name VARCHAR(32) NOT NULL,
-		privileges VARCHAR(1024)
-	);
-	CREATE TABLE IF NOT EXISTS ban (
-		addr VARCHAR(39) NOT NULL,
-		name VARCHAR(32) NOT NULL
-	);
-	`
-
-	_, err = db.Exec(sql_table)
-	if err != nil {
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS auth (
+			name VARCHAR(32) NOT NULL,
+			password VARCHAR(512) NOT NULL
+		);
+		CREATE TABLE IF NOT EXISTS privileges (
+			name VARCHAR(32) NOT NULL,
+			privileges VARCHAR(1024)
+		);
+		CREATE TABLE IF NOT EXISTS ban (
+			addr VARCHAR(39) NOT NULL,
+			name VARCHAR(32) NOT NULL
+		);
+	`); err != nil {
+		db.Close()
 		return nil, err
 	}
 
@@ -79,68 +76,26 @@ func initAuthDB() (*sql.DB, error) {
 
 // addAuthItem inserts an auth DB entry
 func addAuthItem(db *sql.DB, name, password string) error {
-	sql_addAuthItem := `INSERT INTO auth (
+	_, err := db.Exec(`INSERT INTO auth (
 		name,
 		password
 	) VALUES (
 		?,
 		?
-	);
-	`
-
-	stmt, err := db.Prepare(sql_addAuthItem)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(name, password)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	);`, name, password)
+	return err
 }
 
 // modAuthItem updates an auth DB entry
 func modAuthItem(db *sql.DB, name, password string) error {
-	sql_modAuthItem := `UPDATE auth SET password = ? WHERE name = ?;`
-
-	stmt, err := db.Prepare(sql_modAuthItem)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(password, name)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, err := db.Exec(`UPDATE auth SET password = ? WHERE name = ?;`, password, name)
+	return err
 }
 
 // readAuthItem selects and reads an auth DB entry
 func readAuthItem(db *sql.DB, name string) (string, error) {
-	sql_readAuthItem := `SELECT password FROM auth WHERE name = ?;`
-
-	stmt, err := db.Prepare(sql_readAuthItem)
-	if err != nil {
-		return "", err
-	}
-	defer stmt.Close()
-
-	rows, err := stmt.Query(name)
-	if err != nil {
-		return "", err
-	}
-
 	var r string
-
-	for rows.Next() {
-		err = rows.Scan(&r)
-	}
-
+	err := db.QueryRow(`SELECT password FROM auth WHERE name = ?;`, name).Scan(&r)
 	return r, err
 }
 
