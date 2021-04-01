@@ -63,21 +63,14 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 
 			r := ByteReader(pkt)
 
-			cmdBytes := make([]byte, 2)
-			r.Read(cmdBytes)
-			switch cmd := binary.BigEndian.Uint16(cmdBytes); cmd {
+			switch cmd := ReadUint16(r); cmd {
 			case ToClientHello:
 				r.Seek(5, io.SeekStart)
-
-				protoVerBytes := make([]byte, 2)
-				r.Read(protoVerBytes)
-				c2.protoVer = binary.BigEndian.Uint16(protoVerBytes)
-
+				c2.protoVer = ReadUint16(r)
 				r.Seek(10, io.SeekStart)
+				authMech := ReadUint8(r)
 
-				authMechByte, _ := r.ReadByte()
-
-				if authMechByte&AuthMechSRP > 0 {
+				if authMech&AuthMechSRP > 0 {
 					// Compute and send SRP_BYTES_A
 					_, _, err := srp.NewClient([]byte(strings.ToLower(c.Username())), passPhrase)
 					if err != nil {
@@ -94,15 +87,12 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 					c.srp_A = A
 					c.srp_a = a
 
-					data := make([]byte, 5+len(c.srp_A))
-					data[0] = uint8(0x00)
-					data[1] = uint8(ToServerSrpBytesA)
-					binary.BigEndian.PutUint16(data[2:4], uint16(len(c.srp_A)))
-					copy(data[4:4+len(c.srp_A)], c.srp_A)
-					data[4+len(c.srp_A)] = uint8(1)
+					w := bytes.NewBuffer([]byte{0x00, ToServerSrpBytesA})
+					WriteBytes16(w, c.srp_A)
+					WriteUint8(w, 1)
 
 					ack, err := c2.Send(rudp.Pkt{
-						Reader: bytes.NewReader(data),
+						Reader: w,
 						PktInfo: rudp.PktInfo{
 							Channel: 1,
 						},
@@ -121,14 +111,10 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 						continue
 					}
 
-					data := make([]byte, 7+len(s)+len(v))
-					data[0] = uint8(0x00)
-					data[1] = uint8(ToServerFirstSrp)
-					binary.BigEndian.PutUint16(data[2:4], uint16(len(s)))
-					copy(data[4:4+len(s)], s)
-					binary.BigEndian.PutUint16(data[4+len(s):6+len(s)], uint16(len(v)))
-					copy(data[6+len(s):6+len(s)+len(v)], v)
-					data[6+len(s)+len(v)] = uint8(0)
+					w := bytes.NewBuffer([]byte{0x00, ToServerFirstSrp})
+					WriteBytes16(w, s)
+					WriteBytes16(w, v)
+					WriteUint8(w, 0)
 
 					ack, err := c2.Send(rudp.Pkt{
 						Reader: bytes.NewReader(data),
@@ -145,15 +131,8 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 				}
 			case ToClientSrpBytesSB:
 				// Compute and send SRP_BYTES_M
-				lenSBytes := make([]byte, 2)
-				r.Read(lenSBytes)
-				lenS := binary.BigEndian.Uint16(lenSBytes)
-
-				s := make([]byte, lenS)
-				r.Read(s)
-
+				s := ReadBytes16(r)
 				r.Seek(2, io.SeekCurrent)
-
 				B := make([]byte, r.Len())
 				r.Read(B)
 
@@ -167,11 +146,8 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 
 				M := srp.ClientProof([]byte(c.Username()), s, c.srp_A, B, c.srp_K)
 
-				data := make([]byte, 4+len(M))
-				data[0] = uint8(0x00)
-				data[1] = uint8(ToServerSrpBytesM)
-				binary.BigEndian.PutUint16(data[2:4], uint16(len(M)))
-				copy(data[4:], M)
+				w := bytes.NewBuffer([]byte{0x00, ToServerSrpBytesM})
+				WriteBytes16(w, M)
 
 				ack, err := c2.Send(rudp.Pkt{
 					Reader: bytes.NewReader(data),
@@ -245,10 +221,9 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 
 				v := []byte("5.4.0-dev-dd5a732fa")
 
-				data := make([]byte, 8+len(v))
-				copy(data[0:6], []byte{uint8(0), uint8(ToServerClientReady), uint8(5), uint8(4), uint8(0), uint8(0)})
-				binary.BigEndian.PutUint16(data[6:8], uint16(len(v)))
-				copy(data[8:], v)
+				w := bytes.NewBuffer([]byte{0x00, ToServerClientReady})
+				w.Write([]byte{5, 4, 0, 0})
+				WriteBytes16(w, v)
 
 				_, err := c2.Send(rudp.Pkt{
 					Reader: bytes.NewReader(data),
@@ -292,27 +267,16 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 
 			r := ByteReader(pkt)
 
-			cmdBytes := make([]byte, 2)
-			r.Read(cmdBytes)
-			switch cmd := binary.BigEndian.Uint16(cmdBytes); cmd {
+			switch cmd := ReadUint16(r); cmd {
 			case ToServerInit:
 				// Process data
 				r.Seek(11, io.SeekStart)
-
-				usernameBytes := make([]byte, r.Len())
-				r.Read(usernameBytes)
-				c2.username = string(usernameBytes)
-
+				c2.username = string(ReadBytes16(r))
 				r.Seek(5, io.SeekStart)
 
 				// Find protocol version
-				cliProtoMinBytes := make([]byte, 2)
-				r.Read(cliProtoMinBytes)
-				cliProtoMin := binary.BigEndian.Uint16(cliProtoMinBytes)
-
-				cliProtoMaxBytes := make([]byte, 2)
-				r.Read(cliProtoMaxBytes)
-				cliProtoMax := binary.BigEndian.Uint16(cliProtoMaxBytes)
+				cliProtoMin := ReadUint16(r)
+				cliProtoMax := ReadUint16(r)
 
 				var protov uint16
 				if cliProtoMax >= ProtoMin || cliProtoMin <= ProtoLatest {
@@ -361,18 +325,13 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 					log.Print("Banned user " + bname + " at " + c2.Addr().String() + " tried to connect")
 
 					reason := []byte("Your IP address is banned. Banned name is " + bname)
-					l := len(reason)
 
-					data := make([]byte, 7+l)
-					data[0] = uint8(0x00)
-					data[1] = uint8(ToClientAccessDenied)
-					data[2] = uint8(AccessDeniedCustomString)
-					binary.BigEndian.PutUint16(data[3:5], uint16(l))
-					copy(data[5:5+l], reason)
-					data[5+l] = uint8(0x00)
-					data[6+l] = uint8(0x00)
+					w := bytes.NewBuffer([]byte{0x00, ToClientAccessDenied})
+					WriteUint8(w, AccessDeniedCustomString)
+					WriteBytes16(w, reason)
+					WriteUint8(w, 0)
 
-					ack, err := c2.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
+					ack, err := c2.Send(rudp.Pkt{Reader: w})
 					if err != nil {
 						log.Print(err)
 					}
@@ -479,25 +438,14 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 				}
 
 				// This is a new player, save verifier and salt
-				lenSBytes := make([]byte, 2)
-				r.Read(lenSBytes)
-				lenS := binary.BigEndian.Uint16(lenSBytes)
+				s := ReadBytes16(r)
+				v := ReadBytes16(r)
 
-				s := make([]byte, lenS)
-				r.Read(s)
-
-				lenVBytes := make([]byte, 2)
-				r.Read(lenVBytes)
-				lenV := binary.BigEndian.Uint16(lenVBytes)
-
-				v := make([]byte, lenV)
-				r.Read(v)
-
-				emptyByte, _ := r.ReadByte()
+				empty := ReadUint8(r)
 
 				// Also make sure to check for an empty password
 				disallow, ok := ConfKey("disallow_empty_passwords").(bool)
-				if ok && disallow && emptyByte > 0 {
+				if ok && disallow && empty > 0 {
 					log.Print(c2.Addr().String() + " used an empty password but disallow_empty_passwords is true")
 
 					// Send ACCESS_DENIED
@@ -586,12 +534,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 					return
 				}
 
-				lenABytes := make([]byte, 2)
-				r.Read(lenABytes)
-				lenA := binary.BigEndian.Uint16(lenABytes)
-
-				A := make([]byte, lenA)
-				r.Read(A)
+				A := ReadBytes16(r)
 
 				db, err := initAuthDB()
 				if err != nil {
@@ -633,7 +576,11 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 				binary.BigEndian.PutUint16(data[4+len(s):6+len(s)], uint16(len(B)))
 				copy(data[6+len(s):6+len(s)+len(B)], B)
 
-				ack, err := c2.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
+				w := bytes.NewBuffer([]byte{0x00, ToClientSrpBytesSB})
+				WriteBytes16(w, s)
+				WriteBytes16(w, B)
+
+				ack, err := c2.Send(rudp.Pkt{Reader: w})
 				if err != nil {
 					log.Print(err)
 					continue
@@ -663,13 +610,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 					return
 				}
 
-				lenMBytes := make([]byte, 2)
-				r.Read(lenMBytes)
-				lenM := binary.BigEndian.Uint16(lenMBytes)
-
-				M := make([]byte, lenM)
-				r.Read(M)
-
+				M := ReadBytes16(r)
 				M2 := srp.ClientProof([]byte(c2.Username()), c2.srp_s, c2.srp_A, c2.srp_B, c2.srp_K)
 
 				if subtle.ConstantTimeCompare(M, M2) == 1 {
