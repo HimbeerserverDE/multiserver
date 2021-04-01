@@ -64,29 +64,11 @@ func (c *Conn) leaveRpc() {
 }
 
 func processRpc(c *Conn, r *bytes.Reader) bool {
-	chlenBytes := make([]byte, 2)
-	r.Read(chlenBytes)
-	chlen := binary.BigEndian.Uint16(chlenBytes)
+	ch := string(ReadBytes16(r))
 
-	chBytes := make([]byte, chlen)
-	r.Read(chBytes)
-	ch := string(chBytes)
+	sender := string(ReadBytes16(r))
 
-	senderlenBytes := make([]byte, 2)
-	r.Read(senderlenBytes)
-	senderlen := binary.BigEndian.Uint16(senderlenBytes)
-
-	senderBytes := make([]byte, senderlen)
-	r.Read(senderBytes)
-	sender := string(senderBytes)
-
-	msglenBytes := make([]byte, 2)
-	r.Read(msglenBytes)
-	msglen := binary.BigEndian.Uint16(msglenBytes)
-
-	msgBytes := make([]byte, msglen)
-	r.Read(msgBytes)
-	msg := string(msgBytes)
+	msg := string(ReadBytes16(r))
 
 	if ch != rpcCh || sender != "" {
 		return false
@@ -241,15 +223,12 @@ func (c *Conn) doRpc(rpc, rq string) {
 
 	msg := rq + " " + rpc
 
-	data := make([]byte, 6+len(rpcCh)+len(msg))
-	data[0] = uint8(0x00)
-	data[1] = uint8(ToServerModChannelMsg)
-	binary.BigEndian.PutUint16(data[2:4], uint16(len(rpcCh)))
-	copy(data[4:4+len(rpcCh)], []byte(rpcCh))
-	binary.BigEndian.PutUint16(data[4+len(rpcCh):6+len(rpcCh)], uint16(len(msg)))
-	copy(data[6+len(rpcCh):6+len(rpcCh)+len(msg)], []byte(msg))
+	w := bytes.NewBuffer([]byte{0x00, ToServerModChannelMsg})
 
-	_, err := c.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
+	WriteBytes16(w, []byte(rpcCh))
+	WriteBytes16(w, []byte(msg))
+
+	_, err := c.Send(rudp.Pkt{Reader: w})
 	if err != nil {
 		return
 	}
@@ -316,26 +295,17 @@ func handleRpc(srv *Conn) {
 
 		r := ByteReader(pkt)
 
-		cmdBytes := make([]byte, 2)
-		r.Read(cmdBytes)
-		switch cmd := binary.BigEndian.Uint16(cmdBytes); cmd {
+		switch cmd := ReadUint16(r); cmd {
 		case ToClientModChannelSignal:
 			r.Seek(1, io.SeekCurrent)
 
-			chlenBytes := make([]byte, 2)
-			r.Read(chlenBytes)
-			chlen := binary.BigEndian.Uint16(chlenBytes)
-
-			chBytes := make([]byte, chlen)
-			r.Read(chBytes)
-			ch := string(chBytes)
-
-			state, _ := r.ReadByte()
+			ch := string(ReadBytes16(r))
+			state := ReadUint8(r)
 
 			if ch == rpcCh {
 				r.Seek(2, io.SeekStart)
 
-				switch sig, _ := r.ReadByte(); sig {
+				switch sig := ReadUint8(r); sig {
 				case ModChSigJoinOk:
 					srv.SetUseRpc(true)
 				case ModChSigSetState:
