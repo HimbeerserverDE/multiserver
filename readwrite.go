@@ -73,3 +73,15 @@ func WriteBytes16(w io.Writer, v []byte) {
 	WriteUint16(w, uint16(len(v)))
 	w.Write(v)
 }
+
+func ReadBytes32(r io.Reader) []byte {
+	l := ReadUint32(r)
+	b := make([]byte, l)
+	r.Read(b)
+	return b
+}
+
+func WriteBytes32(w io.Writer, v []byte) {
+	WriteUint32(w, uint32(len(v)))
+	w.Write(v)
+}
