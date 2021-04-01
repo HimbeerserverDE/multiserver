@@ -65,9 +65,7 @@ func (c *Conn) leaveRpc() {
 
 func processRpc(c *Conn, r *bytes.Reader) bool {
 	ch := string(ReadBytes16(r))
-
 	sender := string(ReadBytes16(r))
-
 	msg := string(ReadBytes16(r))
 
 	if ch != rpcCh || sender != "" {
@@ -224,7 +222,6 @@ func (c *Conn) doRpc(rpc, rq string) {
 	msg := rq + " " + rpc
 
 	w := bytes.NewBuffer([]byte{0x00, ToServerModChannelMsg})
-
 	WriteBytes16(w, []byte(rpcCh))
 	WriteBytes16(w, []byte(msg))
 

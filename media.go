@@ -109,7 +109,6 @@ func (c *Conn) fetchMedia() {
 			}
 
 			w := bytes.NewBuffer([]byte{0x00, ToServerRequestMedia})
-
 			WriteUint16(w, uint16(len(rq)))
 			for f := range rq {
 				WriteBytes16(w, []byte(rq[f]))
@@ -219,7 +218,6 @@ func (c *Conn) announceMedia() {
 	<-ack
 
 	w := bytes.NewBuffer([]byte{0x00, ToClientAnnounceMedia})
-
 	WriteUint16(w, uint16(len(media)))
 	for f := range media {
 		WriteBytes16(w, []byte(f))
@@ -250,7 +248,6 @@ func (c *Conn) sendMedia(r *bytes.Reader) {
 	}
 
 	w := bytes.NewBuffer([]byte{0x00, ToClientMedia, 0x00, 0x01, 0x00, 0x00})
-
 	WriteUint32(w, uint32(len(rq)))
 	for f := range rq {
 		WriteBytes16(w, []byte(rq[f]))

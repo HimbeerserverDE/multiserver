@@ -135,7 +135,6 @@ func (c *Conn) Redirect(newsrv string) error {
 		compNodes := compBuf.Bytes()
 
 		w := bytes.NewBuffer([]byte{0x00, ToClientBlockdata})
-
 		WriteUint16(w, uint16(x))
 		WriteUint16(w, uint16(y))
 		WriteUint16(w, uint16(z))
@@ -325,7 +324,6 @@ func (c *Conn) Redirect(newsrv string) error {
 
 	// Reset cloud params
 	w := bytes.NewBuffer([]byte{0x00, ToClientCloudParams})
-
 	WriteUint32(w, math.Float32bits(0))
 	w.Write([]byte{0, 0, 0, 0, 0, 0, 0, 0})
 	WriteUint32(w, math.Float32bits(0))

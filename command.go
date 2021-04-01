@@ -133,26 +133,14 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 		case ToClientChatMessage:
 			r.Seek(2, io.SeekCurrent)
 
-			namelenBytes := make([]byte, 2)
-			r.Read(namelenBytes)
-			namelen := binary.BigEndian.Uint16(namelenBytes)
+			ReadBytes16(r)
+			msg := ReadBytes16(r)
 
-			r.Seek(int64(namelen), io.SeekCurrent)
-			msglenBytes := make([]byte, 2)
-			r.Read(msglenBytes)
-			msglen := binary.BigEndian.Uint16(msglenBytes)
-
-			msg := make([]byte, r.Len())
-			r.Read(msg)
-
-			data := make([]byte, 4+msglen*2)
-			data[0] = uint8(0x00)
-			data[1] = uint8(ToServerChatMessage)
-			binary.BigEndian.PutUint16(data[2:4], uint16(msglen))
-			copy(data[4:], msg)
+			w := bytes.NewBuffer([]byte{0x00, ToServerChatMessage})
+			WriteBytes16(w, msg)
 
 			return processServerChatMessage(dst, rudp.Pkt{
-				Reader: bytes.NewReader(data),
+				Reader: w,
 				PktInfo: rudp.PktInfo{
 					Channel: pkt.Channel,
 				},
@@ -160,20 +148,14 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 		case ToClientModChannelSignal:
 			r.Seek(1, io.SeekCurrent)
 
-			chlenBytes := make([]byte, 2)
-			r.Read(chlenBytes)
-			chlen := binary.BigEndian.Uint16(chlenBytes)
+			ch := string(ReadBytes16(r))
 
-			chBytes := make([]byte, chlen)
-			r.Read(chBytes)
-
-			state, _ := r.ReadByte()
+			state := ReadUint8(r)
 
 			r.Seek(2, io.SeekStart)
 
-			ch := string(chBytes)
 			if ch == rpcCh {
-				switch sig, _ := r.ReadByte(); sig {
+				switch sig := ReadUint8(r); sig {
 				case ModChSigJoinOk:
 					src.SetUseRpc(true)
 				case ModChSigSetState:
@@ -199,33 +181,18 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 			pkt.Reader = bytes.NewReader(append(cmdBytes, processAddnode(dst, r)...))
 			return false
 		case ToClientHudAdd:
-			idBytes := make([]byte, 4)
-			r.Read(idBytes)
-
-			id := binary.BigEndian.Uint32(idBytes)
+			id := ReadUint32(r)
 			dst.huds[id] = true
 			return false
 		case ToClientHudRm:
-			idBytes := make([]byte, 4)
-			r.Read(idBytes)
-
-			id := binary.BigEndian.Uint32(idBytes)
+			id := ReadUint32(r)
 			dst.huds[id] = false
 			return false
 		case ToClientPlaySound:
-			idBytes := make([]byte, 4)
-			r.Read(idBytes)
-			id := int32(binary.BigEndian.Uint32(idBytes))
-
-			namelenBytes := make([]byte, 2)
-			r.Read(namelenBytes)
-			namelen := binary.BigEndian.Uint16(namelenBytes)
-
+			id := int32(ReadUint32(r))
+			namelen := ReadUint16(r)
 			r.Seek(int64(17+namelen), io.SeekStart)
-
-			objIDBytes := make([]byte, 2)
-			r.Read(objIDBytes)
-			objID := binary.BigEndian.Uint16(objIDBytes)
+			objID := ReadUint16(r)
 
 			if objID == dst.currentPlayerCao {
 				objID = dst.localPlayerCao
@@ -242,27 +209,17 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 
 			pkt.Reader = bytes.NewReader(append(cmdBytes, data...))
 
-			if loop, _ := r.ReadByte(); loop > 0 {
+			if loop := ReadUint8(r); loop > 0 {
 				dst.sounds[id] = true
 			}
 		case ToClientStopSound:
-			idBytes := make([]byte, 4)
-			r.Read(idBytes)
-			id := int32(binary.BigEndian.Uint32(idBytes))
-
+			id := int32(ReadUint32(r))
 			dst.sounds[id] = false
 		case ToClientAddParticlespawner:
 			r.Seek(97, io.SeekStart)
-
-			texturelenBytes := make([]byte, 4)
-			r.Read(texturelenBytes)
-			texturelen := binary.BigEndian.Uint32(texturelenBytes)
-
+			texturelen := ReadUint32(r)
 			r.Seek(int64(6+texturelen), io.SeekCurrent)
-
-			idBytes := make([]byte, 2)
-			r.Read(idBytes)
-			id := binary.BigEndian.Uint16(idBytes)
+			id := ReadUint16(r)
 
 			if id == dst.currentPlayerCao {
 				id = dst.localPlayerCao
@@ -296,14 +253,14 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 				return false
 			}
 
-			reason, _ := r.ReadByte()
+			reason := ReadUint8(r)
 
-			if reason != uint8(11) && reason != uint8(12) {
+			if reason != uint8(AccessDeniedShutdown) && reason != uint8(AccessDeniedCrash) {
 				return false
 			}
 
 			msg := "shut down"
-			if reason == uint8(12) {
+			if reason == uint8(AccessDeniedCrash) {
 				msg = "crashed"
 			}
 
@@ -326,22 +283,9 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 
 			return true
 		case ToClientMediaPush:
-			digLenBytes := make([]byte, 2)
-			r.Read(digLenBytes)
-			digLen := binary.BigEndian.Uint16(digLenBytes)
-
-			digest := make([]byte, digLen)
-			r.Read(digest)
-
-			namelenBytes := make([]byte, 2)
-			r.Read(namelenBytes)
-			namelen := binary.BigEndian.Uint16(namelenBytes)
-
-			name := make([]byte, namelen)
-			r.Read(name)
-
-			cacheByte, _ := r.ReadByte()
-
+			digest := ReadBytes16(r)
+			name := string(ReadBytes16(r))
+			cacheByte := ReadUint8(r)
 			cache := cacheByte == uint8(1)
 
 			r.Seek(5, io.SeekCurrent)
@@ -377,19 +321,8 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 				src.sudoMode = false
 
 				// This is a password change, save verifier and salt
-				lenSBytes := make([]byte, 2)
-				r.Read(lenSBytes)
-				lenS := binary.BigEndian.Uint16(lenSBytes)
-
-				s := make([]byte, lenS)
-				r.Read(s)
-
-				lenVBytes := make([]byte, 2)
-				r.Read(lenVBytes)
-				lenV := binary.BigEndian.Uint16(lenVBytes)
-
-				v := make([]byte, lenV)
-				r.Read(v)
+				s := ReadBytes16(r)
+				v := ReadBytes16(r)
 
 				pwd := encodeVerifierAndSalt(s, v)
 
@@ -413,12 +346,7 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 			return true
 		case ToServerSrpBytesA:
 			if !src.sudoMode {
-				lenABytes := make([]byte, 2)
-				r.Read(lenABytes)
-				lenA := binary.BigEndian.Uint16(lenABytes)
-
-				A := make([]byte, lenA)
-				r.Read(A)
+				A := ReadBytes16(r)
 
 				db, err := initAuthDB()
 				if err != nil {
@@ -460,6 +388,10 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 				binary.BigEndian.PutUint16(data[4+len(s):6+len(s)], uint16(len(B)))
 				copy(data[6+len(s):6+len(s)+len(B)], B)
 
+				w := bytes.NewBuffer([]byte{0x00, ToClientSrpBytesSB})
+				WriteBytes16(w, s)
+				WriteBytes16(w, B)
+
 				ack, err := src.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
 				if err != nil {
 					log.Print(err)
@@ -470,13 +402,7 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 			return true
 		case ToServerSrpBytesM:
 			if !src.sudoMode {
-				lenMBytes := make([]byte, 2)
-				r.Read(lenMBytes)
-				lenM := binary.BigEndian.Uint16(lenMBytes)
-
-				M := make([]byte, lenM)
-				r.Read(M)
-
+				M := ReadBytes16(r)
 				M2 := srp.ClientProof([]byte(src.Username()), src.srp_s, src.srp_A, src.srp_B, src.srp_K)
 
 				if subtle.ConstantTimeCompare(M, M2) == 1 {
@@ -531,11 +457,7 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 				return true
 			}
 
-			r.Seek(2, io.SeekCurrent)
-
-			chBytes := make([]byte, r.Len())
-			r.Read(chBytes)
-			ch := string(chBytes)
+			ch := string(ReadBytes16(r))
 			if ch == rpcCh {
 				deny()
 				return true
@@ -565,11 +487,7 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 				return true
 			}
 
-			r.Seek(2, io.SeekCurrent)
-
-			chBytes := make([]byte, r.Len())
-			r.Read(chBytes)
-			ch := string(chBytes)
+			ch := string(ReadBytes16(r))
 			if ch == rpcCh {
 				deny()
 				return true
@@ -583,13 +501,7 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 				return true
 			}
 
-			chlenBytes := make([]byte, 2)
-			r.Read(chlenBytes)
-			chlen := binary.BigEndian.Uint16(chlenBytes)
-
-			chBytes := make([]byte, chlen)
-			r.Read(chBytes)
-			ch := string(chBytes)
+			ch := string(ReadBytes16(r))
 			if ch == rpcCh {
 				return true
 			}

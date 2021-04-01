@@ -78,7 +78,6 @@ func processChatMessage(c *Conn, pkt rudp.Pkt) bool {
 			wstr := wider([]byte(str))
 
 			w := bytes.NewBuffer([]byte{0x00, ToClientChatMessage})
-
 			WriteUint8(w, 1)
 			WriteUint8(w, 0)
 			WriteBytes16(w, []byte{})
@@ -102,7 +101,6 @@ func processChatMessage(c *Conn, pkt rudp.Pkt) bool {
 			wstr := wider([]byte(str))
 
 			w := bytes.NewBuffer([]byte{0x00, ToClientChatMessage})
-
 			WriteUint8(w, 1)
 			WriteUint8(w, 0)
 			WriteBytes16(w, []byte{})
@@ -161,7 +159,6 @@ func (c *Conn) SendChatMsg(msg string) {
 	wstr := wider([]byte(msg))
 
 	w := bytes.NewBuffer([]byte{0x00, ToClientChatMessage})
-
 	WriteUint8(w, 1)
 	WriteUint8(w, 0)
 	WriteBytes16(w, []byte{})
