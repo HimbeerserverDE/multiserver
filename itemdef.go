@@ -200,11 +200,15 @@ func (t *ToolCapabs) DeserializeJSON(ser string) error {
 }
 
 func rmToolCapabs(def []byte) []byte {
-	itemNameLen := binary.BigEndian.Uint16(def[2:4])
-	desclen := binary.BigEndian.Uint16(def[4+itemNameLen : 6+itemNameLen])
-	invImgLen := binary.BigEndian.Uint16(def[6+itemNameLen+desclen : 8+itemNameLen+desclen])
-	wieldImgLen := binary.BigEndian.Uint16(def[8+itemNameLen+desclen+invImgLen : 10+itemNameLen+desclen+invImgLen])
-	capablen := binary.BigEndian.Uint16(def[26+itemNameLen+desclen+invImgLen+wieldImgLen : 28+itemNameLen+desclen+invImgLen+wieldImgLen])
+	r := bytes.NewReader(def)
+	r.Seek(2, io.SeekStart)
+
+	itemNameLen := len(ReadBytes16(r))
+	desclen := len(ReadBytes16(r))
+	invImgLen := len(ReadBytes16(r))
+	wieldImgLen := len(ReadBytes16(r))
+	r.Seek(16, io.SeekCurrent)
+	capablen := len(ReadBytes16(r))
 
 	stdcaps := []byte{
 		5,
@@ -217,7 +221,7 @@ func rmToolCapabs(def []byte) []byte {
 
 	si := 28 + itemNameLen + desclen + invImgLen + wieldImgLen
 
-	binary.BigEndian.PutUint16(def[26+itemNameLen+desclen+invImgLen+wieldImgLen:28+itemNameLen+desclen+invImgLen+wieldImgLen], uint16(len(stdcaps)))
+	binary.BigEndian.PutUint16(def[si-2:si], uint16(len(stdcaps)))
 	return append(def[:si], append(stdcaps, def[si+capablen:]...)...)
 }
 
@@ -257,11 +261,7 @@ func mergeItemdefs(mgrs map[string][]byte) error {
 			dr := bytes.NewReader(def)
 			dr.Seek(2, io.SeekStart)
 
-			itemNameLen := ReadUint16(dr)
-
-			itemNameBytes := make([]byte, itemNameLen)
-			dr.Read(itemNameBytes)
-			itemName := string(itemNameBytes)
+			itemName := string(ReadBytes16(dr))
 
 			desclen := ReadUint16(dr)
 			invImgLen := ReadUint16(dr)
@@ -284,66 +284,56 @@ func mergeItemdefs(mgrs map[string][]byte) error {
 				tcaps := newToolCapabs(fpi, mdl)
 
 				grpCapsLen := ReadUint32(cr)
-
 				for j := uint32(0); j < grpCapsLen; j++ {
-					capNameLen := ReadUint16(cr)
-
-					capName := string(capab[2+sj : 2+sj+uint32(capNameLen)])
-					uses := int16(binary.BigEndian.Uint16(capab[2+sj+uint32(capNameLen) : 4+sj+uint32(capNameLen)]))
-					maxlevel := int16(binary.BigEndian.Uint16(capab[4+sj+uint32(capNameLen) : 6+sj+uint32(capNameLen)]))
+					capName := string(ReadBytes16(cr))
+					uses := int16(ReadUint16(cr))
+					maxlevel := int16(ReadUint16(cr))
 
 					gcap := newGroupCap(capName, uses, maxlevel)
 
-					times := binary.BigEndian.Uint32(capab[6+sj+uint32(capNameLen) : 10+sj+uint32(capNameLen)])
-					sk := uint32(10 + sj + uint32(capNameLen))
+					times := ReadUint32(cr)
 					for k := uint32(0); k < times; k++ {
-						level := int16(binary.BigEndian.Uint16(capab[sk : 2+sk]))
-						times_v := math.Float32frombits(binary.BigEndian.Uint32(capab[2+sk : 6+sk]))
+						level := int16(ReadUint16(cr))
+						times_v := math.Float32frombits(ReadUint32(cr))
 
 						gcap.SetTimes(level, times_v)
-
-						sk += 6
 					}
 
 					tcaps.AddGroupCap(gcap)
 				}
 
-				dmgGrpCapsLen := binary.BigEndian.Uint32(capab[sj : 4+sj])
-				sj += 4
+				dmgGrpCapsLen := ReadUint32(cr)
+				cr.Seek(4, io.SeekCurrent)
+
 				for j := uint32(0); j < dmgGrpCapsLen; j++ {
-					dmgNameLen := binary.BigEndian.Uint16(capab[sj : 2+sj])
-					dmgName := string(capab[2+sj : 2+sj+uint32(dmgNameLen)])
-					rating := int16(binary.BigEndian.Uint16(capab[2+sj+uint32(dmgNameLen) : 4+sj+uint32(dmgNameLen)]))
+					dmgName := string(ReadBytes16(cr))
+					rating := int16(ReadUint16(cr))
 
 					tcaps.AddDamageGroup(dmgName, rating)
-
-					sj += 4 + uint32(dmgNameLen)
 				}
 
-				tcaps.SetPunchAttackUses(binary.BigEndian.Uint16(capab[sj : 2+sj]))
+				tcaps.SetPunchAttackUses(ReadUint16(cr))
 
 				if len(handDef) == 0 {
 					handDef = def
 				}
 				handcapabs[srv] = tcaps
 
-				def2 := make([]byte, len(def))
-				copy(def2, def)
-				binary.BigEndian.PutUint16(def2[2:4], uint16(len([]byte("multiserver:hand_"+srv))))
-				def2 = append(def2[:4], append([]byte("multiserver:hand_"+srv), def2[4+itemNameLen:]...)...)
+				def2 := &bytes.Buffer{}
+				def2.Write(def[:2])
+				WriteBytes16(def2, []byte("multiserver:hand_"+srv))
+				def2.Write(def[4+len(itemName):])
 
 				itemDefs = append(itemDefs, &ItemDef{
 					name: "multiserver:hand_" + srv,
-					data: def2,
+					data: def2.Bytes(),
 				})
 
-				si += 2 + uint32(deflen)
 				continue ItemLoop
 			}
 
 			for _, idef := range itemDefs {
 				if idef.Name() == itemName {
-					si += 2 + uint32(deflen)
 					continue ItemLoop
 				}
 			}
@@ -351,21 +341,17 @@ func mergeItemdefs(mgrs map[string][]byte) error {
 			itemDefs = append(itemDefs, &ItemDef{name: itemName, data: def})
 		}
 
-		aliasCount := binary.BigEndian.Uint16(mgr[si : 2+si])
+		aliasCount := ReadUint16(r)
+		r.Seek(2, io.SeekCurrent)
 
-		si += 2
 		for i := uint16(0); i < aliasCount; i++ {
-			namelen := binary.BigEndian.Uint16(mgr[si : 2+si])
-			name := string(mgr[2+si : 2+si+uint32(namelen)])
+			name := string(ReadBytes16(r))
 
-			convertlen := binary.BigEndian.Uint16(mgr[2+si+uint32(namelen) : 4+si+uint32(namelen)])
-			convert := string(mgr[4+si+uint32(namelen) : 4+si+uint32(namelen)+uint32(convertlen)])
+			convert := string(ReadBytes16(r))
 
 			if aliases[name] == "" {
 				aliases[name] = convert
 			}
-
-			si += 4 + uint32(namelen) + uint32(convertlen)
 		}
 	}
 
