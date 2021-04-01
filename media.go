@@ -43,9 +43,7 @@ func (c *Conn) fetchMedia() {
 
 		r := ByteReader(pkt)
 
-		cmdBytes := make([]byte, 2)
-		r.Read(cmdBytes)
-		switch cmd := binary.BigEndian.Uint16(cmdBytes); cmd {
+		switch cmd := ReadUint16(r); cmd {
 		case ToClientNodedef:
 			servers := ConfKey("servers").(map[interface{}]interface{})
 			var srvname string
@@ -91,28 +89,16 @@ func (c *Conn) fetchMedia() {
 		case ToClientAnnounceMedia:
 			var rq []string
 
-			countBytes := make([]byte, 2)
-			r.Read(countBytes)
-			count := binary.BigEndian.Uint16(countBytes)
+			count := ReadUint16(r)
 
 			for i := uint16(0); i < count; i++ {
-				namelenBytes := make([]byte, 2)
-				r.Read(namelenBytes)
-				namelen := binary.BigEndian.Uint16(namelenBytes)
+				name := string(ReadBytes16(r))
 
-				name := make([]byte, namelen)
-				r.Read(name)
+				digest := ReadBytes16(r)
 
-				diglenBytes := make([]byte, 2)
-				r.Read(diglenBytes)
-				diglen := binary.BigEndian.Uint16(diglenBytes)
-
-				digest := make([]byte, diglen)
-				r.Read(digest)
-
-				if media[string(name)] == nil && !isCached(string(name), digest) {
-					rq = append(rq, string(name))
-					media[string(name)] = &mediaFile{digest: digest}
+				if media[name] == nil && !isCached(name, digest) {
+					rq = append(rq, name)
+					media[name] = &mediaFile{digest: digest}
 				}
 			}
 
@@ -122,19 +108,15 @@ func (c *Conn) fetchMedia() {
 				pktlen += 2 + len(rq[f])
 			}
 
-			data := make([]byte, 4+pktlen)
-			data[0] = uint8(0x00)
-			data[1] = uint8(ToServerRequestMedia)
-			binary.BigEndian.PutUint16(data[2:4], uint16(len(rq)))
-			sj := 4
+			w := bytes.NewBuffer([]byte{0x00, ToServerRequestMedia})
+
+			WriteUint16(w, uint16(len(rq)))
 			for f := range rq {
-				binary.BigEndian.PutUint16(data[sj:2+sj], uint16(len(rq[f])))
-				copy(data[2+sj:2+sj+len(rq[f])], []byte(rq[f]))
-				sj += 2 + len(rq[f])
+				WriteBytes16(w, []byte(rq[f]))
 			}
 
 			_, err := c.Send(rudp.Pkt{
-				Reader: bytes.NewReader(data),
+				Reader: w,
 				PktInfo: rudp.PktInfo{
 					Channel: 1,
 				},
@@ -145,39 +127,20 @@ func (c *Conn) fetchMedia() {
 				continue
 			}
 		case ToClientMedia:
-			bunchcountBytes := make([]byte, 2)
-			r.Read(bunchcountBytes)
-			bunchcount := binary.BigEndian.Uint16(bunchcountBytes)
+			bunchCount := ReadUint16(r)
+			bunchID := ReadUint16(r)
+			fileCount := ReadUint32(r)
 
-			bunchBytes := make([]byte, 2)
-			r.Read(bunchBytes)
-			bunch := binary.BigEndian.Uint16(bunchBytes)
+			for i := uint32(0); i < fileCount; i++ {
+				name := string(ReadBytes16(r))
+				data := ReadBytes32(r)
 
-			filecountBytes := make([]byte, 4)
-			r.Read(filecountBytes)
-			filecount := binary.BigEndian.Uint32(filecountBytes)
-
-			for i := uint32(0); i < filecount; i++ {
-				namelenBytes := make([]byte, 2)
-				r.Read(namelenBytes)
-				namelen := binary.BigEndian.Uint16(namelenBytes)
-
-				name := make([]byte, namelen)
-				r.Read(name)
-
-				datalenBytes := make([]byte, 4)
-				r.Read(datalenBytes)
-				datalen := binary.BigEndian.Uint32(datalenBytes)
-
-				data := make([]byte, datalen)
-				r.Read(data)
-
-				if media[string(name)] != nil && len(media[string(name)].data) == 0 {
-					media[string(name)].data = data
+				if media[name] != nil && len(media[name].data) == 0 {
+					media[name].data = data
 				}
 			}
 
-			if bunch >= bunchcount-1 {
+			if bunchID >= bunchCount-1 {
 				c.Close()
 				return
 			}
@@ -187,12 +150,10 @@ func (c *Conn) fetchMedia() {
 
 func (c *Conn) updateDetachedInvs(srvname string) {
 	for i := range detachedinvs[srvname] {
-		data := make([]byte, 2+len(detachedinvs[srvname][i]))
-		data[0] = uint8(0x00)
-		data[1] = uint8(ToClientDetachedInventory)
-		copy(data[2:], detachedinvs[srvname][i])
+		w := bytes.NewBuffer([]byte{0x00, ToClientDetachedInventory})
+		w.Write(detachedinvs[srvname][i])
 
-		ack, err := c.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
+		ack, err := c.Send(rudp.Pkt{Reader: w})
 		if err != nil {
 			log.Print(err)
 			continue
@@ -252,27 +213,15 @@ func (c *Conn) announceMedia() {
 	}
 	<-ack
 
-	pktlen := 0
+	w := bytes.NewBuffer([]byte{0x00, ToClientAnnounceMedia})
+
+	WriteUint16(w, uint16(len(media)))
 	for f := range media {
-		pktlen += 4 + len(f) + len(media[f].digest)
+		WriteBytes16(w, []byte(f))
+		WriteBytes16(w, media[f].digest)
 	}
 
-	data = make([]byte, 6+pktlen)
-	data[0] = uint8(0x00)
-	data[1] = uint8(ToClientAnnounceMedia)
-	binary.BigEndian.PutUint16(data[2:4], uint16(len(media)))
-	si := 4
-	for f := range media {
-		binary.BigEndian.PutUint16(data[si:2+si], uint16(len(f)))
-		copy(data[2+si:2+si+len(f)], []byte(f))
-		binary.BigEndian.PutUint16(data[2+si+len(f):4+si+len(f)], uint16(len(media[f].digest)))
-		copy(data[4+si+len(f):4+si+len(f)+len(media[f].digest)], media[f].digest)
-		si += 4 + len(f) + len(media[f].digest)
-	}
-	data[si] = uint8(0x00)
-	data[1+si] = uint8(0x00)
-
-	ack, err = c.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
+	ack, err = c.Send(rudp.Pkt{Reader: w})
 	if err != nil {
 		log.Print(err)
 		return
@@ -280,43 +229,26 @@ func (c *Conn) announceMedia() {
 	<-ack
 }
 
-func (c *Conn) sendMedia(rqdata []byte) {
+func (c *Conn) sendMedia(r *bytes.Reader) {
+	count := ReadUint16(r)
+
 	var rq []string
-	count := binary.BigEndian.Uint16(rqdata[0:2])
-	si := uint16(2)
 	for i := uint16(0); i < count; i++ {
-		namelen := binary.BigEndian.Uint16(rqdata[si : 2+si])
-		name := rqdata[2+si : 2+si+namelen]
-		rq = append(rq, string(name))
-		si += 2 + namelen
+		name := string(ReadBytes16(r))
+		rq = append(rq, name)
 	}
 
-	pktlen := 0
-	for f := range rq {
-		pktlen += 6 + len(rq[f]) + len(media[rq[f]].data)
-	}
+	w := bytes.NewBuffer([]byte{0x00, ToClientMedia, 0x00, 0x01, 0x00, 0x00})
 
-	data := make([]byte, 12+pktlen)
-	data[0] = uint8(0x00)
-	data[1] = uint8(ToClientMedia)
-	data[2] = uint8(0x00)
-	data[3] = uint8(0x01)
-	data[4] = uint8(0x00)
-	data[5] = uint8(0x00)
-	binary.BigEndian.PutUint32(data[6:10], uint32(len(rq)))
-	sj := 10
+	WriteUint32(w, uint32(len(rq)))
 	for f := range rq {
-		binary.BigEndian.PutUint16(data[sj:2+sj], uint16(len(rq[f])))
-		copy(data[2+sj:2+sj+len(rq[f])], rq[f])
-		binary.BigEndian.PutUint32(data[2+sj+len(rq[f]):6+sj+len(rq[f])], uint32(len(media[rq[f]].data)))
-		copy(data[6+sj+len(rq[f]):6+sj+len(rq[f])+len(media[rq[f]].data)], media[rq[f]].data)
-		sj += 6 + len(rq[f]) + len(media[rq[f]].data)
+		WriteBytes16(w, []byte(rq[f]))
+		WriteBytes32(w, media[rq[f]].data)
 	}
-	data[sj] = uint8(0x00)
-	data[1+sj] = uint8(0x00)
+	WriteBytes16(w, []byte{}) // remote media server url
 
 	ack, err := c.Send(rudp.Pkt{
-		Reader: bytes.NewReader(data),
+		Reader: w,
 		PktInfo: rudp.PktInfo{
 			Channel: 2,
 		},

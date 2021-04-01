@@ -720,10 +720,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 			case ToServerInit2:
 				c2.announceMedia()
 			case ToServerRequestMedia:
-				data := make([]byte, r.Len())
-				r.Read(data)
-
-				c2.sendMedia(data)
+				c2.sendMedia(r)
 			case ToServerClientReady:
 				defaultSrv := ConfKey("default_server").(string)
 
