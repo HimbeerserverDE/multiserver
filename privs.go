@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"log"
 	"strings"
 
@@ -70,6 +71,10 @@ func modPrivItem(db *sql.DB, name, privs string) error {
 func readPrivItem(db *sql.DB, name string) (string, error) {
 	var r string
 	err := db.QueryRow(`SELECT privileges FROM privileges WHERE name = ?;`, name).Scan(&r)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return "", err
+	}
+
 	return r, err
 }
 

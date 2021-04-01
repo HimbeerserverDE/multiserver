@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"os"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -58,5 +59,9 @@ func StorageKey(key string) (string, error) {
 
 	var r string
 	err = db.QueryRow(`SELECT value FROM storage WHERE key = ?;`, key).Scan(&r)
-	return r, err
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return "", err
+	}
+
+	return r, nil
 }

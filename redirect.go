@@ -134,16 +134,15 @@ func (c *Conn) Redirect(newsrv string) error {
 
 		compNodes := compBuf.Bytes()
 
-		data = make([]byte, 8+len(blockdata)+len(compNodes))
-		data[0] = uint8(0x00)
-		data[1] = uint8(ToClientBlockdata)
-		binary.BigEndian.PutUint16(data[2:4], uint16(x))
-		binary.BigEndian.PutUint16(data[4:6], uint16(y))
-		binary.BigEndian.PutUint16(data[6:8], uint16(z))
-		copy(data[8:8+len(blockdata)], blockdata)
-		copy(data[8+len(blockdata):], compNodes)
+		w := bytes.NewBuffer([]byte{0x00, ToClientBlockdata})
 
-		_, err = c.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
+		WriteUint16(w, uint16(x))
+		WriteUint16(w, uint16(y))
+		WriteUint16(w, uint16(z))
+		w.Write(blockdata)
+		w.Write(compNodes)
+
+		_, err = c.Send(rudp.Pkt{Reader: w})
 		if err != nil {
 			return err
 		}
@@ -325,13 +324,14 @@ func (c *Conn) Redirect(newsrv string) error {
 	}
 
 	// Reset cloud params
-	data = make([]byte, 28)
-	binary.BigEndian.PutUint32(data, math.Float32bits(0))
-	data = append(data, []byte{0, 0, 0, 0, 0, 0, 0, 0}...)
-	binary.BigEndian.PutUint32(data, math.Float32bits(0))
-	binary.BigEndian.PutUint32(data, math.Float32bits(0))
-	binary.BigEndian.PutUint32(data, math.Float32bits(0))
-	binary.BigEndian.PutUint32(data, math.Float32bits(0))
+	w := bytes.NewBuffer([]byte{0x00, ToClientCloudParams})
+
+	WriteUint32(w, math.Float32bits(0))
+	w.Write([]byte{0, 0, 0, 0, 0, 0, 0, 0})
+	WriteUint32(w, math.Float32bits(0))
+	WriteUint32(w, math.Float32bits(0))
+	WriteUint32(w, math.Float32bits(0))
+	WriteUint32(w, math.Float32bits(0))
 
 	_, err = c.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
 	if err != nil {

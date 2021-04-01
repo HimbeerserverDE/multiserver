@@ -200,12 +200,17 @@ func (c *Conn) announceMedia() {
 		csmrf = 0
 	}
 
+	csmnr, ok := ConfKey("csm_restriction_noderange").(int)
+	if !ok {
+		csmnr = 8
+	}
+
 	data = make([]byte, 14)
 	data[0] = uint8(0x00)
 	data[1] = uint8(ToClientCsmRestrictionFlags)
 	binary.BigEndian.PutUint32(data[2:6], uint32(0))
 	binary.BigEndian.PutUint32(data[6:10], uint32(csmrf))
-	binary.BigEndian.PutUint32(data[10:], uint32(0))
+	binary.BigEndian.PutUint32(data[10:], uint32(csmnr))
 
 	ack, err = c.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
 	if err != nil {
@@ -220,6 +225,12 @@ func (c *Conn) announceMedia() {
 		WriteBytes16(w, []byte(f))
 		WriteBytes16(w, media[f].digest)
 	}
+
+	remote, ok := ConfKey("remote_media_server").(string)
+	if !ok {
+		remote = ""
+	}
+	WriteBytes16(w, []byte(remote))
 
 	ack, err = c.Send(rudp.Pkt{Reader: w})
 	if err != nil {
@@ -245,12 +256,6 @@ func (c *Conn) sendMedia(r *bytes.Reader) {
 		WriteBytes16(w, []byte(rq[f]))
 		WriteBytes32(w, media[rq[f]].data)
 	}
-
-	remote, ok := ConfKey("remote_media_server").(string)
-	if !ok {
-		remote = ""
-	}
-	WriteBytes16(w, []byte(remote))
 
 	ack, err := c.Send(rudp.Pkt{
 		Reader: w,

@@ -156,9 +156,10 @@ func mergeNodedefs(mgrs map[string][]byte) error {
 	for _, srvdefs := range nodeDefs {
 		for _, def := range srvdefs {
 			if len(def.Data()) > 0 {
-				defData := make([]byte, 2+len(def.Data()))
+				defData := make([]byte, 4+len(def.Data()))
 				binary.BigEndian.PutUint16(defData[0:2], def.ID())
-				copy(defData[2:], def.Data())
+				binary.BigEndian.PutUint16(defData[2:4], uint16(len(def.Data())))
+				copy(defData[4:], def.Data())
 				allDefs = append(allDefs, defData...)
 			}
 		}

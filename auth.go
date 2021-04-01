@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
+	"errors"
 	"log"
 	"os"
 	"strings"
@@ -96,7 +97,11 @@ func modAuthItem(db *sql.DB, name, password string) error {
 func readAuthItem(db *sql.DB, name string) (string, error) {
 	var r string
 	err := db.QueryRow(`SELECT password FROM auth WHERE name = ?;`, name).Scan(&r)
-	return r, err
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return "", err
+	}
+
+	return r, nil
 }
 
 func init() {

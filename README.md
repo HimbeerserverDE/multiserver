@@ -98,6 +98,11 @@ Description: The CSM restriction flags, default is none
 * 63: All restrictions
 To set multiple flags at the same time add the corresponding numbers
 ```
+> `csm_restriction_noderange`
+```
+Type: Integer
+Description: The CSM node range, default is 8
+```
 > `server_reintergration_interval`
 ```
 Type: Integer

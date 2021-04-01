@@ -30,7 +30,11 @@ func addBanItem(db *sql.DB, addr, name string) error {
 func readBanItem(db *sql.DB, addr string) (string, error) {
 	var r string
 	err := db.QueryRow(`SELECT name FROM ban WHERE addr = ?;`, addr).Scan(&r)
-	return r, err
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return "", err
+	}
+
+	return r, nil
 }
 
 // deleteBanItem deletes a ban DB entry
