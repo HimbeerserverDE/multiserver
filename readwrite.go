@@ -61,3 +61,15 @@ func WriteUint64(w io.Writer, v uint64) {
 	binary.BigEndian.PutUint64(b, v)
 	w.Write(b)
 }
+
+func ReadBytes16(r io.Reader) []byte {
+	l := ReadUint16(r)
+	b := make([]byte, l)
+	r.Read(b)
+	return b
+}
+
+func WriteBytes16(w io.Writer, v []byte) {
+	WriteUint16(w, len(v))
+	w.Write(v)
+}
