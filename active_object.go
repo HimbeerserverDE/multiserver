@@ -139,18 +139,9 @@ func processAoMsgs(c *Conn, r *bytes.Reader) []byte {
 	w := &bytes.Buffer{}
 
 	for r.Len() >= 4 {
-		idBytes := make([]byte, 2)
-		r.Read(idBytes)
-		id := binary.BigEndian.Uint16(idBytes)
+		id := ReadUint16(r)
 
-		msglenBytes := make([]byte, 2)
-		r.Read(msglenBytes)
-		msglen := binary.BigEndian.Uint16(msglenBytes)
-
-		msg := make([]byte, msglen)
-		r.Read(msg)
-
-		msg = aoMsgReplaceIDs(c, msg)
+		msg := aoMsgReplaceIDs(c, ReadBytes16(r))
 
 		if id == c.currentPlayerCao {
 			id = c.localPlayerCao
@@ -158,10 +149,8 @@ func processAoMsgs(c *Conn, r *bytes.Reader) []byte {
 			id = c.currentPlayerCao
 		}
 
-		binary.BigEndian.PutUint16(idBytes, id)
-		w.Write(idBytes)
-		w.Write(msglenBytes)
-		w.Write(msg)
+		WriteUint16(w, id)
+		WriteBytes16(w, msg)
 	}
 
 	return w.Bytes()
