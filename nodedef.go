@@ -99,24 +99,26 @@ func mergeNodedefs(mgrs map[string][]byte) error {
 		}
 		zr.Close()
 
-		mgr := buf.Bytes()
+		r := bytes.NewReader(buf.Bytes())
+		r.Seek(1, io.SeekStart)
 
-		count := binary.BigEndian.Uint16(mgr[1:3])
+		count := ReadUint16(r)
+		r.Seek(4, io.SeekCurrent)
 
-		si := uint32(7)
 	NodeLoop:
 		for i := uint16(0); i < count; i++ {
-			id := binary.BigEndian.Uint16(mgr[si : 2+si])
-			deflen := binary.BigEndian.Uint16(mgr[2+si : 4+si])
+			id := ReadUint16(r)
+			defb := ReadBytes16(r)
 
-			nodeNameLen := binary.BigEndian.Uint16(mgr[5+si : 7+si])
-			nodeName := string(mgr[7+si : 7+si+uint32(nodeNameLen)])
+			dr := bytes.NewReader(defb)
+			dr.Seek(1, io.SeekStart)
+
+			nodeName := string(ReadBytes16(dr))
 
 			for _, srvdefs := range nodeDefs {
 				for _, def := range srvdefs {
 					if def.Name() == nodeName {
 						nodeDefs[srv][id] = &NodeDef{id: def.ID()}
-						si += 4 + uint32(deflen)
 						continue NodeLoop
 					}
 				}
@@ -126,14 +128,14 @@ func mergeNodedefs(mgrs map[string][]byte) error {
 				nodeDefs[srv][id] = &NodeDef{
 					id:   def.ID(),
 					name: nodeName,
-					data: mgr[2+si : 4+si+uint32(deflen)],
+					data: defb,
 				}
 			}
 
 			nodeDefs[srv][id] = &NodeDef{
 				id:   nextID,
 				name: nodeName,
-				data: mgr[2+si : 4+si+uint32(deflen)],
+				data: defb,
 			}
 
 			total++
@@ -142,15 +144,13 @@ func mergeNodedefs(mgrs map[string][]byte) error {
 			if nextID == ContentUnknown {
 				nextID = ContentIgnore + 1
 			}
-
-			si += 4 + uint32(deflen)
 		}
 	}
 
 	// Merge definitions into new NodeDefManager
-	mgr := make([]byte, 7)
-	mgr[0] = uint8(1)
-	binary.BigEndian.PutUint16(mgr[1:3], total)
+	mgr := &bytes.Buffer{}
+	mgr.WriteByte(1)
+	WriteUint16(mgr, total)
 
 	var allDefs []byte
 	for _, srvdefs := range nodeDefs {
@@ -164,12 +164,11 @@ func mergeNodedefs(mgrs map[string][]byte) error {
 		}
 	}
 
-	binary.BigEndian.PutUint32(mgr[3:7], uint32(len(allDefs)))
-	mgr = append(mgr, allDefs...)
+	WriteBytes32(mgr, allDefs)
 
 	var compressedMgr bytes.Buffer
 	zw := zlib.NewWriter(&compressedMgr)
-	zw.Write(mgr)
+	zw.Write(mgr.Bytes())
 	zw.Close()
 
 	nodedef = compressedMgr.Bytes()
