@@ -242,35 +242,52 @@ func mergeItemdefs(mgrs map[string][]byte) error {
 		}
 		zr.Close()
 
-		mgr := buf.Bytes()
+		r := bytes.NewReader(buf.Bytes())
+		r.Seek(1, io.SeekStart)
 
-		count := binary.BigEndian.Uint16(mgr[1:3])
+		count := ReadUint16(r)
 
-		si := uint32(3)
 	ItemLoop:
 		for i := uint16(0); i < count; i++ {
-			deflen := binary.BigEndian.Uint16(mgr[si : 2+si])
-			def := mgr[2+si : 2+si+uint32(deflen)]
+			deflen := ReadUint16(r)
 
-			itemNameLen := binary.BigEndian.Uint16(def[2:4])
-			itemName := string(def[4 : 4+itemNameLen])
+			def := make([]byte, deflen)
+			r.Read(def)
 
-			desclen := binary.BigEndian.Uint16(def[4+itemNameLen : 6+itemNameLen])
-			invImgLen := binary.BigEndian.Uint16(def[6+itemNameLen+desclen : 8+itemNameLen+desclen])
-			wieldImgLen := binary.BigEndian.Uint16(def[8+itemNameLen+desclen+invImgLen : 10+itemNameLen+desclen+invImgLen])
-			capablen := binary.BigEndian.Uint16(def[26+itemNameLen+desclen+invImgLen+wieldImgLen : 28+itemNameLen+desclen+invImgLen+wieldImgLen])
-			capab := def[28+itemNameLen+desclen+invImgLen+wieldImgLen : 28+itemNameLen+desclen+invImgLen+wieldImgLen+capablen]
+			dr := bytes.NewReader(def)
+			dr.Seek(2, io.SeekStart)
+
+			itemNameLen := ReadUint16(dr)
+
+			itemNameBytes := make([]byte, itemNameLen)
+			dr.Read(itemNameBytes)
+			itemName := string(itemNameBytes)
+
+			desclen := ReadUint16(dr)
+			invImgLen := ReadUint16(dr)
+			wieldImgLen := ReadUint16(dr)
+
+			dr.Seek(16, io.SeekCurrent)
+
+			capablen := ReadUint16(dr)
+
+			capab := make([]byte, capablen)
+			dr.Read(capab)
 
 			if capablen > 0 && itemName == "" {
-				fpi := math.Float32frombits(binary.BigEndian.Uint32(capab[1:5]))
-				mdl := int16(binary.BigEndian.Uint16(capab[5:7]))
+				cr := bytes.NewReader(capab)
+				cr.Seek(1, io.SeekStart)
+
+				fpi := math.Float32frombits(ReadUint32(cr))
+				mdl := int16(ReadUint16(cr))
 
 				tcaps := newToolCapabs(fpi, mdl)
 
-				grpCapsLen := binary.BigEndian.Uint32(capab[7:11])
-				sj := uint32(11)
+				grpCapsLen := ReadUint32(cr)
+
 				for j := uint32(0); j < grpCapsLen; j++ {
-					capNameLen := binary.BigEndian.Uint16(capab[sj : 2+sj])
+					capNameLen := ReadUint16(cr)
+
 					capName := string(capab[2+sj : 2+sj+uint32(capNameLen)])
 					uses := int16(binary.BigEndian.Uint16(capab[2+sj+uint32(capNameLen) : 4+sj+uint32(capNameLen)]))
 					maxlevel := int16(binary.BigEndian.Uint16(capab[4+sj+uint32(capNameLen) : 6+sj+uint32(capNameLen)]))
@@ -289,8 +306,6 @@ func mergeItemdefs(mgrs map[string][]byte) error {
 					}
 
 					tcaps.AddGroupCap(gcap)
-
-					sj += uint32(capNameLen) + 10 + times*6
 				}
 
 				dmgGrpCapsLen := binary.BigEndian.Uint32(capab[sj : 4+sj])
@@ -334,8 +349,6 @@ func mergeItemdefs(mgrs map[string][]byte) error {
 			}
 
 			itemDefs = append(itemDefs, &ItemDef{name: itemName, data: def})
-
-			si += 2 + uint32(deflen)
 		}
 
 		aliasCount := binary.BigEndian.Uint16(mgr[si : 2+si])
