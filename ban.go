@@ -1,14 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"database/sql"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"net"
 
-	"github.com/anon55555/mt/rudp"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -114,26 +111,7 @@ func (c *Conn) Ban() error {
 		return err
 	}
 
-	reason := []byte("Banned.")
-	l := len(reason)
-
-	data := make([]byte, 7+l)
-	data[0] = uint8(0x00)
-	data[1] = uint8(ToClientAccessDenied)
-	data[2] = uint8(AccessDeniedCustomString)
-	binary.BigEndian.PutUint16(data[3:5], uint16(l))
-	copy(data[5:5+l], reason)
-	data[5+l] = uint8(0x00)
-	data[6+l] = uint8(0x00)
-
-	ack, err := c.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
-	if err != nil {
-		return err
-	}
-	<-ack
-
-	c.Close()
-
+	c.CloseWith(AccessDeniedCustomString, "Banned.", false)
 	return nil
 }
 

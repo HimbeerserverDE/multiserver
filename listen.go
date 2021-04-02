@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"net"
 	"sync"
@@ -60,16 +59,7 @@ func (l *Listener) Accept() (*Conn, error) {
 	}
 
 	if ConnCount() >= maxConns {
-		data := []byte{
-			0, ToClientAccessDenied,
-			AccessDeniedTooManyUsers, 0, 0, 0, 0,
-		}
-
-		_, err := clt.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
-		if err != nil {
-			return nil, err
-		}
-
+		clt.CloseWith(AccessDeniedTooManyUsers, "", true)
 		return nil, ErrPlayerLimitReached
 	}
 

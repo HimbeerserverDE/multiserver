@@ -1,28 +1,15 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"log"
 	"net"
-
-	"github.com/anon55555/mt/rudp"
 )
 
 // Proxy processes and forwards packets from src to dst
 func Proxy(src, dst *Conn) {
 	if src == nil {
-		data := []byte{
-			0, ToClientAccessDenied,
-			AccessDeniedServerFail, 0, 0, 0, 0,
-		}
-
-		_, err := dst.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
-		if err != nil {
-			log.Print(err)
-		}
-
-		dst.Close()
+		dst.CloseWith(AccessDeniedServerFail, "", false)
 		processLeave(dst)
 		return
 	} else if dst == nil {

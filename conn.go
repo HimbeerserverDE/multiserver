@@ -141,6 +141,28 @@ func (c *Conn) MakeRpcOnly() {
 // Inv returns the inventory of the Conn
 func (c *Conn) Inv() *mt.Inv { return c.inv }
 
+// CloseWith denies access and disconnects the Conn
+func (c *Conn) CloseWith(reason uint8, custom string, reconnect bool) error {
+	defer c.Close()
+
+	w := bytes.NewBuffer([]byte{0x00, ToClientAccessDenied})
+	WriteUint8(w, reason)
+	WriteBytes16(w, []byte(custom))
+	if reconnect {
+		WriteUint8(w, 1)
+	} else {
+		WriteUint8(w, 0)
+	}
+
+	ack, err := c.Send(rudp.Pkt{Reader: w})
+	if err != nil {
+		return err
+	}
+	<-ack
+
+	return nil
+}
+
 // Connect connects to the server on conn
 // and closes conn when the Conn disconnects
 func Connect(conn net.Conn) (*Conn, error) {

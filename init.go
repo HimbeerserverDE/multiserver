@@ -178,18 +178,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 					return
 				}
 
-				data := []byte{
-					0, ToClientAccessDenied,
-					AccessDeniedServerFail, 0, 0, 0, 0,
-				}
-
-				ack, err := c.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
-				if err != nil {
-					log.Print(err)
-				}
-				<-ack
-
-				c.Close()
+				c.CloseWith(AccessDeniedServerFail, "", false)
 				return
 			case ToClientAuthAccept:
 				// Auth succeeded
@@ -290,18 +279,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 				c2.protoVer = protov
 
 				if strict, ok := ConfKey("force_latest_proto").(bool); (ok && strict) && (protov != ProtoLatest) || protov < ProtoMin || protov > ProtoLatest {
-					data := []byte{
-						0, ToClientAccessDenied,
-						AccessDeniedWrongVersion, 0, 0, 0, 0,
-					}
-
-					ack, err := c2.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
-					if err != nil {
-						log.Print(err)
-					}
-					<-ack
-
-					c2.Close()
+					c2.CloseWith(AccessDeniedWrongVersion, "", false)
 					fin <- c
 					return
 				}
@@ -324,58 +302,22 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 				if banned {
 					log.Print("Banned user " + bname + " at " + c2.Addr().String() + " tried to connect")
 
-					reason := []byte("Your IP address is banned. Banned name is " + bname)
-
-					w := bytes.NewBuffer([]byte{0x00, ToClientAccessDenied})
-					WriteUint8(w, AccessDeniedCustomString)
-					WriteBytes16(w, reason)
-					WriteUint8(w, 0)
-
-					ack, err := c2.Send(rudp.Pkt{Reader: w})
-					if err != nil {
-						log.Print(err)
-					}
-					<-ack
-
-					c2.Close()
+					reason := "Your IP address is banned. Banned name is " + bname
+					c2.CloseWith(AccessDeniedCustomString, reason, false)
 					fin <- c
 					return
 				}
 
 				// Check if user is already connected
 				if IsOnline(c2.Username()) {
-					data := []byte{
-						0, ToClientAccessDenied,
-						AccessDeniedAlreadyConnected, 0, 0, 0, 0,
-					}
-
-					ack, err := c2.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
-					if err != nil {
-						log.Print(err)
-						continue
-					}
-					<-ack
-
-					c2.Close()
+					c2.CloseWith(AccessDeniedAlreadyConnected, "", false)
 					fin <- c
 					return
 				}
 
 				// Check if username is reserved for media or RPC
 				if c2.Username() == "media" || c2.Username() == "rpc" {
-					data := []byte{
-						0, ToClientAccessDenied,
-						AccessDeniedWrongName, 0, 0, 0, 0,
-					}
-
-					ack, err := c2.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
-					if err != nil {
-						log.Print(err)
-						continue
-					}
-					<-ack
-
-					c2.Close()
+					c2.CloseWith(AccessDeniedWrongName, "", false)
 					fin <- c
 					return
 				}
@@ -419,20 +361,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 				if c2.authMech != AuthMechFirstSRP {
 					log.Print(c2.Addr().String() + " used unsupported AuthMechFirstSRP")
 
-					// Send ACCESS_DENIED
-					data := []byte{
-						0, ToClientAccessDenied,
-						AccessDeniedUnexpectedData, 0, 0, 0, 0,
-					}
-
-					ack, err := c2.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
-					if err != nil {
-						log.Print(err)
-						continue
-					}
-					<-ack
-
-					c2.Close()
+					c2.CloseWith(AccessDeniedUnexpectedData, "", false)
 					fin <- c
 					return
 				}
@@ -448,20 +377,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 				if ok && disallow && empty > 0 {
 					log.Print(c2.Addr().String() + " used an empty password but disallow_empty_passwords is true")
 
-					// Send ACCESS_DENIED
-					data := []byte{
-						0, ToClientAccessDenied,
-						AccessDeniedEmptyPassword, 0, 0, 0, 0,
-					}
-
-					ack, err := c2.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
-					if err != nil {
-						log.Print(err)
-						continue
-					}
-					<-ack
-
-					c2.Close()
+					c2.CloseWith(AccessDeniedEmptyPassword, "", false)
 					fin <- c
 					return
 				}
@@ -516,21 +432,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 				if c2.authMech != AuthMechSRP {
 					log.Print(c2.Addr().String() + " used unsupported AuthMechSRP")
 
-					// Send ACCESS_DENIED
-					data := []byte{
-						0, ToClientAccessDenied,
-						AccessDeniedUnexpectedData, 0, 0, 0, 0,
-					}
-
-					ack, err := c2.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
-
-					if err != nil {
-						log.Print(err)
-						continue
-					}
-					<-ack
-
-					c2.Close()
+					c2.CloseWith(AccessDeniedUnexpectedData, "", false)
 					return
 				}
 
@@ -592,20 +494,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 				if c2.authMech != AuthMechSRP {
 					log.Print(c2.Addr().String() + " used unsupported AuthMechSRP")
 
-					// Send ACCESS_DENIED
-					data := []byte{
-						0, ToClientAccessDenied,
-						AccessDeniedUnexpectedData, 0, 0, 0, 0,
-					}
-
-					ack, err := c2.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
-					if err != nil {
-						log.Print(err)
-						continue
-					}
-					<-ack
-
-					c2.Close()
+					c2.CloseWith(AccessDeniedUnexpectedData, "", false)
 					fin <- c
 					return
 				}
@@ -641,20 +530,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 					// Client supplied wrong password
 					log.Print("User " + c2.Username() + " at " + c2.Addr().String() + " supplied wrong password")
 
-					// Send ACCESS_DENIED
-					data := []byte{
-						0, ToClientAccessDenied,
-						AccessDeniedWrongPassword, 0, 0, 0, 0,
-					}
-
-					ack, err := c2.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
-					if err != nil {
-						log.Print(err)
-						continue
-					}
-					<-ack
-
-					c2.Close()
+					c2.CloseWith(AccessDeniedWrongPassword, "", false)
 					fin <- c
 					return
 				}

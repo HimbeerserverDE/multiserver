@@ -5,11 +5,8 @@ media and definition multiplexing
 package main
 
 import (
-	"bytes"
 	"log"
 	"net"
-
-	"github.com/anon55555/mt/rudp"
 )
 
 func main() {
@@ -56,22 +53,13 @@ func main() {
 			srv := <-fin
 
 			if srv == nil {
-				data := []byte{
-					0, ToClientAccessDenied,
-					AccessDeniedServerFail, 0, 0, 0, 0,
-				}
-
 				select {
 				case <-clt.Closed():
+					clt.Close()
 				default:
-					ack, err := clt.Send(rudp.Pkt{Reader: bytes.NewReader(data)})
-					if err != nil {
-						log.Print(err)
-					}
-					<-ack
+					clt.CloseWith(AccessDeniedServerFail, "", false)
 				}
 
-				clt.Close()
 				return
 			}
 
