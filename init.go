@@ -172,7 +172,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 					}
 				}
 
-				log.Print("authentication failed for server " + srv)
+				log.Print("access denied by server " + srv)
 
 				if noAccessDenied {
 					return
