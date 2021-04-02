@@ -539,6 +539,15 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 			case ToServerRequestMedia:
 				c2.sendMedia(r)
 			case ToServerClientReady:
+				// Second check if user is already connected
+				// This is needed because the INIT packet
+				// doesn't mark a player as online
+				if IsOnline(c2.Username()) {
+					c2.CloseWith(AccessDeniedAlreadyConnected, "", false)
+					fin <- c
+					return
+				}
+
 				defaultSrv := ConfKey("default_server").(string)
 
 				defSrv := func() *Conn {
