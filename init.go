@@ -117,7 +117,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 					WriteUint8(w, 0)
 
 					ack, err := c2.Send(rudp.Pkt{
-						Reader: bytes.NewReader(data),
+						Reader: w,
 						PktInfo: rudp.PktInfo{
 							Channel: 1,
 						},
@@ -150,7 +150,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 				WriteBytes16(w, M)
 
 				ack, err := c2.Send(rudp.Pkt{
-					Reader: bytes.NewReader(data),
+					Reader: w,
 					PktInfo: rudp.PktInfo{
 						Channel: 1,
 					},
