@@ -235,6 +235,8 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 			binary.BigEndian.PutUint16(data[107+texturelen:109+texturelen], id)
 			pkt.Reader = bytes.NewReader(append(cmdBytes, data...))
 		case ToClientInventory:
+			old := *dst.Inv()
+
 			if err := dst.Inv().Deserialize(r); err != nil {
 				return true
 			}
@@ -242,7 +244,7 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 			dst.UpdateHandCapabs()
 
 			buf := &bytes.Buffer{}
-			dst.Inv().Serialize(buf)
+			dst.Inv().SerializeKeep(buf, old)
 
 			pkt.Reader = bytes.NewReader(append(cmdBytes, buf.Bytes()...))
 
