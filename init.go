@@ -226,7 +226,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 				WriteBytes16(w, v)
 
 				_, err := c2.Send(rudp.Pkt{
-					Reader: bytes.NewReader(data),
+					Reader: w,
 					PktInfo: rudp.PktInfo{
 						Channel: 1,
 					},
@@ -270,7 +270,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 			switch cmd := ReadUint16(r); cmd {
 			case ToServerInit:
 				// Process data
-				r.Seek(11, io.SeekStart)
+				r.Seek(9, io.SeekStart)
 				c2.username = string(ReadBytes16(r))
 				r.Seek(5, io.SeekStart)
 

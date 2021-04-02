@@ -343,8 +343,6 @@ func loadMedia(servers map[string]struct{}) {
 
 	loadMediaCache()
 
-	clt := &Conn{username: "media"}
-
 	var wg sync.WaitGroup
 
 	for server := range servers {
@@ -367,6 +365,8 @@ func loadMedia(servers map[string]struct{}) {
 		}
 
 		wg.Add(1)
+
+		clt := &Conn{username: "media"}
 
 		fin := make(chan *Conn) // close-only
 		go Init(clt, srv, false, true, fin)
