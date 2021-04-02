@@ -311,7 +311,7 @@ func handleRpc(srv *Conn) {
 					}
 				}
 			}
-		case ToClientModChannelMsg:
+		case ToClientModChannelMSG:
 			processRpc(srv, r)
 		}
 	}

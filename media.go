@@ -45,7 +45,7 @@ func (c *Conn) fetchMedia() {
 		r := ByteReader(pkt)
 
 		switch cmd := ReadUint16(r); cmd {
-		case ToClientNodedef:
+		case ToClientNodeDef:
 			servers := ConfKey("servers").(map[interface{}]interface{})
 			var srvname string
 			for server := range servers {
@@ -59,7 +59,7 @@ func (c *Conn) fetchMedia() {
 
 			nodedefs[srvname] = make([]byte, r.Len())
 			r.Read(nodedefs[srvname])
-		case ToClientItemdef:
+		case ToClientItemDef:
 			servers := ConfKey("servers").(map[interface{}]interface{})
 			var srvname string
 			for server := range servers {
@@ -171,7 +171,7 @@ func (c *Conn) announceMedia() {
 
 	data := make([]byte, 6+len(nodedef))
 	data[0] = uint8(0x00)
-	data[1] = uint8(ToClientNodedef)
+	data[1] = uint8(ToClientNodeDef)
 	binary.BigEndian.PutUint32(data[2:6], uint32(len(nodedef)))
 	copy(data[6:], nodedef)
 
@@ -183,7 +183,7 @@ func (c *Conn) announceMedia() {
 
 	data = make([]byte, 6+len(itemdef))
 	data[0] = uint8(0x00)
-	data[1] = uint8(ToClientItemdef)
+	data[1] = uint8(ToClientItemDef)
 	binary.BigEndian.PutUint32(data[2:6], uint32(len(itemdef)))
 	copy(data[6:], itemdef)
 
@@ -207,7 +207,7 @@ func (c *Conn) announceMedia() {
 
 	data = make([]byte, 14)
 	data[0] = uint8(0x00)
-	data[1] = uint8(ToClientCsmRestrictionFlags)
+	data[1] = uint8(ToClientCSMRestrictionFlags)
 	binary.BigEndian.PutUint32(data[2:6], uint32(0))
 	binary.BigEndian.PutUint32(data[6:10], uint32(csmrf))
 	binary.BigEndian.PutUint32(data[10:], uint32(csmnr))

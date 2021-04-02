@@ -22,22 +22,22 @@ const (
 	ToClientRemoveNode            = 0x22
 	ToClientInventory             = 0x27
 	ToClientTimeOfDay             = 0x29
-	ToClientCsmRestrictionFlags   = 0x2A
+	ToClientCSMRestrictionFlags   = 0x2A
 	ToClientPlayerSpeed           = 0x2B
 	ToClientMediaPush             = 0x2C
 	ToClientChatMessage           = 0x2F
 	ToClientActiveObjectRemoveAdd = 0x31
 	ToClientActiveObjectMessages  = 0x32
-	ToClientHp                    = 0x33
+	ToClientHP                    = 0x33
 	ToClientMovePlayer            = 0x34
-	ToClientFov                   = 0x36
+	ToClientFOV                   = 0x36
 	ToClientDeathscreen           = 0x37
 	ToClientMedia                 = 0x38
-	ToClientTooldef               = 0x39
-	ToClientNodedef               = 0x3A
-	ToClientCraftitemdef          = 0x3B
+	ToClientToolDef               = 0x39
+	ToClientNodeDef               = 0x3A
+	ToClientCraftItemDef          = 0x3B
 	ToClientAnnounceMedia         = 0x3C
-	ToClientItemdef               = 0x3D
+	ToClientItemDef               = 0x3D
 	ToClientPlaySound             = 0x3F
 	ToClientStopSound             = 0x40
 	ToClientPrivileges            = 0x41
@@ -46,9 +46,9 @@ const (
 	ToClientShowFormspec          = 0x44
 	ToClientMovement              = 0x45
 	ToClientSpawnParticle         = 0x46
-	ToClientAddParticlespawner    = 0x47
+	ToClientAddParticleSpawner    = 0x47
 	ToClientHudAdd                = 0x49
-	ToClientHudRm                 = 0x4A
+	ToClientHudRM                 = 0x4A
 	ToClientHudChange             = 0x4B
 	ToClientHudSetFlags           = 0x4C
 	ToClientHudSetParam           = 0x4D
@@ -57,11 +57,11 @@ const (
 	ToClientOverrideDayNightRatio = 0x50
 	ToClientLocalPlayerAnimations = 0x51
 	ToClientEyeOffset             = 0x52
-	ToClientDeleteParticlespawner = 0x53
+	ToClientDeleteParticleSpawner = 0x53
 	ToClientCloudParams           = 0x54
 	ToClientFadeSound             = 0x55
 	ToClientUpdatePlayerList      = 0x56
-	ToClientModChannelMsg         = 0x57
+	ToClientModChannelMSG         = 0x57
 	ToClientModChannelSignal      = 0x58
 	ToClientNodeMetaChanged       = 0x59
 	ToClientSetSun                = 0x5A
@@ -79,8 +79,8 @@ const (
 	ToServerModChannelLeave = 0x18
 	ToServerModChannelMsg   = 0x19
 	ToServerPlayerPos       = 0x23
-	ToServerGotblocks       = 0x24
-	ToServerDeletedblocks   = 0x25
+	ToServerGotBlocks       = 0x24
+	ToServerDeletedBlocks   = 0x25
 	ToServerInventoryAction = 0x31
 	ToServerChatMessage     = 0x32
 	ToServerDamage          = 0x35
@@ -92,9 +92,9 @@ const (
 	ToServerInventoryFields = 0x3C
 	ToServerRequestMedia    = 0x40
 	ToServerClientReady     = 0x43
-	ToServerFirstSrp        = 0x50
-	ToServerSrpBytesA       = 0x51
-	ToServerSrpBytesM       = 0x52
+	ToServerFirstSRP        = 0x50
+	ToServerSRPBytesA       = 0x51
+	ToServerSRPBytesM       = 0x52
 )
 
 const (
@@ -167,7 +167,7 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 			}
 
 			return false
-		case ToClientModChannelMsg:
+		case ToClientModChannelMSG:
 			return processRpc(src, r)
 		case ToClientBlockdata:
 			data, drop := processBlockdata(dst, r)
@@ -184,7 +184,7 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 			id := ReadUint32(r)
 			dst.huds[id] = true
 			return false
-		case ToClientHudRm:
+		case ToClientHudRM:
 			id := ReadUint32(r)
 			dst.huds[id] = false
 			return false
@@ -215,7 +215,7 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 		case ToClientStopSound:
 			id := int32(ReadUint32(r))
 			dst.sounds[id] = false
-		case ToClientAddParticlespawner:
+		case ToClientAddParticleSpawner:
 			r.Seek(97, io.SeekStart)
 			texturelen := ReadUint32(r)
 			r.Seek(int64(6+texturelen), io.SeekCurrent)
@@ -318,7 +318,7 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 		switch cmd := binary.BigEndian.Uint16(cmdBytes); cmd {
 		case ToServerChatMessage:
 			return processChatMessage(src, *pkt)
-		case ToServerFirstSrp:
+		case ToServerFirstSRP:
 			if src.sudoMode {
 				src.sudoMode = false
 
@@ -346,7 +346,7 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 			}
 
 			return true
-		case ToServerSrpBytesA:
+		case ToServerSRPBytesA:
 			if !src.sudoMode {
 				A := ReadBytes16(r)
 
@@ -402,7 +402,7 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 				<-ack
 			}
 			return true
-		case ToServerSrpBytesM:
+		case ToServerSRPBytesM:
 			if !src.sudoMode {
 				M := ReadBytes16(r)
 				M2 := srp.ClientProof([]byte(src.Username()), src.srp_s, src.srp_A, src.srp_B, src.srp_K)

@@ -192,7 +192,7 @@ func (c *Conn) Redirect(newsrv string) error {
 	for hud := range c.huds {
 		data = make([]byte, 6)
 		data[0] = uint8(0x00)
-		data[1] = uint8(ToClientHudRm)
+		data[1] = uint8(ToClientHudRM)
 		binary.BigEndian.PutUint32(data[2:6], hud)
 
 		_, err = c.Send(rudp.Pkt{

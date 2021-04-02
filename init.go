@@ -87,7 +87,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 					c.srp_A = A
 					c.srp_a = a
 
-					w := bytes.NewBuffer([]byte{0x00, ToServerSrpBytesA})
+					w := bytes.NewBuffer([]byte{0x00, ToServerSRPBytesA})
 					WriteBytes16(w, c.srp_A)
 					WriteUint8(w, 1)
 
@@ -111,7 +111,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 						continue
 					}
 
-					w := bytes.NewBuffer([]byte{0x00, ToServerFirstSrp})
+					w := bytes.NewBuffer([]byte{0x00, ToServerFirstSRP})
 					WriteBytes16(w, s)
 					WriteBytes16(w, v)
 					WriteUint8(w, 0)
@@ -146,7 +146,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 
 				M := srp.ClientProof([]byte(c.Username()), s, c.srp_A, B, c.srp_K)
 
-				w := bytes.NewBuffer([]byte{0x00, ToServerSrpBytesM})
+				w := bytes.NewBuffer([]byte{0x00, ToServerSRPBytesM})
 				WriteBytes16(w, M)
 
 				ack, err := c2.Send(rudp.Pkt{
@@ -202,7 +202,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 				if !ignMedia {
 					return
 				}
-			case ToClientCsmRestrictionFlags:
+			case ToClientCSMRestrictionFlags:
 				// Definitions sent (by server)
 				if !ignMedia {
 					continue
@@ -355,7 +355,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 					continue
 				}
 				<-ack
-			case ToServerFirstSrp:
+			case ToServerFirstSRP:
 				// Process data
 				// Make sure the client is allowed to use AuthMechFirstSRP
 				if c2.authMech != AuthMechFirstSRP {
@@ -426,7 +426,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 					continue
 				}
 				<-ack
-			case ToServerSrpBytesA:
+			case ToServerSRPBytesA:
 				// Process data
 				// Make sure the client is allowed to use AuthMechSRP
 				if c2.authMech != AuthMechSRP {
@@ -488,7 +488,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 					continue
 				}
 				<-ack
-			case ToServerSrpBytesM:
+			case ToServerSRPBytesM:
 				// Process data
 				// Make sure the client is allowed to use AuthMechSRP
 				if c2.authMech != AuthMechSRP {
