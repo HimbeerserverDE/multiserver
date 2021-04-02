@@ -15,6 +15,8 @@ import (
 	"github.com/anon55555/mt/rudp"
 )
 
+const BytesPerBunch = 5000
+
 var media map[string]*mediaFile
 var nodedefs map[string][]byte
 var itemdefs map[string][]byte
@@ -248,25 +250,42 @@ func (c *Conn) sendMedia(r *bytes.Reader) {
 		rq = append(rq, name)
 	}
 
-	w := bytes.NewBuffer([]byte{0x00, ToClientMedia, 0x00, 0x01, 0x00, 0x00})
-	WriteUint32(w, uint32(len(rq)))
-	for f := range rq {
-		WriteBytes16(w, []byte(rq[f]))
-		WriteBytes32(w, media[rq[f]].data)
+	var bunches []map[string]*mediaFile
+	bunch := make(map[string]*mediaFile)
+	var bunchlen int
+	for _, f := range rq {
+		bunch[f] = media[f]
+		bunchlen += len(media[f].data)
+
+		if bunchlen >= BytesPerBunch {
+			bunches = append(bunches, bunch)
+			bunch = make(map[string]*mediaFile)
+		}
 	}
 
-	ack, err := c.Send(rudp.Pkt{
-		Reader: w,
-		PktInfo: rudp.PktInfo{
-			Channel: 2,
-		},
-	})
+	for i, bunch := range bunches {
+		w := bytes.NewBuffer([]byte{0x00, ToClientMedia})
+		WriteUint16(w, uint16(len(bunches)))
+		WriteUint16(w, uint16(i))
+		WriteUint32(w, uint32(len(bunch)))
+		for f, m := range bunch {
+			WriteBytes16(w, []byte(f))
+			WriteBytes32(w, m.data)
+		}
 
-	if err != nil {
-		log.Print(err)
-		return
+		ack, err := c.Send(rudp.Pkt{
+			Reader: w,
+			PktInfo: rudp.PktInfo{
+				Channel: 2,
+			},
+		})
+
+		if err != nil {
+			log.Print(err)
+			return
+		}
+		<-ack
 	}
-	<-ack
 }
 
 func loadMediaCache() error {
