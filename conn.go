@@ -154,11 +154,10 @@ func (c *Conn) CloseWith(reason uint8, custom string, reconnect bool) error {
 		WriteUint8(w, 0)
 	}
 
-	ack, err := c.Send(rudp.Pkt{Reader: w})
+	_, err := c.Send(rudp.Pkt{Reader: w})
 	if err != nil {
 		return err
 	}
-	<-ack
 
 	return nil
 }
