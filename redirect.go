@@ -20,8 +20,8 @@ func RegisterOnRedirectDone(function func(*Conn, string, bool)) {
 	onRedirectDone = append(onRedirectDone, function)
 }
 
-func processRedirectDone(c *Conn, newsrv string) {
-	success := c.ServerName() == newsrv
+func processRedirectDone(c *Conn, newsrv *string) {
+	success := c.ServerName() == *newsrv
 
 	successstr := "false"
 	if success {
@@ -30,12 +30,12 @@ func processRedirectDone(c *Conn, newsrv string) {
 
 	rpcSrvMu.Lock()
 	for srv := range rpcSrvs {
-		srv.doRpc("->REDIRECTED "+c.Username()+" "+newsrv+" "+successstr, "--")
+		srv.doRpc("->REDIRECTED "+c.Username()+" "+*newsrv+" "+successstr, "--")
 	}
 	rpcSrvMu.Unlock()
 
 	for i := range onRedirectDone {
-		onRedirectDone[i](c, newsrv, success)
+		onRedirectDone[i](c, *newsrv, success)
 	}
 }
 
@@ -44,11 +44,32 @@ func (c *Conn) Redirect(newsrv string) error {
 	c.redirectMu.Lock()
 	defer c.redirectMu.Unlock()
 
-	defer processRedirectDone(c, newsrv)
+	defer processRedirectDone(c, &newsrv)
 
 	straddr, ok := ConfKey("servers:" + newsrv + ":address").(string)
 	if !ok {
-		return fmt.Errorf("server %s does not exist", newsrv)
+		grp, ok := ConfKey("groups:" + newsrv).([]interface{})
+		if !ok {
+			return fmt.Errorf("server or group %s does not exist", newsrv)
+		}
+
+		smallestCnt := int(^uint(0) >> 1)
+		for _, srv := range grp {
+			cnt := len(ConnsServer(srv.(string)))
+			if cnt < smallestCnt {
+				if c.ServerName() == srv.(string) {
+					return fmt.Errorf("already connected to server %s", srv.(string))
+				}
+
+				smallestCnt = cnt
+				newsrv = srv.(string)
+			}
+		}
+
+		straddr, ok = ConfKey("servers:" + newsrv + ":address").(string)
+		if !ok {
+			return fmt.Errorf("server %s does not exist", newsrv)
+		}
 	}
 
 	if c.ServerName() == newsrv {
@@ -70,7 +91,7 @@ func (c *Conn) Redirect(newsrv string) error {
 		return err
 	}
 
-	fin := make(chan *Conn) // close-only
+	fin := make(chan *Conn)
 	go Init(c, srv, true, false, fin)
 	initOk := <-fin
 

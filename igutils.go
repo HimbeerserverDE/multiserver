@@ -162,6 +162,7 @@ func init() {
 				c.SendChatMsg("Current server: " + c.ServerName() + " | All servers: " + r)
 			} else {
 				servers := ConfKey("servers").(map[interface{}]interface{})
+				groups := ConfKey("groups").(map[interface{}]interface{})
 				srv := c.ServerName()
 
 				if srv == param {
@@ -169,13 +170,31 @@ func init() {
 					return
 				}
 
-				if servers[param] == nil {
+				nogrp := true
+				for grp := range groups {
+					name, ok := grp.(string)
+					if !ok {
+						continue
+					}
+
+					if name == param {
+						nogrp = false
+					}
+				}
+
+				if servers[param] == nil && nogrp {
 					c.SendChatMsg("Unknown servername " + param)
 					return
 				}
 
 				reqprivs := make(map[string]bool)
+
 				reqpriv, ok := ConfKey("servers:" + param + ":priv").(string)
+				if ok {
+					reqprivs[reqpriv] = true
+				}
+
+				reqpriv, ok = ConfKey("group_privs:" + param).(string)
 				if ok {
 					reqprivs[reqpriv] = true
 				}

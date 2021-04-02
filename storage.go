@@ -17,7 +17,7 @@ func initStorageDB() (*sql.DB, error) {
 	}
 
 	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS storage (
-		key VARCHAR(512) NOT NULL,
+		key VARCHAR(512) PRIMARY KEY NOT NULL,
 		value VARCHAR(512) NOT NULL
 	);`); err != nil {
 		db.Close()

@@ -191,3 +191,14 @@ func ConnCount() int {
 
 	return connectedConns
 }
+
+// ConnsServer returns the client Conns that are connected to a server
+func ConnsServer(server string) []*Conn {
+	var r []*Conn
+	for _, c := range Conns() {
+		if c.ServerName() == server {
+			r = append(r, c)
+		}
+	}
+	return r
+}

@@ -10,7 +10,6 @@ import (
 	"net"
 	"os"
 	"strings"
-	"sync"
 
 	"github.com/anon55555/mt/rudp"
 )
@@ -362,8 +361,6 @@ func loadMedia(servers map[string]struct{}) {
 
 	loadMediaCache()
 
-	var wg sync.WaitGroup
-
 	for server := range servers {
 		straddr := ConfKey("servers:" + server + ":address")
 
@@ -383,22 +380,14 @@ func loadMedia(servers map[string]struct{}) {
 			continue
 		}
 
-		wg.Add(1)
-
 		clt := &Conn{username: "media"}
 
 		fin := make(chan *Conn) // close-only
 		go Init(clt, srv, false, true, fin)
+		<-fin
 
-		go func() {
-			<-fin
-
-			srv.fetchMedia()
-			wg.Done()
-		}()
+		srv.fetchMedia()
 	}
-
-	wg.Wait()
 
 	if err := mergeNodedefs(nodedefs); err != nil {
 		log.Fatal(err)

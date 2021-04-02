@@ -69,6 +69,21 @@ Leave this empty to require no special privilege. Note that this only affects th
 players can still be connected to this server if it is the default server, a minetest server requests it
 or if a different command is used.
 ```
+> `groups`
+```
+Type: Dictionary
+Description: List of all server groups
+```
+> `groups.*`
+```
+Type: List
+Description: Contains server group members
+```
+> `group_privs`
+```
+Type: Dictionary
+Description: List of all server groups and the required privilege (on the proxy), can be omitted
+```
 > `default_server`
 ```
 Type: String
