@@ -1,9 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
+	"unicode/utf8"
+
+	"github.com/tncardoso/gocurses"
 )
 
 var logReady chan struct{}
@@ -31,17 +33,58 @@ func WriteAppend(name string, data []byte, perm os.FileMode) error {
 	return nil
 }
 
-type Logger struct {
+func appendPop(max int, a Logger, v ...string) Logger {
+	if len(a) < max {
+		return append(a, v...)
+	} else {
+		for i := 1; i <= len(a); i++ {
+			a[i-1] = a[i]
+		}
+		return append(a[max-len(v):], v...)
+	}
 }
 
+type Logger []string
+
 func newLogger() *Logger {
+	initCurses()
 	os.Rename("log/latest.txt", "log/last.txt")
 
-	return &Logger{}
+	l := &Logger{}
+
+	go func() {
+		for {
+			var ch rune
+			ch1 := gocurses.Stdscr.Getch() % 255
+			if ch1 > 0x7F {
+				ch2 := gocurses.Stdscr.Getch()
+				ch, _ = utf8.DecodeRune([]byte{byte(ch1), byte(ch2)})
+			} else {
+				ch = rune(ch1)
+			}
+
+			switch ch {
+			case '\b':
+				if len(consoleInput) > 0 {
+					consoleInput = consoleInput[:len(consoleInput)-1]
+				}
+			case '\n':
+				consoleInput = []rune{}
+			default:
+				consoleInput = append(consoleInput, ch)
+			}
+
+			draw([]string(*l))
+		}
+	}()
+
+	return l
 }
 
 func (l *Logger) Write(p []byte) (int, error) {
-	fmt.Print(string(p))
+	row, _ := gocurses.Getmaxyx()
+	*l = appendPop(row-1, *l, string(p))
+	draw([]string(*l))
 
 	// Write to file
 	WriteAppend("log/latest.txt", p, 0666)

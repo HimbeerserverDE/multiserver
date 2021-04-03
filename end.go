@@ -4,6 +4,8 @@ import (
 	"log"
 	"os"
 	"time"
+
+	"github.com/tncardoso/gocurses"
 )
 
 // End disconnects (from) all Peers and stops the process
@@ -28,6 +30,8 @@ func End(crash, reconnect bool) {
 	time.Sleep(time.Second)
 
 	Announce(AnnounceDelete)
+
+	gocurses.End()
 
 	if crash {
 		os.Exit(1)
