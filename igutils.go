@@ -26,14 +26,25 @@ func init() {
 			showHelp := func(name string) {
 				cmd := chatCommands[name]
 				if help := cmd.Help(); help != "" {
-					color := "#F00"
-					if has, err := c.CheckPrivs(cmd.privs); (err == nil && has) || cmd.privs == nil {
-						color = "#0F0"
-					}
+					if c != nil {
+						color := "#F00"
+						if has, err := c.CheckPrivs(cmd.privs); (err == nil && has) || cmd.privs == nil {
+							color = "#0F0"
+						}
 
-					c.SendChatMsg(Colorize(name, color) + ": " + help)
+						c.SendChatMsg(Colorize(name, color) + ": " + help)
+					} else {
+						parts := strings.Split(help, "\n")
+						for _, part := range parts {
+							log.Print(name + ": " + part)
+						}
+					}
 				} else {
-					c.SendChatMsg("No help available for " + name + ".")
+					if c != nil {
+						c.SendChatMsg("No help available for " + name + ".")
+					} else {
+						log.Print("No help available for " + name + ".")
+					}
 				}
 			}
 

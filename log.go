@@ -36,10 +36,12 @@ func appendPop(max int, a Logger, v ...string) Logger {
 	if len(a) < max {
 		return append(a, v...)
 	} else {
-		for i := 1; i <= len(a); i++ {
-			a[i-1] = a[i]
+		for i := 0; i < len(v); i++ {
+			for j := 1; j < len(a); j++ {
+				a[j-1] = a[j]
+			}
 		}
-		return append(a[max-len(v):], v...)
+		return append(a[:max-len(v)], v...)
 	}
 }
 

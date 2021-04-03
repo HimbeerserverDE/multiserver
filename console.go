@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/tncardoso/gocurses"
@@ -46,7 +48,15 @@ func initCurses(l *Logger) {
 					consoleInput = consoleInput[:len(consoleInput)-1]
 				}
 			case '\n':
+				params := strings.Split(string(consoleInput), " ")
 				consoleInput = []rune{}
+
+				if chatCommands[params[0]].function == nil {
+					log.Print("Unknown command " + params[0] + ".")
+					continue
+				}
+
+				chatCommands[params[0]].function(nil, strings.Join(params[1:], " "))
 			default:
 				consoleInput = append(consoleInput, ch)
 			}
