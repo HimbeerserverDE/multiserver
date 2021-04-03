@@ -11,6 +11,16 @@ import (
 var consoleInput []rune
 
 func draw(msgs []string) {
+	prompt, ok := ConfKey("console_prompt").(string)
+	if !ok {
+		prefix, ok := ConfKey("command_prefix").(string)
+		if !ok {
+			prefix = "#"
+		}
+
+		prompt = prefix + ">"
+	}
+
 	gocurses.Clear()
 
 	row, _ := gocurses.Getmaxyx()
@@ -20,7 +30,7 @@ func draw(msgs []string) {
 		gocurses.Mvaddstr(row-i-1, 0, msg)
 		i--
 	}
-	gocurses.Mvaddstr(row-i-1, 0, "> "+string(consoleInput))
+	gocurses.Mvaddstr(row-i-1, 0, prompt+string(consoleInput))
 
 	gocurses.Refresh()
 }

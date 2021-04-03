@@ -133,7 +133,12 @@ Description: If this is true the builtin chatcommands and the redirect error mes
 > `command_prefix`
 ```
 Type: String
-Description: Prefix of proxy chat commands, default is #
+Description: The prefix of proxy chat commands, default is #
+```
+> `console_prompt`
+```
+Type: String
+Description: The text preceeding the console input, default is ${command_prefix}>
 ```
 > `do_fallback`
 ```
