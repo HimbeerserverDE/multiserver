@@ -63,7 +63,7 @@ func addPrivItem(db *sql.DB, name string) error {
 
 // modPrivItem updates a priv DB entry
 func modPrivItem(db *sql.DB, name, privs string) error {
-	_, err := db.Exec(`UPDATE privileges SET privileges = ? WHERE name = ?;`, name)
+	_, err := db.Exec(`UPDATE privileges SET privileges = ? WHERE name = ?;`, privs, name)
 	return err
 }
 
@@ -143,23 +143,17 @@ func (c *Conn) CheckPrivs(req map[string]bool) (bool, error) {
 
 func init() {
 	if admin, ok := ConfKey("admin").(string); ok {
-		db, err := initAuthDB()
+		privs, err := Privs(admin)
 		if err != nil {
 			log.Print(err)
 			return
 		}
 
-		eprivs, err := readPrivItem(db, admin)
-		if err != nil {
-			log.Print(err)
-			return
-		}
-
-		privs := decodePrivs(eprivs)
 		privs["privs"] = true
 
-		newprivs := encodePrivs(privs)
-
-		modPrivItem(db, admin, newprivs)
+		if err = SetPrivs(admin, privs); err != nil {
+			log.Print(err)
+			return
+		}
 	}
 }
