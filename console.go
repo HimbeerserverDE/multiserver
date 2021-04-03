@@ -10,6 +10,47 @@ import (
 
 var consoleInput []rune
 
+type History struct {
+	lines [][]rune
+	i int
+}
+
+func (h *History) Add(line []rune) {
+	for k, v := range h.lines {
+		if string(v) == string(line) {
+			if k+1 < len(h.lines) {
+				h.lines = append(h.lines[:k], h.lines[k+1:]...)
+			} else {
+				h.lines = h.lines[:k]
+			}
+		}
+	}
+
+	h.lines = append(h.lines, line)
+	h.i = 0
+}
+
+func (h *History) Prev(current []rune) []rune {
+	h.i++
+	i := len(h.lines)-h.i
+	if i < 0 || i >= len(h.lines) {
+		h.i--
+		return current
+	}
+
+	return h.lines[i]
+}
+
+func (h *History) Next() []rune {
+	h.i--
+	if h.i < 1 {
+		h.i = 0
+		return []rune{}
+	}
+
+	return h.lines[len(h.lines)-h.i]
+}
+
 func draw(msgs []string) {
 	prompt, ok := ConfKey("console_prompt").(string)
 	if !ok {
@@ -42,6 +83,8 @@ func initCurses(l *Logger) {
 	gocurses.Stdscr.Keypad(true)
 
 	go func() {
+		h := &History{}
+
 		for {
 			var ch rune
 			ch1 := gocurses.Stdscr.Getch() % 255
@@ -53,12 +96,17 @@ func initCurses(l *Logger) {
 			}
 
 			switch ch {
+			case 3:
+				consoleInput = h.Next()
+			case 4:
+				consoleInput = h.Prev(consoleInput)
 			case '\b':
 				if len(consoleInput) > 0 {
 					consoleInput = consoleInput[:len(consoleInput)-1]
 				}
 			case '\n':
 				params := strings.Split(string(consoleInput), " ")
+				h.Add(consoleInput)
 				consoleInput = []rune{}
 
 				if chatCommands[params[0]].function == nil {
