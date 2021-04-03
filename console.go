@@ -56,6 +56,11 @@ func initCurses(l *Logger) {
 					continue
 				}
 
+				if !chatCommands[params[0]].console {
+					log.Print("This command is not available to the console!")
+					continue
+				}
+
 				chatCommands[params[0]].function(nil, strings.Join(params[1:], " "))
 			default:
 				consoleInput = append(consoleInput, ch)

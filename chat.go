@@ -17,6 +17,7 @@ var ChatCommandPrefix string = "#"
 type chatCommand struct {
 	help     string
 	privs    map[string]bool
+	console  bool
 	function func(*Conn, string)
 }
 
@@ -27,10 +28,11 @@ var onServerChatMsg []func(*Conn, string) bool
 
 // RegisterChatCommand registers a callback function that is called
 // when a client executes the command and has the required privileges
-func RegisterChatCommand(name string, privs map[string]bool, help string, function func(*Conn, string)) {
+func RegisterChatCommand(name, help string, privs map[string]bool, console bool, function func(*Conn, string)) {
 	chatCommands[name] = chatCommand{
-		privs:    privs,
 		help:     help,
+		privs:    privs,
+		console:  console,
 		function: function,
 	}
 }

@@ -13,6 +13,14 @@ func privs(args ...string) map[string]bool {
 	return m
 }
 
+func SendChatMsg(c *Conn, msg string) {
+	if c != nil {
+		c.SendChatMsg(msg)
+	} else {
+		log.Print(msg)
+	}
+}
+
 func init() {
 	disable, ok := ConfKey("disable_builtin").(bool)
 	if ok && disable {
@@ -20,8 +28,9 @@ func init() {
 	}
 
 	RegisterChatCommand("help",
-		nil,
 		"Shows the help for a command. Shows the help for all commands if executed without arguments. Usage: help [command]",
+		nil,
+		true,
 		func(c *Conn, param string) {
 			showHelp := func(name string) {
 				cmd := chatCommands[name]
@@ -40,11 +49,7 @@ func init() {
 						}
 					}
 				} else {
-					if c != nil {
-						c.SendChatMsg("No help available for " + name + ".")
-					} else {
-						log.Print("No help available for " + name + ".")
-					}
+					SendChatMsg(c, "No help available for "+name+".")
 				}
 			}
 
@@ -58,48 +63,51 @@ func init() {
 		})
 
 	RegisterChatCommand("send",
-		privs("send"),
 		"Sends a player to a server. Usage: send <playername> <servername>",
+		privs("send"),
+		true,
 		func(c *Conn, param string) {
 			if param == "" {
-				c.SendChatMsg("Usage: send <playername> <servername>")
+				SendChatMsg(c, "Usage: send <playername> <servername>")
 				return
 			}
 
 			name := strings.Split(param, " ")[0]
 			if name == "" || len(strings.Split(param, " ")) < 2 {
-				c.SendChatMsg("Usage: send <playername> <servername>")
+				SendChatMsg(c, "Usage: send <playername> <servername>")
 				return
 			}
 			tosrv := strings.Split(param, " ")[1]
 			if tosrv == "" {
-				c.SendChatMsg("Usage: send <playername> <servername>")
+				SendChatMsg(c, "Usage: send <playername> <servername>")
 				return
 			}
 
 			servers := ConfKey("servers").(map[interface{}]interface{})
 			if servers[tosrv] == nil {
-				c.SendChatMsg("Unknown servername " + tosrv)
+				SendChatMsg(c, "Unknown servername "+tosrv)
 				return
 			}
 
 			c2 := ConnByUsername(name)
 			if c2 == nil {
-				c.SendChatMsg(name + " is not online.")
+				SendChatMsg(c, name+" is not online.")
 				return
 			}
 
 			srv := c2.ServerName()
 			if srv == tosrv {
-				c.SendChatMsg(name + " is already connected to this server!")
+				SendChatMsg(c, name+" is already connected to this server!")
+				return
 			}
 
 			go c2.Redirect(tosrv)
 		})
 
 	RegisterChatCommand("sendcurrent",
-		privs("send"),
 		"Sends all players on the current server to a new server. Usage: sendcurrent <servername>",
+		privs("send"),
+		false,
 		func(c *Conn, param string) {
 			if param == "" {
 				c.SendChatMsg("Usage: sendcurrent <servername>")
@@ -121,47 +129,50 @@ func init() {
 			go func() {
 				for _, c := range Conns() {
 					if c.ServerName() == srv {
-						c.Redirect(param)
+						go c.Redirect(param)
 					}
 				}
 			}()
 		})
 
 	RegisterChatCommand("sendall",
-		privs("send"),
 		"Sends all players to a server. Usage: sendall <servername>",
+		privs("send"),
+		true,
 		func(c *Conn, param string) {
 			if param == "" {
-				c.SendChatMsg("Usage: sendall <servername>")
+				SendChatMsg(c, "Usage: sendall <servername>")
 				return
 			}
 
 			servers := ConfKey("servers").(map[interface{}]interface{})
 			if servers[param] == nil {
-				c.SendChatMsg("Unknown servername " + param)
+				SendChatMsg(c, "Unknown servername "+param)
 				return
 			}
 
 			go func() {
 				for _, c := range Conns() {
 					if psrv := c.ServerName(); psrv != param {
-						c.Redirect(param)
+						go c.Redirect(param)
 					}
 				}
 			}()
 		})
 
 	RegisterChatCommand("alert",
-		privs("alert"),
 		"Sends a message to all players that are connected to the network. Usage: alert [message]",
+		privs("alert"),
+		true,
 		func(c *Conn, param string) {
 			ChatSendAll("[ALERT] " + param)
 		})
 
 	RegisterChatCommand("server",
-		nil,
 		`Prints your current server and a list of all servers if executed without arguments. 
 		Sends you to a server if executed with arguments and the required privilege. Usage: server [servername]"`,
+		nil,
+		false,
 		func(c *Conn, param string) {
 			if param == "" {
 				var r string
@@ -230,56 +241,65 @@ func init() {
 		})
 
 	RegisterChatCommand("find",
-		privs("find"),
 		"Prints the online status and the current server of a player. Usage: find <playername>",
+		privs("find"),
+		true,
 		func(c *Conn, param string) {
 			if param == "" {
-				c.SendChatMsg("Usage: find <playername>")
+				SendChatMsg(c, "Usage: find <playername>")
 				return
 			}
 
 			c2 := ConnByUsername(param)
 			if c2 == nil {
-				c.SendChatMsg(param + " is not online.")
+				SendChatMsg(c, param+" is not online.")
 			} else {
 				srv := c2.ServerName()
-				c.SendChatMsg(param + " is connected to server " + srv + ".")
+				SendChatMsg(c, param+" is connected to server "+srv+".")
 			}
 		})
 
 	RegisterChatCommand("addr",
-		privs("addr"),
 		"Prints the network address (including the port) of a connected player. Usage: addr <playername>",
+		privs("addr"),
+		true,
 		func(c *Conn, param string) {
 			if param == "" {
-				c.SendChatMsg("Usage: addr <playername>")
+				SendChatMsg(c, "Usage: addr <playername>")
 				return
 			}
 
 			c2 := ConnByUsername(param)
 			if c2 == nil {
-				c.SendChatMsg(param + " is not online.")
+				SendChatMsg(c, param+" is not online.")
 			} else {
-				c.SendChatMsg(param + "'s address is " + c2.Addr().String())
+				SendChatMsg(c, param+"'s address is "+c2.Addr().String())
 			}
 		})
 
 	RegisterChatCommand("end",
-		privs("end"),
 		"Kicks all connected clients and stops the proxy. Usage: end",
+		privs("end"),
+		true,
 		func(c *Conn, param string) {
-			go End(false, false)
+			End(false, false)
 		})
 
 	RegisterChatCommand("privs",
-		nil,
 		`Prints your privileges if executed without arguments. 
 		Prints a connected player's privileges if executed with arguments. Usage: privs [playername]`,
+		nil,
+		true,
 		func(c *Conn, param string) {
 			var r string
 
 			name := param
 			if name == "" {
+				if c == nil {
+					log.Print("Cannot read privileges of console!")
+					return
+				}
+
 				name = c.Username()
 				r += "Your privileges: "
 			} else {
@@ -289,24 +309,30 @@ func init() {
 			privs, err := Privs(name)
 			if err != nil {
 				log.Print(err)
-				c.SendChatMsg("An internal error occured while attempting to get the privileges.")
+				SendChatMsg(c, "An internal error occured while attempting to get the privileges.")
 				return
 			}
 
 			eprivs := encodePrivs(privs)
 
-			c.SendChatMsg(r + strings.Replace(eprivs, "|", " ", -1))
+			SendChatMsg(c, r+strings.Replace(eprivs, "|", " ", -1))
 		})
 
 	RegisterChatCommand("grant",
-		privs("privs"),
 		`Grants privileges to a connected player. The privileges need to be comma-seperated. 
 		If the playername is omitted, privileges are granted to you. Usage: grant [playername] <privileges>`,
+		privs("privs"),
+		true,
 		func(c *Conn, param string) {
 			name := strings.Split(param, " ")[0]
 			var privnames string
 
 			if len(strings.Split(param, " ")) < 2 {
+				if c == nil {
+					log.Print("Cannot write privileges of console!")
+					return
+				}
+
 				privnames = name
 				name = c.Username()
 			} else {
@@ -316,7 +342,7 @@ func init() {
 			privs, err := Privs(name)
 			if err != nil {
 				log.Print(err)
-				c.SendChatMsg("An internal error occured while attempting to get the privileges.")
+				SendChatMsg(c, "An internal error occured while attempting to get the privileges.")
 				return
 			}
 
@@ -328,22 +354,28 @@ func init() {
 			err = SetPrivs(name, privs)
 			if err != nil {
 				log.Print(err)
-				c.SendChatMsg("An internal error occured while attempting to set the privileges.")
+				SendChatMsg(c, "An internal error occured while attempting to set the privileges.")
 				return
 			}
 
-			c.SendChatMsg("Privileges updated.")
+			SendChatMsg(c, "Privileges updated.")
 		})
 
 	RegisterChatCommand("revoke",
-		privs("privs"),
 		`Revokes privileges from a connected player. The privileges need to be comma-seperated. 
 		If the playername is omitted, privileges are revoked from you. Usage: revoke [playername] <privileges>`,
+		privs("privs"),
+		true,
 		func(c *Conn, param string) {
 			name := strings.Split(param, " ")[0]
 			var privnames string
 
 			if len(strings.Split(param, " ")) < 2 {
+				if c == nil {
+					log.Print("Cannot write privileges of console!")
+					return
+				}
+
 				privnames = name
 				name = c.Username()
 			} else {
@@ -353,7 +385,7 @@ func init() {
 			privs, err := Privs(name)
 			if err != nil {
 				log.Print(err)
-				c.SendChatMsg("An internal error occured while attempting to get the privileges.")
+				SendChatMsg(c, "An internal error occured while attempting to get the privileges.")
 				return
 			}
 
@@ -365,20 +397,21 @@ func init() {
 			err = SetPrivs(name, privs)
 			if err != nil {
 				log.Print(err)
-				c.SendChatMsg("An internal error occured while attempting to set the privileges.")
+				SendChatMsg(c, "An internal error occured while attempting to set the privileges.")
 				return
 			}
 
-			c.SendChatMsg("Privileges updated.")
+			SendChatMsg(c, "Privileges updated.")
 		})
 
 	RegisterChatCommand("banlist",
-		privs("ban"),
 		"Prints the list of banned IP address and associated players. Usage: banlist",
+		privs("ban"),
+		true,
 		func(c *Conn, param string) {
 			bans, err := BanList()
 			if err != nil {
-				c.SendChatMsg("An internal error occured while attempting to read the ban list.")
+				SendChatMsg(c, "An internal error occured while attempting to read the ban list.")
 				return
 			}
 
@@ -387,15 +420,16 @@ func init() {
 				msg += addr + " | " + name + "\n"
 			}
 
-			c.SendChatMsg(msg)
+			SendChatMsg(c, msg)
 		})
 
 	RegisterChatCommand("ban",
-		privs("ban"),
 		"Bans an IP address or a connected player. Usage: ban <playername | IP address>",
+		privs("ban"),
+		true,
 		func(c *Conn, param string) {
 			if param == "" {
-				c.SendChatMsg("Usage: ban <playername | IP address>")
+				SendChatMsg(c, "Usage: ban <playername | IP address>")
 				return
 			}
 
@@ -403,34 +437,35 @@ func init() {
 			if err != nil {
 				c2 := ConnByUsername(param)
 				if c2 == nil {
-					c.SendChatMsg(param + " is not online.")
+					SendChatMsg(c, param+" is not online.")
 					return
 				}
 
 				if err := c2.Ban(); err != nil {
-					c.SendChatMsg("An internal error occured while attempting to ban the player.")
+					SendChatMsg(c, "An internal error occured while attempting to ban the player.")
 					return
 				}
 			}
 
-			c.SendChatMsg("Banned " + param)
+			SendChatMsg(c, "Banned "+param)
 		})
 
 	RegisterChatCommand("unban",
-		privs("ban"),
 		"Unbans an IP address or a playername. Usage: unban <playername | IP address>",
+		privs("ban"),
+		true,
 		func(c *Conn, param string) {
 			if param == "" {
-				c.SendChatMsg("Usage: unban <playername | IP address>")
+				SendChatMsg(c, "Usage: unban <playername | IP address>")
 				return
 			}
 
 			if err := Unban(param); err != nil {
-				c.SendChatMsg("An internal error occured while attempting to unban the player.")
+				SendChatMsg(c, "An internal error occured while attempting to unban the player.")
 				return
 			}
 
-			c.SendChatMsg("Unbanned " + param)
+			SendChatMsg(c, "Unbanned "+param)
 		})
 
 	RegisterOnRedirectDone(func(c *Conn, newsrv string, success bool) {
