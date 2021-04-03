@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"os"
-	"unicode/utf8"
 
 	"github.com/tncardoso/gocurses"
 )
@@ -47,37 +46,10 @@ func appendPop(max int, a Logger, v ...string) Logger {
 type Logger []string
 
 func newLogger() *Logger {
-	initCurses()
 	os.Rename("log/latest.txt", "log/last.txt")
 
 	l := &Logger{}
-
-	go func() {
-		for {
-			var ch rune
-			ch1 := gocurses.Stdscr.Getch() % 255
-			if ch1 > 0x7F {
-				ch2 := gocurses.Stdscr.Getch()
-				ch, _ = utf8.DecodeRune([]byte{byte(ch1), byte(ch2)})
-			} else {
-				ch = rune(ch1)
-			}
-
-			switch ch {
-			case '\b':
-				if len(consoleInput) > 0 {
-					consoleInput = consoleInput[:len(consoleInput)-1]
-				}
-			case '\n':
-				consoleInput = []rune{}
-			default:
-				consoleInput = append(consoleInput, ch)
-			}
-
-			draw([]string(*l))
-		}
-	}()
-
+	initCurses(l)
 	return l
 }
 
