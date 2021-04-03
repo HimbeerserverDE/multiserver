@@ -12,7 +12,7 @@ var consoleInput []rune
 
 type History struct {
 	lines [][]rune
-	i int
+	i     int
 }
 
 func (h *History) Add(line []rune) {
@@ -32,7 +32,7 @@ func (h *History) Add(line []rune) {
 
 func (h *History) Prev(current []rune) []rune {
 	h.i++
-	i := len(h.lines)-h.i
+	i := len(h.lines) - h.i
 	if i < 0 || i >= len(h.lines) {
 		h.i--
 		return current
