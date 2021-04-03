@@ -39,7 +39,10 @@ func (c *Conn) fetchMedia() {
 				return
 			}
 
-			log.Print(err)
+			go func() {
+				<-LogReady()
+				log.Print(err)
+			}()
 			continue
 		}
 
@@ -124,7 +127,10 @@ func (c *Conn) fetchMedia() {
 			})
 
 			if err != nil {
-				log.Print(err)
+				go func() {
+					<-LogReady()
+					log.Print(err)
+				}()
 				continue
 			}
 		case ToClientMedia:
@@ -366,17 +372,26 @@ func loadMedia(servers map[string]struct{}) {
 
 		srvaddr, err := net.ResolveUDPAddr("udp", straddr.(string))
 		if err != nil {
-			log.Fatal(err)
+			go func() {
+				<-LogReady()
+				log.Fatal(err)
+			}()
 		}
 
 		conn, err := net.DialUDP("udp", nil, srvaddr)
 		if err != nil {
-			log.Fatal(err)
+			go func() {
+				<-LogReady()
+				log.Fatal(err)
+			}()
 		}
 
 		srv, err := Connect(conn)
 		if err != nil {
-			log.Print(err)
+			go func() {
+				<-LogReady()
+				log.Print(err)
+			}()
 			continue
 		}
 
@@ -390,11 +405,17 @@ func loadMedia(servers map[string]struct{}) {
 	}
 
 	if err := mergeNodedefs(nodedefs); err != nil {
-		log.Fatal(err)
+		go func() {
+			<-LogReady()
+			log.Fatal(err)
+		}()
 	}
 
 	if err := mergeItemdefs(itemdefs); err != nil {
-		log.Fatal(err)
+		go func() {
+			<-LogReady()
+			log.Fatal(err)
+		}()
 	}
 
 	updateMediaCache()
@@ -406,7 +427,10 @@ func init() {
 
 	servers, ok := ConfKey("servers").(map[interface{}]interface{})
 	if !ok {
-		log.Fatal("Server list inexistent or not a dictionary")
+		go func() {
+			<-LogReady()
+			log.Fatal("Server list inexistent or not a dictionary")
+		}()
 	}
 
 	srvs := make(map[string]struct{})

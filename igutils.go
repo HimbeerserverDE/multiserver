@@ -434,5 +434,8 @@ func init() {
 		}
 	})
 
-	log.Print("Loaded builtin")
+	go func() {
+		<-LogReady()
+		log.Print("Loaded builtin")
+	}()
 }
