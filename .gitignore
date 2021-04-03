@@ -1,6 +1,6 @@
 multiserver
-logfile.txt
 config/multiserver.yml
 storage/auth.sqlite
 storage/storage.sqlite
 cache/*
+log/*
