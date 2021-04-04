@@ -181,7 +181,15 @@ func init() {
 					r += server.(string) + " "
 				}
 
-				c.SendChatMsg("Current server: " + c.ServerName() + " | All servers: " + r)
+				var r2 string
+				groups, ok := ConfKey("groups").(map[interface{}]interface{})
+				if ok {
+					for group := range groups {
+						r2 += group.(string) + " "
+					}
+				}
+
+				c.SendChatMsg("Current server: " + c.ServerName() + " | All servers: " + r + "| All server groups: " + r2)
 			} else {
 				servers := ConfKey("servers").(map[interface{}]interface{})
 				srv := c.ServerName()
