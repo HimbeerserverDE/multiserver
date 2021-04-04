@@ -256,15 +256,15 @@ func (c *Conn) sendMedia(r *bytes.Reader) {
 	}
 
 	var bunches []map[string]*mediaFile
-	bunch := make(map[string]*mediaFile)
+	bunches[0] = make(map[string]*mediaFile)
 	var bunchlen int
 	for _, f := range rq {
-		bunch[f] = media[f]
+		bunches[len(bunches)-1][f] = media[f]
 		bunchlen += len(media[f].data)
 
 		if bunchlen >= BytesPerBunch {
-			bunches = append(bunches, bunch)
-			bunch = make(map[string]*mediaFile)
+			bunches = append(bunches, make(map[string]*mediaFile))
+			bunchlen = 0
 		}
 	}
 
