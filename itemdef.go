@@ -340,8 +340,6 @@ func mergeItemdefs(mgrs map[string][]byte) error {
 		}
 
 		aliasCount := ReadUint16(r)
-		r.Seek(2, io.SeekCurrent)
-
 		for i := uint16(0); i < aliasCount; i++ {
 			name := string(ReadBytes16(r))
 
