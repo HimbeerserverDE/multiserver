@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"sort"
 	"strings"
 	"unicode/utf8"
 
@@ -35,20 +36,32 @@ func draw(msgs []string) {
 	gocurses.Refresh()
 }
 
-func autoComplete(input []rune) []rune {
+func autoComplete(all []string, current string) string {
+	if len(all) > 1 && len(current) > 0 {
+		for k, v := range all {
+			if v == current {
+				if k+1 < len(all) {
+					return all[k+1]
+				} else {
+					return all[0]
+				}
+			}
+		}
+	} else if len(all) >= 1 {
+		return all[0]
+	}
+
+	return ""
+}
+
+func autoCompleteName(input []rune) []rune {
 	var name, tmpName []rune
-	var broken bool
 	for i := len(input) - 1; i >= 0; i-- {
 		if input[i] == ' ' {
 			input = input[:i+1]
-			broken = true
 			break
 		}
 		tmpName = append(tmpName, input[i])
-	}
-
-	if !broken {
-		return input
 	}
 
 	for i := len(tmpName) - 1; i >= 0; i-- {
@@ -60,21 +73,17 @@ func autoComplete(input []rune) []rune {
 		names = append(names, c2.Username())
 	}
 
-	if len(names) > 1 && len(name) > 0 {
-		for k, v := range names {
-			if v == string(name) {
-				if k+1 < len(names) {
-					input = append(input, []rune(names[k+1])...)
-				} else {
-					input = append(input, []rune(names[0])...)
-				}
-			}
-		}
-	} else if len(names) >= 1 {
-		input = append(input, []rune(names[0])...)
-	}
+	return append(input, []rune(autoComplete(names, string(name)))...)
+}
 
-	return input
+func autoCompleteCommand(input []rune) []rune {
+	var cmds []string
+	for cmd := range chatCommands {
+		cmds = append(cmds, cmd)
+	}
+	sort.Strings(cmds)
+
+	return []rune(autoComplete(cmds, string(input)))
 }
 
 func initCurses(l *Logger) {
@@ -106,7 +115,11 @@ func initCurses(l *Logger) {
 					consoleInput = consoleInput[:len(consoleInput)-1]
 				}
 			case '\t':
-				consoleInput = autoComplete(consoleInput)
+				if strings.Count(string(consoleInput), " ") > 0 {
+					consoleInput = autoCompleteName(consoleInput)
+				} else {
+					consoleInput = autoCompleteCommand(consoleInput)
+				}
 			case '\n':
 				params := strings.Split(string(consoleInput), " ")
 				h.Add(consoleInput)
