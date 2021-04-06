@@ -9,30 +9,7 @@ import (
 
 var logReady chan struct{}
 
-var sep []byte = []byte(`
-+-----------+
-| Seperator |
-+-----------+
-
-`)
-
-func WriteAppend(name string, data []byte, perm os.FileMode) error {
-	os.Mkdir("log", 0777)
-
-	b, err := os.ReadFile(name)
-	if err != nil && !os.IsNotExist(err) {
-		return err
-	}
-
-	err = os.WriteFile(name, append(b, data...), perm)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func appendPop(max int, a Logger, v ...string) Logger {
+func appendPop(max int, a []string, v ...string) []string {
 	if len(a) < max {
 		return append(a, v...)
 	} else {
@@ -45,11 +22,12 @@ func appendPop(max int, a Logger, v ...string) Logger {
 	}
 }
 
-type Logger []string
+type Logger struct {
+	visible []string
+	all     []byte
+}
 
 func newLogger() *Logger {
-	os.Rename("log/latest.txt", "log/last.txt")
-
 	l := &Logger{}
 	initCurses(l)
 	return l
@@ -57,13 +35,19 @@ func newLogger() *Logger {
 
 func (l *Logger) Write(p []byte) (int, error) {
 	row, _ := gocurses.Getmaxyx()
-	*l = appendPop(row-1, *l, string(p))
-	draw([]string(*l))
+	l.visible = appendPop(row-1, l.visible, string(p))
+	draw(l.visible)
 
-	// Write to file
-	WriteAppend("log/latest.txt", p, 0666)
+	l.all = append(l.all, p...)
 
 	return len(p), nil
+}
+
+func (l *Logger) Close() {
+	os.Mkdir("log", 0777)
+
+	os.Rename("log/latest.txt", "log/last.txt")
+	os.WriteFile("log/latest.txt", l.all, 0666)
 }
 
 func LogReady() <-chan struct{} {

@@ -31,6 +31,8 @@ func End(crash, reconnect bool) {
 
 	Announce(AnnounceDelete)
 
+	log.Writer().(*Logger).Close()
+
 	gocurses.End()
 
 	if crash {

@@ -124,7 +124,7 @@ func initCurses(l *Logger) {
 				consoleInput = append(consoleInput, ch)
 			}
 
-			draw([]string(*l))
+			draw(l.visible)
 		}
 	}()
 }
