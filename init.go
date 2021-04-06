@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"regexp"
 	"strings"
 	"time"
 
@@ -281,6 +282,31 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 				if strict, ok := ConfKey("force_latest_proto").(bool); (ok && strict) && (protov != ProtoLatest) || protov < ProtoMin || protov > ProtoLatest {
 					c2.CloseWith(AccessDeniedWrongVersion, "", false)
 					fin <- c
+					return
+				}
+
+				msg := c2.Addr().String() + " tried to connect with "
+				if len(c2.Username()) == 0 {
+					c2.CloseWith(AccessDeniedWrongName, "", false)
+					fin <- c
+					log.Print(msg + "empty name")
+					return
+				} else if len(c2.Username()) > MaxPlayerNameLength {
+					c2.CloseWith(AccessDeniedWrongCharsInName, "", false)
+					fin <- c
+					log.Print(msg + "too long name")
+					return
+				}
+
+				ok, err := regexp.MatchString(PlayerNameChars, c2.Username())
+				if err != nil {
+					log.Print(err)
+				}
+
+				if !ok || err != nil {
+					c2.CloseWith(AccessDeniedWrongCharsInName, "", false)
+					fin <- c
+					log.Print(c2.Addr().String() + " tried to connect with invalid name")
 					return
 				}
 
