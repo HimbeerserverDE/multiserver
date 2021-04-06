@@ -431,6 +431,27 @@ func init() {
 			SendChatMsg(c, msg)
 		})
 
+	RegisterChatCommand("kick",
+		"Kicks a connected player. Usage: kick <playername> [reason]",
+		privs("kick"),
+		true,
+		func(c *Conn, param string) {
+			if param == "" {
+				SendChatMsg(c, "Usage: kick <playername> [reason]")
+				return
+			}
+
+			name := strings.Split(param, " ")[0]
+			r := "Kicked. " + strings.Join(strings.Split(param, " ")[1:], " ") + "."
+
+			if c2 := ConnByUsername(name); c2 != nil {
+				c2.CloseWith(AccessDeniedCustomString, r, false)
+				SendChatMsg(c, "Kicked "+name)
+			} else {
+				SendChatMsg(c, name+" is not online.")
+			}
+		})
+
 	RegisterChatCommand("ban",
 		"Bans an IP address or a connected player. Usage: ban <playername | IP address>",
 		privs("ban"),
