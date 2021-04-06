@@ -10,6 +10,128 @@ import (
 
 var consoleInput []rune
 
+func draw(msgs []string) {
+	prompt, ok := ConfKey("console_prompt").(string)
+	if !ok {
+		prefix, ok := ConfKey("command_prefix").(string)
+		if !ok {
+			prefix = "#"
+		}
+
+		prompt = prefix + ">"
+	}
+
+	gocurses.Clear()
+
+	row, _ := gocurses.Getmaxyx()
+
+	i := len(msgs)
+	for _, msg := range msgs {
+		gocurses.Mvaddstr(row-i-1, 0, msg)
+		i--
+	}
+	gocurses.Mvaddstr(row-i-1, 0, prompt+string(consoleInput))
+
+	gocurses.Refresh()
+}
+
+func autoComplete(input []rune) []rune {
+	var name, tmpName []rune
+	var broken bool
+	for i := len(input) - 1; i >= 0; i-- {
+		if input[i] == ' ' {
+			input = input[:i+1]
+			broken = true
+			break
+		}
+		tmpName = append(tmpName, input[i])
+	}
+
+	if !broken {
+		return input
+	}
+
+	for i := len(tmpName) - 1; i >= 0; i-- {
+		name = append(name, tmpName[i])
+	}
+
+	var names []string
+	for _, c2 := range Conns() {
+		names = append(names, c2.Username())
+	}
+
+	if len(names) > 1 && len(name) > 0 {
+		for k, v := range names {
+			if v == string(name) {
+				if k+1 < len(names) {
+					input = append(input, []rune(names[k+1])...)
+				} else {
+					input = append(input, []rune(names[0])...)
+				}
+			}
+		}
+	} else if len(names) >= 1 {
+		input = append(input, []rune(names[0])...)
+	}
+
+	return input
+}
+
+func initCurses(l *Logger) {
+	gocurses.Initscr()
+	gocurses.Cbreak()
+	gocurses.Noecho()
+	gocurses.Stdscr.Keypad(true)
+
+	go func() {
+		h := &History{}
+
+		for {
+			var ch rune
+			ch1 := gocurses.Stdscr.Getch() % 255
+			if ch1 > 0x7F {
+				ch2 := gocurses.Stdscr.Getch()
+				ch, _ = utf8.DecodeRune([]byte{byte(ch1), byte(ch2)})
+			} else {
+				ch = rune(ch1)
+			}
+
+			switch ch {
+			case 3:
+				consoleInput = h.Next()
+			case 4:
+				consoleInput = h.Prev(consoleInput)
+			case '\b':
+				if len(consoleInput) > 0 {
+					consoleInput = consoleInput[:len(consoleInput)-1]
+				}
+			case '\t':
+				consoleInput = autoComplete(consoleInput)
+			case '\n':
+				params := strings.Split(string(consoleInput), " ")
+				h.Add(consoleInput)
+				consoleInput = []rune{}
+
+				if chatCommands[params[0]].function == nil {
+					log.Print("Unknown command " + params[0] + ".")
+					continue
+				}
+
+				if !chatCommands[params[0]].console {
+					log.Print("This command is not available to the console!")
+					continue
+				}
+
+				chatCommands[params[0]].function(nil, strings.Join(params[1:], " "))
+			default:
+				consoleInput = append(consoleInput, ch)
+			}
+
+			draw(l.visible)
+		}
+	}()
+}
+
 type History struct {
 	lines [][]rune
 	i     int
@@ -49,82 +171,4 @@ func (h *History) Next() []rune {
 	}
 
 	return h.lines[len(h.lines)-h.i]
-}
-
-func draw(msgs []string) {
-	prompt, ok := ConfKey("console_prompt").(string)
-	if !ok {
-		prefix, ok := ConfKey("command_prefix").(string)
-		if !ok {
-			prefix = "#"
-		}
-
-		prompt = prefix + ">"
-	}
-
-	gocurses.Clear()
-
-	row, _ := gocurses.Getmaxyx()
-
-	i := len(msgs)
-	for _, msg := range msgs {
-		gocurses.Mvaddstr(row-i-1, 0, msg)
-		i--
-	}
-	gocurses.Mvaddstr(row-i-1, 0, prompt+string(consoleInput))
-
-	gocurses.Refresh()
-}
-
-func initCurses(l *Logger) {
-	gocurses.Initscr()
-	gocurses.Cbreak()
-	gocurses.Noecho()
-	gocurses.Stdscr.Keypad(true)
-
-	go func() {
-		h := &History{}
-
-		for {
-			var ch rune
-			ch1 := gocurses.Stdscr.Getch() % 255
-			if ch1 > 0x7F {
-				ch2 := gocurses.Stdscr.Getch()
-				ch, _ = utf8.DecodeRune([]byte{byte(ch1), byte(ch2)})
-			} else {
-				ch = rune(ch1)
-			}
-
-			switch ch {
-			case 3:
-				consoleInput = h.Next()
-			case 4:
-				consoleInput = h.Prev(consoleInput)
-			case '\b':
-				if len(consoleInput) > 0 {
-					consoleInput = consoleInput[:len(consoleInput)-1]
-				}
-			case '\n':
-				params := strings.Split(string(consoleInput), " ")
-				h.Add(consoleInput)
-				consoleInput = []rune{}
-
-				if chatCommands[params[0]].function == nil {
-					log.Print("Unknown command " + params[0] + ".")
-					continue
-				}
-
-				if !chatCommands[params[0]].console {
-					log.Print("This command is not available to the console!")
-					continue
-				}
-
-				chatCommands[params[0]].function(nil, strings.Join(params[1:], " "))
-			default:
-				consoleInput = append(consoleInput, ch)
-			}
-
-			draw(l.visible)
-		}
-	}()
 }
