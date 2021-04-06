@@ -76,7 +76,7 @@ func Announce(action string) error {
 	if action != AnnounceDelete {
 		data["name"] = conf("serverlist_name")
 		data["description"] = conf("serverlist_desc")
-		data["version"] = "multiserver v1.12.2"
+		data["version"] = "multiserver v1.13.2"
 		data["proto_min"] = ProtoMin
 		data["proto_max"] = ProtoLatest
 		data["url"] = conf("serverlist_display_url")
