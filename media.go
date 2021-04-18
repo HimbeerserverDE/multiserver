@@ -255,8 +255,7 @@ func (c *Conn) sendMedia(r *bytes.Reader) {
 		rq = append(rq, name)
 	}
 
-	var bunches []map[string]*mediaFile
-	bunches[0] = make(map[string]*mediaFile)
+	bunches := []map[string]*mediaFile{make(map[string]*mediaFile)}
 	var bunchlen int
 	for _, f := range rq {
 		bunches[len(bunches)-1][f] = media[f]
