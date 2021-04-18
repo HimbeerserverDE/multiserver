@@ -128,7 +128,7 @@ func initCurses(l *Logger) {
 				consoleInput = []rune{}
 
 				if chatCommands[params[0]].function == nil {
-					log.Print("Unknown command " + params[0] + ".")
+					log.Print("Unknown command ", params[0])
 					continue
 				}
 

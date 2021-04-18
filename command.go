@@ -317,7 +317,7 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 	} else {
 		switch cmd := binary.BigEndian.Uint16(cmdBytes); cmd {
 		case ToServerChatMessage:
-			return processChatMessage(src, *pkt)
+			return processChatMessage(src, r)
 		case ToServerFirstSRP:
 			if src.sudoMode {
 				src.sudoMode = false

@@ -56,17 +56,19 @@ func RegisterOnServerChatMessage(function func(*Conn, string) bool) {
 	onServerChatMsg = append(onServerChatMsg, function)
 }
 
-func processChatMessage(c *Conn, pkt rudp.Pkt) bool {
-	r := ByteReader(pkt)
+func processChatMessage(c *Conn, r *bytes.Reader) bool {
+	r.Seek(2, io.SeekCurrent)
 
-	wstr := make([]byte, r.Len()-4)
-	r.ReadAt(wstr, 4)
+	wstr := make([]byte, r.Len())
+	r.Read(wstr)
 
 	s := string(narrow(wstr))
 	if strings.HasPrefix(s, ChatCommandPrefix) {
 		// Chat command
 		s = strings.Replace(s, ChatCommandPrefix, "", 1)
 		params := strings.Split(s, " ")
+
+		log.Print(c.Username(), " issued command: ", s)
 
 		// Priv check
 		allow, err := c.CheckPrivs(chatCommands[params[0]].privs)
