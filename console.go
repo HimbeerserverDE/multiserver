@@ -79,7 +79,9 @@ func autoCompleteName(input []rune) []rune {
 func autoCompleteCommand(input []rune) []rune {
 	var cmds []string
 	for cmd := range chatCommands {
-		cmds = append(cmds, cmd)
+		if chatCommands[cmd].console {
+			cmds = append(cmds, cmd)
+		}
 	}
 	sort.Strings(cmds)
 
