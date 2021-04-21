@@ -16,7 +16,7 @@ Go 1.16 or higher is required
 `go get -u github.com/HimbeerserverDE/multiserver`
 
 ## How to use
-**Note: This shouldn't be used with existing minetest servers without moving authentication data (not the database files) to the proxy and then deleting the auth databases on the minetest servers! Not doing so can cause proxy <-> mt_server authentication to fail.**
+**Note: The authentication databases of the minetest servers need to be deleted before multiserver can connect to them. You can convert minetest auth databases to the multiserver auth database scheme with [multiserver_converter](https://github.com/HimbeerserverDE/multiserver_converter).**
 
 ### Running
 The `go get` command will create an executable file in `~/go/bin/multiserver`.
