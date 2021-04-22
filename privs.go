@@ -129,5 +129,7 @@ func init() {
 			log.Print(err)
 			return
 		}
+
+		log.Print("Granted \"privs\" privilege to admin ", admin)
 	}
 }
