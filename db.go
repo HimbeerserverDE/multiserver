@@ -55,10 +55,9 @@ func OpenPSQL(host, name, user, password, initSQL string, port int) (*DB, error)
 }
 
 // Exec executes a SQL statement
-func (db *DB) Exec(sql string, values ...interface{}) error {
+func (db *DB) Exec(sql string, values ...interface{}) (sql.Result, error) {
 	sql = strings.ReplaceAll(sql, "?", "$x")
-	_, err := db.DB.Exec(sql, values)
-	return err
+	return db.DB.Exec(sql, values)
 }
 
 // Query executes a SQL statement and stores the results
