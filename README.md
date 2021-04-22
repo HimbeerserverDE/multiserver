@@ -171,6 +171,31 @@ Type: String
 Description: The address of a remote media server, no OOB sending
 of media if unset
 ```
+> `psql_db`
+```
+Type: String
+Description: The name of the authentication database, SQLite3 is used if unset
+```
+> `psql_host`
+```
+Type: String
+Description: The address the PostgreSQL server is running on, default is localhost
+```
+> `psql_port`
+```
+Type: Integer
+Description: The port the PostgreSQL server is listening on, default is 5432
+```
+> `psql_user`
+```
+Type: String
+Description: The username to use when connecting to the PostgreSQL database
+```
+> `psql_password`
+```
+Type: String
+Description: The password to use when authenticating to the PostgreSQL database
+```
 > `serverlist_url`
 ```
 Type: String
