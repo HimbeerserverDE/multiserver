@@ -112,6 +112,24 @@ func initCurses(l *Logger) {
 				consoleInput = h.Next()
 			case 4:
 				consoleInput = h.Prev(consoleInput)
+			case 5:
+				rows, _ := gocurses.Getmaxyx()
+				start := len(l.lines) - rows + 1 - l.offset
+				if start < 0 {
+					start = 0
+				}
+
+				if start > 0 {
+					l.offset += 1
+					if l.offset > len(l.lines)-1 {
+						l.offset = len(l.lines) - 1
+					}
+				}
+			case 6:
+				l.offset -= 1
+				if l.offset < 0 {
+					l.offset = 0
+				}
 			case '\b':
 				if len(consoleInput) > 0 {
 					consoleInput = consoleInput[:len(consoleInput)-1]
@@ -142,7 +160,13 @@ func initCurses(l *Logger) {
 				consoleInput = append(consoleInput, ch)
 			}
 
-			draw(l.visible)
+			rows, _ := gocurses.Getmaxyx()
+			start := len(l.lines) - rows + 1 - l.offset
+			if start < 0 {
+				start = 0
+			}
+
+			draw(l.lines[start : len(l.lines)-l.offset])
 		}
 	}()
 }

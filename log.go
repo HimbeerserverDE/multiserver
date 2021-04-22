@@ -10,6 +10,8 @@ import (
 	"github.com/tncardoso/gocurses"
 )
 
+const MaxLogMSGs = 1024
+
 var logReady chan struct{}
 
 func appendPop(max int, a []string, v ...string) []string {
@@ -26,8 +28,9 @@ func appendPop(max int, a []string, v ...string) []string {
 }
 
 type Logger struct {
-	visible []string
-	all     []byte
+	lines  []string
+	all    []byte
+	offset int
 }
 
 func newLogger() *Logger {
@@ -46,13 +49,20 @@ func (l *Logger) Write(p []byte) (int, error) {
 
 			line = date + " " + line
 		}
-		l.visible = appendPop(rows-1, l.visible, line)
+
+		l.lines = appendPop(MaxLogMSGs, l.lines, line)
+		if l.offset > 0 {
+			l.offset += 1
+		}
 	}
 
-	draw(l.visible)
+	start := len(l.lines) - rows + 1 - l.offset
+	if start < 0 {
+		start = 0
+	}
 
+	draw(l.lines[start : len(l.lines)-l.offset])
 	l.all = append(l.all, p...)
-
 	return len(p), nil
 }
 
