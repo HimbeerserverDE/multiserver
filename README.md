@@ -16,7 +16,7 @@ Go 1.16 or higher is required
 `go get -u github.com/HimbeerserverDE/multiserver`
 
 ## How to use
-**Note: The authentication databases of the minetest servers need to be deleted before multiserver can connect to them. You can convert minetest auth databases to the multiserver auth database scheme with [multiserver_converter](https://github.com/HimbeerserverDE/multiserver_converter).**
+**Note: The authentication databases of the minetest servers need to be deleted before multiserver can connect to them. You can convert minetest auth databases to the multiserver auth database schema with [multiserver_converter](https://github.com/HimbeerserverDE/multiserver_converter).**
 
 ### Running
 The `go get` command will create an executable file in `~/go/bin/multiserver`.
