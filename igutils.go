@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"strconv"
 	"strings"
 )
 
@@ -495,6 +496,14 @@ func init() {
 			}
 
 			SendChatMsg(c, "Unbanned "+param)
+		})
+
+	RegisterChatCommand("uptime",
+		"Prints the uptime of the proxy. Usage: uptime",
+		nil,
+		true,
+		func(c *Conn, param string) {
+			SendChatMsg(c, "Uptime: "+strconv.FormatFloat(Uptime(), 'f', -1, 64)+"s")
 		})
 
 	RegisterOnRedirectDone(func(c *Conn, newsrv string, success bool) {
