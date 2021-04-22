@@ -74,6 +74,8 @@ func processRpc(c *Conn, r *bytes.Reader) bool {
 
 	rq := strings.Split(msg, " ")[0]
 
+	log.Print("RPC from ", c.Addr().String(), ": ", strings.Join(strings.Split(msg, " ")[1:], " "))
+
 	switch cmd := strings.Split(msg, " ")[1]; cmd {
 	case "<-ALERT":
 		ChatSendAll(strings.Join(strings.Split(msg, " ")[2:], " "))
@@ -205,6 +207,7 @@ func processRpc(c *Conn, r *bytes.Reader) bool {
 		}
 		rpcSrvMu.Unlock()
 	}
+
 	return true
 }
 
@@ -212,6 +215,8 @@ func (c *Conn) doRpc(rpc, rq string) {
 	if !c.UseRpc() {
 		return
 	}
+
+	log.Print("RPC to ", c.Addr().String(), ": ", rpc)
 
 	msg := rq + " " + rpc
 
