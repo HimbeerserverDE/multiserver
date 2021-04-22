@@ -61,7 +61,7 @@ func (db *DB) Exec(sql string, values ...interface{}) (sql.Result, error) {
 }
 
 // Query executes a SQL statement and stores the results
-func (db *DB) QueryRow(sql string, values []interface{}, results ...interface{}) error {
+func (db *DB) QueryRow(sql string, values ...interface{}) *sql.Row {
 	sql = strings.ReplaceAll(sql, "?", "$x")
-	return db.DB.QueryRow(sql, values...).Scan(results...)
+	return db.DB.QueryRow(sql, values...)
 }
