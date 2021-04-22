@@ -56,8 +56,8 @@ CREATE TABLE IF NOT EXISTS ban (
 );`)
 	}
 
-	psql := func(host, name, user, password string, port int) (*DB, error) {
-		return OpenPSQL(host, name, user, password, `CREATE TABLE IF NOT EXISTS auth (
+	psql := func(name, user, password, host string, port int) (*DB, error) {
+		return OpenPSQL(name, user, password, `CREATE TABLE IF NOT EXISTS auth (
 	name VARCHAR(32) PRIMARY KEY NOT NULL,
 	password VARCHAR(512) NOT NULL
 );
@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS privileges (
 CREATE TABLE IF NOT EXISTS ban (
 	addr VARCHAR(39) PRIMARY KEY NOT NULL,
 	name VARCHAR(32) NOT NULL
-);`, port)
+);`, host, port)
 	}
 
 	db, ok := ConfKey("psql_db").(string)
@@ -78,13 +78,12 @@ CREATE TABLE IF NOT EXISTS ban (
 
 	host, ok := ConfKey("psql_host").(string)
 	if !ok {
-		log.Print("PostgreSQL host not set or not a string")
-		return sqlite3()
+		host = "localhost"
 	}
 
 	port, ok := ConfKey("psql_port").(int)
 	if !ok {
-		log.Print("PostgreSQL port not set or not an integer")
+		port = 5432
 		return sqlite3()
 	}
 
@@ -100,7 +99,7 @@ CREATE TABLE IF NOT EXISTS ban (
 		return sqlite3()
 	}
 
-	return psql(host, db, user, password, port)
+	return psql(db, user, password, host, port)
 }
 
 // CreateUser creates a new entry in the authentication database

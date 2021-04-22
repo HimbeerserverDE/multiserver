@@ -38,7 +38,7 @@ func OpenSQLite3(name, initSQL string) (*DB, error) {
 }
 
 // OpenPSQL opens and returns a PostgreSQL database
-func OpenPSQL(host, name, user, password, initSQL string, port int) (*DB, error) {
+func OpenPSQL(name, user, password, initSQL, host string, port int) (*DB, error) {
 	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, name)
 
 	db, err := sql.Open("postgres", psqlconn)
