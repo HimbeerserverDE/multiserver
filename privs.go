@@ -9,7 +9,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// encodePrivs encodes priv map into DB-ready string
 func encodePrivs(privs map[string]bool) string {
 	lenP := 0
 	for priv := range privs {
@@ -34,7 +33,6 @@ func encodePrivs(privs map[string]bool) string {
 	return r
 }
 
-// decodePrivs decodes DB-ready string into priv map
 func decodePrivs(s string) map[string]bool {
 	ps := strings.Split(s, "|")
 
@@ -49,46 +47,18 @@ func decodePrivs(s string) map[string]bool {
 	return r
 }
 
-// addPrivItem inserts a priv DB entry
-func addPrivItem(db *sql.DB, name string) error {
-	_, err := db.Exec(`INSERT INTO privileges (
-		name,
-		privileges
-	) VALUES (
-		?,
-		""
-	);`, name)
-	return err
-}
-
-// modPrivItem updates a priv DB entry
-func modPrivItem(db *sql.DB, name, privs string) error {
-	_, err := db.Exec(`UPDATE privileges SET privileges = ? WHERE name = ?;`, privs, name)
-	return err
-}
-
-// readPrivItem selects and reads a priv DB entry
-func readPrivItem(db *sql.DB, name string) (string, error) {
-	var r string
-	err := db.QueryRow(`SELECT privileges FROM privileges WHERE name = ?;`, name).Scan(&r)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return "", err
-	}
-
-	return r, err
-}
-
 // Privs returns the privileges of a player
 func Privs(name string) (map[string]bool, error) {
-	db, err := initAuthDB()
+	db, err := authDB()
 	if err != nil {
 		return nil, err
 	}
 	defer db.Close()
 
-	eprivs, err := readPrivItem(db, name)
-	if err != nil {
-		return nil, err
+	var eprivs string
+	err = db.QueryRow(`SELECT privileges FROM privileges WHERE name = ?;`, name).Scan(&eprivs)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return make(map[string]bool), err
 	}
 
 	return decodePrivs(eprivs), nil
@@ -101,18 +71,20 @@ func (c *Conn) Privs() (map[string]bool, error) {
 
 // SetPrivs sets the privileges of a player
 func SetPrivs(name string, privs map[string]bool) error {
-	db, err := initAuthDB()
+	db, err := authDB()
 	if err != nil {
 		return err
 	}
 	defer db.Close()
 
-	err = modPrivItem(db, name, encodePrivs(privs))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, err = db.Exec(`REPLACE INTO privileges (
+	name,
+	priviliges
+) VALUES (
+	?,
+	?
+);`, name, encodePrivs(privs))
+	return err
 }
 
 // SetPrivs sets the privileges of a Conn

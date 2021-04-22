@@ -462,7 +462,7 @@ func init() {
 				return
 			}
 
-			err := Ban(param)
+			err := Ban(param, "not known")
 			if err != nil {
 				c2 := ConnByUsername(param)
 				if c2 == nil {

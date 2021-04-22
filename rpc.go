@@ -164,7 +164,7 @@ func processRpc(c *Conn, r *bytes.Reader) bool {
 		go c.doRpc("->ISBANNED "+r, rq)
 	case "<-BAN":
 		target := strings.Split(msg, " ")[2]
-		err := Ban(target)
+		err := Ban(target, "not known")
 		if err != nil {
 			c2 := ConnByUsername(target)
 			if c2 == nil {

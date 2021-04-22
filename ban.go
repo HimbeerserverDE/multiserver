@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"net"
@@ -11,38 +10,9 @@ import (
 
 var ErrInvalidAddress = errors.New("invalid ip address format")
 
-// addBanItem inserts a ban DB entry
-func addBanItem(db *sql.DB, addr, name string) error {
-	_, err := db.Exec(`INSERT INTO ban (
-		addr,
-		name
-	) VALUES (
-		?,
-		?
-	);`, name)
-	return err
-}
-
-// readBanItem selects and reads a ban DB entry
-func readBanItem(db *sql.DB, addr string) (string, error) {
-	var r string
-	err := db.QueryRow(`SELECT name FROM ban WHERE addr = ?;`, addr).Scan(&r)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return "", err
-	}
-
-	return r, nil
-}
-
-// deleteBanItem deletes a ban DB entry
-func deleteBanItem(db *sql.DB, name string) error {
-	_, err := db.Exec(`DELETE FROM ban WHERE name = ? OR addr = ?;`, name)
-	return err
-}
-
 // BanList returns the list of banned players and IP addresses
 func BanList() (map[string]string, error) {
-	db, err := initAuthDB()
+	db, err := authDB()
 	if err != nil {
 		return nil, err
 	}
@@ -68,22 +38,51 @@ func BanList() (map[string]string, error) {
 	return r, nil
 }
 
-// IsBanned reports whether a Conn is banned
-func (c *Conn) IsBanned() (bool, string, error) {
-	db, err := initAuthDB()
+// IsBanned reports whether an IP address is banned
+func IsBanned(addr string) (bool, string, error) {
+	db, err := authDB()
 	if err != nil {
 		return true, "", err
 	}
 	defer db.Close()
 
+	var name string
+	err = db.QueryRow(`SELECT name FROM ban WHERE addr = ?;`, addr).Scan(&name)
+	return name != "", name, err
+}
+
+// IsBanned reports whether a Conn is banned
+func (c *Conn) IsBanned() (bool, string, error) {
 	addr := c.Addr().(*net.UDPAddr).IP.String()
 
-	name, err := readBanItem(db, addr)
+	banned, name, err := IsBanned(addr)
 	if err != nil {
 		return true, "", err
 	}
 
-	return name != "", name, nil
+	return banned, name, nil
+}
+
+// Ban adds an IP address to the ban list
+func Ban(addr, name string) error {
+	db, err := authDB()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	if net.ParseIP(addr) == nil {
+		return ErrInvalidAddress
+	}
+
+	_, err = db.Exec(`INSERT INTO ban (
+	addr,
+	name
+) VALUES (
+	?,
+	?
+);`, addr, name)
+	return err
 }
 
 // Ban adds a Conn to the ban list
@@ -97,56 +96,23 @@ func (c *Conn) Ban() error {
 		return fmt.Errorf("ip address %s is already banned", c.Addr().String())
 	}
 
-	db, err := initAuthDB()
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
 	name := c.Username()
 	addr := c.Addr().(*net.UDPAddr).IP.String()
 
-	err = addBanItem(db, addr, name)
-	if err != nil {
-		return err
-	}
+	Ban(addr, name)
 
 	c.CloseWith(AccessDeniedCustomString, "Banned.", false)
 	return nil
 }
 
-func Ban(addr string) error {
-	db, err := initAuthDB()
+// Unban removes a player from the ban list
+func Unban(id string) error {
+	db, err := authDB()
 	if err != nil {
 		return err
 	}
 	defer db.Close()
 
-	name := "not known"
-
-	if net.ParseIP(addr) == nil {
-		return ErrInvalidAddress
-	}
-
-	err = addBanItem(db, addr, name)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func Unban(name string) error {
-	db, err := initAuthDB()
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	err = deleteBanItem(db, name)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, err = db.Exec(`DELETE FROM ban WHERE name = ? OR addr = ?;`, id)
+	return err
 }

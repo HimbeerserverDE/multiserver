@@ -3,33 +3,37 @@ package main
 import (
 	"database/sql"
 	"errors"
-	"os"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func initStorageDB() (*sql.DB, error) {
-	os.Mkdir("storage", 0777)
+func storageDB() (*DB, error) {
+	return OpenSQLite3("storage.sqlite", `CREATE TABLE IF NOT EXISTS storage (
+	key VARCHAR(512) PRIMARY KEY NOT NULL,
+	value VARCHAR(512) NOT NULL
+);`)
+}
 
-	db, err := sql.Open("sqlite3", "storage/storage.sqlite")
+// StorageKey returns an entry from the storage database
+func StorageKey(key string) (string, error) {
+	db, err := storageDB()
 	if err != nil {
-		return nil, err
+		return "", err
+	}
+	defer db.Close()
+
+	var r string
+	err = db.QueryRow(`SELECT value FROM storage WHERE key = ?;`, key).Scan(&r)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return "", err
 	}
 
-	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS storage (
-		key VARCHAR(512) PRIMARY KEY NOT NULL,
-		value VARCHAR(512) NOT NULL
-	);`); err != nil {
-		db.Close()
-		return nil, err
-	}
-
-	return db, nil
+	return r, nil
 }
 
 // SetStorageKey sets an entry in the storage database
 func SetStorageKey(key, value string) error {
-	db, err := initStorageDB()
+	db, err := storageDB()
 	if err != nil {
 		return err
 	}
@@ -47,21 +51,4 @@ func SetStorageKey(key, value string) error {
 		);`, key, value)
 	}
 	return err
-}
-
-// StorageKey returns an entry from the storage database
-func StorageKey(key string) (string, error) {
-	db, err := initStorageDB()
-	if err != nil {
-		return "", err
-	}
-	defer db.Close()
-
-	var r string
-	err = db.QueryRow(`SELECT value FROM storage WHERE key = ?;`, key).Scan(&r)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return "", err
-	}
-
-	return r, nil
 }
