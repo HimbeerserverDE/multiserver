@@ -91,7 +91,7 @@ func init() {
 
 			c2 := ConnByUsername(name)
 			if c2 == nil {
-				SendChatMsg(c, name+" is not online.")
+				SendChatMsg(c, name+" is not online")
 				return
 			}
 
@@ -234,7 +234,7 @@ func init() {
 				allow, err := c.CheckPrivs(reqprivs)
 				if err != nil {
 					log.Print(err)
-					c.SendChatMsg("An internal error occured while attempting to check your privileges.")
+					c.SendChatMsg("An internal error occured while attempting to check your privileges")
 					return
 				}
 
@@ -244,7 +244,7 @@ func init() {
 				}
 
 				go c.Redirect(param)
-				c.SendChatMsg("Redirecting you to " + param + ".")
+				c.SendChatMsg("Redirecting you to " + param)
 			}
 		})
 
@@ -260,10 +260,10 @@ func init() {
 
 			c2 := ConnByUsername(param)
 			if c2 == nil {
-				SendChatMsg(c, param+" is not online.")
+				SendChatMsg(c, param+" is not online")
 			} else {
 				srv := c2.ServerName()
-				SendChatMsg(c, param+" is connected to server "+srv+".")
+				SendChatMsg(c, param+" is connected to server "+srv)
 			}
 		})
 
@@ -279,7 +279,7 @@ func init() {
 
 			c2 := ConnByUsername(param)
 			if c2 == nil {
-				SendChatMsg(c, param+" is not online.")
+				SendChatMsg(c, param+" is not online")
 			} else {
 				SendChatMsg(c, param+"'s address is "+c2.Addr().String())
 			}
@@ -317,7 +317,7 @@ func init() {
 			privs, err := Privs(name)
 			if err != nil {
 				log.Print(err)
-				SendChatMsg(c, "An internal error occured while attempting to get the privileges.")
+				SendChatMsg(c, "An internal error occured while attempting to get the privileges")
 				return
 			}
 
@@ -350,7 +350,7 @@ func init() {
 			privs, err := Privs(name)
 			if err != nil {
 				log.Print(err)
-				SendChatMsg(c, "An internal error occured while attempting to get the privileges.")
+				SendChatMsg(c, "An internal error occured while attempting to get the privileges")
 				return
 			}
 
@@ -362,11 +362,11 @@ func init() {
 			err = SetPrivs(name, privs)
 			if err != nil {
 				log.Print(err)
-				SendChatMsg(c, "An internal error occured while attempting to set the privileges.")
+				SendChatMsg(c, "An internal error occured while attempting to set the privileges")
 				return
 			}
 
-			SendChatMsg(c, "Privileges updated.")
+			SendChatMsg(c, "Privileges updated")
 		})
 
 	RegisterChatCommand("revoke",
@@ -393,7 +393,7 @@ func init() {
 			privs, err := Privs(name)
 			if err != nil {
 				log.Print(err)
-				SendChatMsg(c, "An internal error occured while attempting to get the privileges.")
+				SendChatMsg(c, "An internal error occured while attempting to get the privileges")
 				return
 			}
 
@@ -405,11 +405,11 @@ func init() {
 			err = SetPrivs(name, privs)
 			if err != nil {
 				log.Print(err)
-				SendChatMsg(c, "An internal error occured while attempting to set the privileges.")
+				SendChatMsg(c, "An internal error occured while attempting to set the privileges")
 				return
 			}
 
-			SendChatMsg(c, "Privileges updated.")
+			SendChatMsg(c, "Privileges updated")
 		})
 
 	RegisterChatCommand("banlist",
@@ -419,7 +419,7 @@ func init() {
 		func(c *Conn, param string) {
 			bans, err := BanList()
 			if err != nil {
-				SendChatMsg(c, "An internal error occured while attempting to read the ban list.")
+				SendChatMsg(c, "An internal error occured while attempting to read the ban list")
 				return
 			}
 
@@ -448,7 +448,7 @@ func init() {
 				c2.CloseWith(AccessDeniedCustomString, r, false)
 				SendChatMsg(c, "Kicked "+name)
 			} else {
-				SendChatMsg(c, name+" is not online.")
+				SendChatMsg(c, name+" is not online")
 			}
 		})
 
@@ -466,12 +466,12 @@ func init() {
 			if err != nil {
 				c2 := ConnByUsername(param)
 				if c2 == nil {
-					SendChatMsg(c, param+" is not online.")
+					SendChatMsg(c, param+" is not online")
 					return
 				}
 
 				if err := c2.Ban(); err != nil {
-					SendChatMsg(c, "An internal error occured while attempting to ban the player.")
+					SendChatMsg(c, "An internal error occured while attempting to ban the player")
 					return
 				}
 			}
@@ -490,7 +490,7 @@ func init() {
 			}
 
 			if err := Unban(param); err != nil {
-				SendChatMsg(c, "An internal error occured while attempting to unban the player.")
+				SendChatMsg(c, "An internal error occured while attempting to unban the player")
 				return
 			}
 
