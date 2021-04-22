@@ -1,8 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/tncardoso/gocurses"
 )
@@ -34,8 +37,18 @@ func newLogger() *Logger {
 }
 
 func (l *Logger) Write(p []byte) (int, error) {
-	row, _ := gocurses.Getmaxyx()
-	l.visible = appendPop(row-1, l.visible, string(p))
+	rows, _ := gocurses.Getmaxyx()
+
+	for i, line := range strings.Split(string(p)[:len(p)-1], "\n") {
+		if i > 0 {
+			t := time.Now()
+			date := fmt.Sprintf("%.4d/%.2d/%.2d %.2d:%.2d:%.2d", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
+
+			line = date + " " + line
+		}
+		l.visible = appendPop(rows-1, l.visible, line)
+	}
+
 	draw(l.visible)
 
 	l.all = append(l.all, p...)
