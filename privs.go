@@ -56,7 +56,7 @@ func Privs(name string) (map[string]bool, error) {
 	defer db.Close()
 
 	var eprivs string
-	err = db.QueryRow(`SELECT privileges FROM privileges WHERE name = ?;`, name).Scan(&eprivs)
+	err = db.QueryRow(`SELECT privileges FROM privileges WHERE name = $1;`, name).Scan(&eprivs)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return make(map[string]bool), err
 	}
@@ -77,13 +77,15 @@ func SetPrivs(name string, privs map[string]bool) error {
 	}
 	defer db.Close()
 
-	_, err = db.Exec(`REPLACE INTO privileges (
+	_, err = db.Exec(`INSERT INTO privileges (
 	name,
 	privileges
 ) VALUES (
-	?,
-	?
+	$1,
+	$2
 );`, name, encodePrivs(privs))
+	_, err = db.Exec(`UPDATE privileges SET privileges = $1 WHERE name = $2;`, encodePrivs(privs), name)
+
 	return err
 }
 

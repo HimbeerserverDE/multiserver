@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"strings"
+	"regexp"
 
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
@@ -65,16 +65,26 @@ func (db *DB) Type() int { return db.dbType }
 
 // Exec executes a SQL statement
 func (db *DB) Exec(sql string, values ...interface{}) (sql.Result, error) {
-	if db.Type() == DBTypePSQL {
-		sql = strings.ReplaceAll(sql, "?", "$x")
+	if db.Type() == DBTypeSQLite3 {
+		r, err := regexp.Compile("\\$+[0-9]")
+		if err != nil {
+			return nil, err
+		}
+
+		sql = r.ReplaceAllString(sql, "?")
 	}
 	return db.DB.Exec(sql, values...)
 }
 
-// Query executes a SQL statement and stores the results
+// QueryRow executes a SQL statement and stores the results
 func (db *DB) QueryRow(sql string, values ...interface{}) *sql.Row {
-	if db.Type() == DBTypePSQL {
-		sql = strings.ReplaceAll(sql, "?", "$x")
+	if db.Type() == DBTypeSQLite3 {
+		r, err := regexp.Compile("\\$+[0-9]")
+		if err != nil {
+			return nil
+		}
+
+		sql = r.ReplaceAllString(sql, "?")
 	}
 	return db.DB.QueryRow(sql, values...)
 }

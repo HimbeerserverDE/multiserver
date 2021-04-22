@@ -117,8 +117,8 @@ func CreateUser(name string, verifier, salt []byte) error {
 	name,
 	password
 ) VALUES (
-	?,
-	?
+	$1,
+	$2
 );`, name, pwd)
 	return err
 }
@@ -132,9 +132,13 @@ func Password(name string) ([]byte, []byte, error) {
 	defer db.Close()
 
 	var pwd string
-	err = db.QueryRow(`SELECT password FROM auth WHERE name = ?;`, name).Scan(&pwd)
+	err = db.QueryRow(`SELECT password FROM auth WHERE name = $1;`, name).Scan(&pwd)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, nil, err
+	}
+
+	if pwd == "" {
+		return nil, nil, nil
 	}
 
 	salt, verifier, err := decodeVerifierAndSalt(pwd)
@@ -151,7 +155,7 @@ func SetPassword(name string, verifier, salt []byte) error {
 
 	pwd := encodeVerifierAndSalt(salt, verifier)
 
-	_, err = db.Exec(`UPDATE auth SET password = ? WHERE name = ?;`, pwd, name)
+	_, err = db.Exec(`UPDATE auth SET password = $1 WHERE name = $2;`, pwd, name)
 	return err
 }
 

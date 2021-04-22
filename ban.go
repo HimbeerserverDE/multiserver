@@ -48,7 +48,7 @@ func IsBanned(addr string) (bool, string, error) {
 	defer db.Close()
 
 	var name string
-	err = db.QueryRow(`SELECT name FROM ban WHERE addr = ?;`, addr).Scan(&name)
+	err = db.QueryRow(`SELECT name FROM ban WHERE addr = $1;`, addr).Scan(&name)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return true, "", err
 	}
@@ -84,8 +84,8 @@ func Ban(addr, name string) error {
 	addr,
 	name
 ) VALUES (
-	?,
-	?
+	$1,
+	$2
 );`, addr, name)
 	return err
 }
@@ -118,6 +118,6 @@ func Unban(id string) error {
 	}
 	defer db.Close()
 
-	_, err = db.Exec(`DELETE FROM ban WHERE name = ? OR addr = ?;`, id, id)
+	_, err = db.Exec(`DELETE FROM ban WHERE name = $1 OR addr = $2;`, id, id)
 	return err
 }
