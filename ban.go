@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"net"
@@ -48,7 +49,11 @@ func IsBanned(addr string) (bool, string, error) {
 
 	var name string
 	err = db.QueryRow(`SELECT name FROM ban WHERE addr = ?;`, addr).Scan(&name)
-	return name != "", name, err
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return true, "", err
+	}
+
+	return name != "", name, nil
 }
 
 // IsBanned reports whether a Conn is banned
@@ -113,6 +118,6 @@ func Unban(id string) error {
 	}
 	defer db.Close()
 
-	_, err = db.Exec(`DELETE FROM ban WHERE name = ? OR addr = ?;`, id)
+	_, err = db.Exec(`DELETE FROM ban WHERE name = ? OR addr = ?;`, id, id)
 	return err
 }

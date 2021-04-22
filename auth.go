@@ -2,7 +2,9 @@ package main
 
 import (
 	"crypto/rand"
+	"database/sql"
 	"encoding/base64"
+	"errors"
 	"log"
 	"strings"
 
@@ -130,7 +132,8 @@ func Password(name string) ([]byte, []byte, error) {
 	defer db.Close()
 
 	var pwd string
-	if err = db.QueryRow(`SELECT password FROM auth WHERE name = ?;`, name).Scan(&pwd); err != nil {
+	err = db.QueryRow(`SELECT password FROM auth WHERE name = ?;`, name).Scan(&pwd)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, nil, err
 	}
 

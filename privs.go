@@ -79,7 +79,7 @@ func SetPrivs(name string, privs map[string]bool) error {
 
 	_, err = db.Exec(`REPLACE INTO privileges (
 	name,
-	priviliges
+	privileges
 ) VALUES (
 	?,
 	?

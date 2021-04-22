@@ -326,21 +326,7 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 				s := ReadBytes16(r)
 				v := ReadBytes16(r)
 
-				pwd := encodeVerifierAndSalt(s, v)
-
-				db, err := initAuthDB()
-				if err != nil {
-					log.Print(err)
-					return true
-				}
-
-				err = modAuthItem(db, src.Username(), pwd)
-				if err != nil {
-					log.Print(err)
-					return true
-				}
-
-				db.Close()
+				SetPassword(src.Username(), v, s)
 			} else {
 				log.Print("User " + src.Username() + " at " + src.Addr().String() + " did not enter sudo mode before attempting to change the password")
 			}
@@ -350,21 +336,7 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 			if !src.sudoMode {
 				A := ReadBytes16(r)
 
-				db, err := initAuthDB()
-				if err != nil {
-					log.Print(err)
-					return true
-				}
-
-				pwd, err := readAuthItem(db, src.Username())
-				if err != nil {
-					log.Print(err)
-					return true
-				}
-
-				db.Close()
-
-				s, v, err := decodeVerifierAndSalt(pwd)
+				v, s, err := Password(src.Username())
 				if err != nil {
 					log.Print(err)
 					return true

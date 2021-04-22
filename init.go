@@ -348,21 +348,13 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 					return
 				}
 
-				db, err := initAuthDB()
+				v, s, err := Password(c2.Username())
 				if err != nil {
 					log.Print(err)
 					continue
 				}
 
-				pwd, err := readAuthItem(db, c2.Username())
-				if err != nil {
-					log.Print(err)
-					continue
-				}
-
-				db.Close()
-
-				if pwd == "" {
+				if v == nil || s == nil {
 					// New player
 					c2.authMech = AuthMechFirstSRP
 					binary.BigEndian.PutUint32(data[7:11], uint32(AuthMechFirstSRP))
@@ -408,27 +400,10 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 					return
 				}
 
-				pwd := encodeVerifierAndSalt(s, v)
-
-				db, err := initAuthDB()
-				if err != nil {
+				if err := CreateUser(c2.Username(), v, s); err != nil {
 					log.Print(err)
 					continue
 				}
-
-				err = addAuthItem(db, c2.Username(), pwd)
-				if err != nil {
-					log.Print(err)
-					continue
-				}
-
-				err = addPrivItem(db, c2.Username())
-				if err != nil {
-					log.Print(err)
-					continue
-				}
-
-				db.Close()
 
 				// Send AUTH_ACCEPT
 				data := []byte{
@@ -464,21 +439,7 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 
 				A := ReadBytes16(r)
 
-				db, err := initAuthDB()
-				if err != nil {
-					log.Print(err)
-					continue
-				}
-
-				pwd, err := readAuthItem(db, c2.Username())
-				if err != nil {
-					log.Print(err)
-					continue
-				}
-
-				db.Close()
-
-				s, v, err := decodeVerifierAndSalt(pwd)
+				v, s, err := Password(c2.Username())
 				if err != nil {
 					log.Print(err)
 					continue

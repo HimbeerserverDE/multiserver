@@ -10,8 +10,14 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+const (
+	DBTypeSQLite3 = iota
+	DBTypePSQL
+)
+
 type DB struct {
 	*sql.DB
+	dbType int
 }
 
 // OpenSQLite3 opens and returns a SQLite3 database
@@ -28,7 +34,7 @@ func OpenSQLite3(name, initSQL string) (*DB, error) {
 		return nil, err
 	}
 
-	return &DB{DB: db}, nil
+	return &DB{DB: db, dbType: DBTypeSQLite3}, nil
 }
 
 // OpenPSQL opens and returns a PostgreSQL database
@@ -51,17 +57,24 @@ func OpenPSQL(host, name, user, password, initSQL string, port int) (*DB, error)
 		return nil, err
 	}
 
-	return &DB{DB: db}, nil
+	return &DB{DB: db, dbType: DBTypePSQL}, nil
 }
+
+// Type returns the type of database that is being interacted with
+func (db *DB) Type() int { return db.dbType }
 
 // Exec executes a SQL statement
 func (db *DB) Exec(sql string, values ...interface{}) (sql.Result, error) {
-	sql = strings.ReplaceAll(sql, "?", "$x")
-	return db.DB.Exec(sql, values)
+	if db.Type() == DBTypePSQL {
+		sql = strings.ReplaceAll(sql, "?", "$x")
+	}
+	return db.DB.Exec(sql, values...)
 }
 
 // Query executes a SQL statement and stores the results
 func (db *DB) QueryRow(sql string, values ...interface{}) *sql.Row {
-	sql = strings.ReplaceAll(sql, "?", "$x")
+	if db.Type() == DBTypePSQL {
+		sql = strings.ReplaceAll(sql, "?", "$x")
+	}
 	return db.DB.QueryRow(sql, values...)
 }

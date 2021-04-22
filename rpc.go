@@ -139,25 +139,19 @@ func processRpc(c *Conn, r *bytes.Reader) bool {
 		}
 		go c.doRpc("->ADDR "+addr, rq)
 	case "<-ISBANNED":
-		db, err := initAuthDB()
-		if err != nil {
-			return true
-		}
-		defer db.Close()
-
 		target := strings.Split(msg, " ")[2]
 
 		if net.ParseIP(target) == nil {
 			return true
 		}
 
-		name, err := readBanItem(db, target)
+		banned, _, err := IsBanned(target)
 		if err != nil {
 			return true
 		}
 
 		r := "false"
-		if name != "" {
+		if banned {
 			r = "true"
 		}
 
