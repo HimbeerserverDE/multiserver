@@ -10,6 +10,7 @@ import (
 )
 
 var consoleInput []rune
+var cursorPos int
 
 func draw(msgs []string) {
 	prompt, ok := ConfKey("console_prompt").(string)
@@ -32,6 +33,11 @@ func draw(msgs []string) {
 		i--
 	}
 	gocurses.Mvaddstr(row-i-1, 0, prompt+string(consoleInput))
+
+	if cursorPos >= len(consoleInput) {
+		cursorPos = len(consoleInput)
+	}
+	gocurses.Mvaddstr(row-i-1, len(prompt)+len(string(consoleInput))-cursorPos, "")
 
 	gocurses.Refresh()
 }
@@ -101,12 +107,16 @@ func initCurses(l *Logger) {
 
 		for {
 			var ch rune
-			ch1 := gocurses.Stdscr.Getch() % 255
-			if ch1 > 0x7F {
-				ch2 := gocurses.Stdscr.Getch()
+			ch1 := gocurses.Getch()
+			if ch1%255 > 0x7F {
+				ch2 := gocurses.Getch()
 				ch, _ = utf8.DecodeRune([]byte{byte(ch1), byte(ch2)})
 			} else {
-				ch = rune(ch1)
+				if ch1 != 3 && ch1 != 4 && ch1 != 5 && ch1 != 6 && ch1 != 339 && ch1 != 338 {
+					ch = rune(ch1 % 255)
+				} else {
+					ch = rune(ch1)
+				}
 			}
 
 			switch ch {
@@ -115,6 +125,16 @@ func initCurses(l *Logger) {
 			case 4:
 				consoleInput = h.Prev(consoleInput)
 			case 5:
+				cursorPos += 1
+				if cursorPos > len(consoleInput) {
+					cursorPos = len(consoleInput)
+				}
+			case 6:
+				cursorPos -= 1
+				if cursorPos < 0 {
+					cursorPos = 0
+				}
+			case 339:
 				rows, _ := gocurses.Getmaxyx()
 				start := len(l.lines) - rows + 1 - l.offset
 				if start < 0 {
@@ -127,14 +147,18 @@ func initCurses(l *Logger) {
 						l.offset = len(l.lines) - 1
 					}
 				}
-			case 6:
+			case 338:
 				l.offset -= 1
 				if l.offset < 0 {
 					l.offset = 0
 				}
 			case '\b':
 				if len(consoleInput) > 0 {
-					consoleInput = consoleInput[:len(consoleInput)-1]
+					if cursorPos > 0 {
+						consoleInput = append(consoleInput[:len(consoleInput)-cursorPos-1], consoleInput[len(consoleInput)-cursorPos:]...)
+					} else {
+						consoleInput = consoleInput[:len(consoleInput)-1]
+					}
 				}
 			case '\t':
 				if strings.Count(string(consoleInput), " ") > 0 {
@@ -159,7 +183,11 @@ func initCurses(l *Logger) {
 
 				chatCommands[params[0]].function(nil, strings.Join(params[1:], " "))
 			default:
-				consoleInput = append(consoleInput, ch)
+				if cursorPos > 0 {
+					consoleInput = append(consoleInput[:len(consoleInput)-cursorPos], append([]rune{ch}, consoleInput[len(consoleInput)-cursorPos:]...)...)
+				} else {
+					consoleInput = append(consoleInput, ch)
+				}
 			}
 
 			rows, _ := gocurses.Getmaxyx()
