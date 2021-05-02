@@ -21,18 +21,17 @@ func End(crash, reconnect bool) {
 		clt.CloseWith(reason, "", reconnect)
 	}
 
+	time.Sleep(time.Second)
+
 	rpcSrvMu.Lock()
 	for srv := range rpcSrvs {
 		srv.Close()
 	}
 	rpcSrvMu.Unlock()
 
-	time.Sleep(time.Second)
-
 	Announce(AnnounceDelete)
 
 	log.Writer().(*Logger).Close()
-
 	gocurses.End()
 
 	if crash {
