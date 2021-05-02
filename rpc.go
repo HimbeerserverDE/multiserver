@@ -35,7 +35,7 @@ const (
 var rpcSrvMu sync.Mutex
 var rpcSrvs map[*Conn]struct{}
 
-func (c *Conn) joinRpc() {
+func (c *Conn) joinRPC() {
 	data := make([]byte, 4+len(rpcCh))
 	data[0] = uint8(0x00)
 	data[1] = uint8(ToServerModChannelJoin)
@@ -49,7 +49,7 @@ func (c *Conn) joinRpc() {
 	<-ack
 }
 
-func (c *Conn) leaveRpc() {
+func (c *Conn) leaveRPC() {
 	data := make([]byte, 4+len(rpcCh))
 	data[0] = uint8(0x00)
 	data[1] = uint8(ToServerModChannelLeave)
@@ -63,7 +63,7 @@ func (c *Conn) leaveRpc() {
 	<-ack
 }
 
-func processRpc(c *Conn, r *bytes.Reader) bool {
+func processRPC(c *Conn, r *bytes.Reader) bool {
 	ch := string(ReadBytes16(r))
 	sender := string(ReadBytes16(r))
 	msg := string(ReadBytes16(r))
@@ -84,16 +84,16 @@ func processRpc(c *Conn, r *bytes.Reader) bool {
 		if !ok {
 			return true
 		}
-		go c.doRpc("->DEFSRV "+defsrv, rq)
+		go c.doRPC("->DEFSRV "+defsrv, rq)
 	case "<-GETPEERCNT":
 		cnt := strconv.Itoa(ConnCount())
-		go c.doRpc("->PEERCNT "+cnt, rq)
+		go c.doRPC("->PEERCNT "+cnt, rq)
 	case "<-ISONLINE":
 		online := "false"
 		if IsOnline(strings.Join(strings.Split(msg, " ")[2:], " ")) {
 			online = "true"
 		}
-		go c.doRpc("->ISONLINE "+online, rq)
+		go c.doRPC("->ISONLINE "+online, rq)
 	case "<-CHECKPRIVS":
 		name := strings.Split(msg, " ")[2]
 		privs := decodePrivs(strings.Join(strings.Split(msg, " ")[3:], " "))
@@ -104,7 +104,7 @@ func processRpc(c *Conn, r *bytes.Reader) bool {
 			hasprivs = "true"
 		}
 
-		go c.doRpc("->HASPRIVS "+hasprivs, rq)
+		go c.doRPC("->HASPRIVS "+hasprivs, rq)
 	case "<-GETPRIVS":
 		name := strings.Split(msg, " ")[2]
 		var r string
@@ -114,7 +114,7 @@ func processRpc(c *Conn, r *bytes.Reader) bool {
 			r = strings.Replace(encodePrivs(privs), "|", ",", -1)
 		}
 
-		go c.doRpc("->PRIVS "+r, rq)
+		go c.doRPC("->PRIVS "+r, rq)
 	case "<-SETPRIVS":
 		name := strings.Split(msg, " ")[2]
 		privs := decodePrivs(strings.Join(strings.Split(msg, " ")[3:], " "))
@@ -126,7 +126,7 @@ func processRpc(c *Conn, r *bytes.Reader) bool {
 		if IsOnline(name) {
 			srv = ConnByUsername(name).ServerName()
 		}
-		go c.doRpc("->SRV "+srv, rq)
+		go c.doRPC("->SRV "+srv, rq)
 	case "<-REDIRECT":
 		name := strings.Split(msg, " ")[2]
 		tosrv := strings.Split(msg, " ")[3]
@@ -139,7 +139,7 @@ func processRpc(c *Conn, r *bytes.Reader) bool {
 		if IsOnline(name) {
 			addr = ConnByUsername(name).Addr().String()
 		}
-		go c.doRpc("->ADDR "+addr, rq)
+		go c.doRPC("->ADDR "+addr, rq)
 	case "<-ISBANNED":
 		target := strings.Split(msg, " ")[2]
 
@@ -157,7 +157,7 @@ func processRpc(c *Conn, r *bytes.Reader) bool {
 			r = "true"
 		}
 
-		go c.doRpc("->ISBANNED "+r, rq)
+		go c.doRPC("->ISBANNED "+r, rq)
 	case "<-BAN":
 		target := strings.Split(msg, " ")[2]
 		err := Ban(target, "not known")
@@ -181,13 +181,13 @@ func processRpc(c *Conn, r *bytes.Reader) bool {
 		}
 		srvs = srvs[:len(srvs)-1]
 
-		go c.doRpc("->SRVS "+srvs, rq)
+		go c.doRPC("->SRVS "+srvs, rq)
 	case "<-MT2MT":
 		msg := strings.Join(strings.Split(msg, " ")[2:], " ")
 		rpcSrvMu.Lock()
 		for srv := range rpcSrvs {
 			if srv.Addr().String() != c.Addr().String() {
-				go srv.doRpc("->MT2MT true "+msg, "--")
+				go srv.doRPC("->MT2MT true "+msg, "--")
 			}
 		}
 		rpcSrvMu.Unlock()
@@ -202,7 +202,7 @@ func processRpc(c *Conn, r *bytes.Reader) bool {
 		rpcSrvMu.Lock()
 		for srv := range rpcSrvs {
 			if srv.Addr().String() == addr {
-				go srv.doRpc("->MT2MT false "+msg, "--")
+				go srv.doRPC("->MT2MT false "+msg, "--")
 			}
 		}
 		rpcSrvMu.Unlock()
@@ -211,8 +211,8 @@ func processRpc(c *Conn, r *bytes.Reader) bool {
 	return true
 }
 
-func (c *Conn) doRpc(rpc, rq string) {
-	if !c.UseRpc() {
+func (c *Conn) doRPC(rpc, rq string) {
+	if !c.UseRPC() {
 		return
 	}
 
@@ -230,7 +230,7 @@ func (c *Conn) doRpc(rpc, rq string) {
 	}
 }
 
-func connectRpc() {
+func connectRPC() {
 	log.Print("Establishing RPC connections")
 
 	servers := ConfKey("servers").(map[interface{}]interface{})
@@ -267,14 +267,14 @@ func connectRpc() {
 			rpcSrvs[srv] = struct{}{}
 			rpcSrvMu.Unlock()
 
-			go srv.joinRpc()
-			go handleRpc(srv)
+			go srv.joinRPC()
+			go handleRPC(srv)
 		}()
 	}
 }
 
-func handleRpc(srv *Conn) {
-	srv.MakeRpcOnly()
+func handleRPC(srv *Conn) {
+	srv.MakeRPCOnly()
 	for {
 		pkt, err := srv.Recv()
 		if err != nil {
@@ -303,15 +303,15 @@ func handleRpc(srv *Conn) {
 
 				switch sig := ReadUint8(r); sig {
 				case ModChSigJoinOk:
-					srv.SetUseRpc(true)
+					srv.SetUseRPC(true)
 				case ModChSigSetState:
 					if state == ModChStateRO {
-						srv.SetUseRpc(false)
+						srv.SetUseRPC(false)
 					}
 				}
 			}
 		case ToClientModChannelMSG:
-			processRpc(srv, r)
+			processRPC(srv, r)
 		}
 	}
 }
@@ -327,18 +327,18 @@ ServerLoop:
 				continue
 			}
 			if c2.Server().Addr().String() == c.Addr().String() {
-				if c.NoClt() {
+				if c.NoCLT() {
 					c.Close()
 				} else {
-					c.SetUseRpc(false)
-					c.leaveRpc()
+					c.SetUseRPC(false)
+					c.leaveRPC()
 				}
 
 				delete(rpcSrvs, c)
 
 				c3 := c2.Server()
-				c3.SetUseRpc(true)
-				c3.joinRpc()
+				c3.SetUseRPC(true)
+				c3.joinRPC()
 
 				rpcSrvs[c3] = struct{}{}
 
@@ -358,10 +358,10 @@ ServerLoop:
 		}
 	}
 
-	go reconnectRpc(false)
+	go reconnectRPC(false)
 }
 
-func reconnectRpc(media bool) {
+func reconnectRPC(media bool) {
 	servers := ConfKey("servers").(map[interface{}]interface{})
 ServerLoop:
 	for server := range servers {
@@ -412,8 +412,8 @@ ServerLoop:
 			rpcSrvs[srv] = struct{}{}
 			rpcSrvMu.Unlock()
 
-			go srv.joinRpc()
-			go handleRpc(srv)
+			go srv.joinRPC()
+			go handleRPC(srv)
 		}()
 	}
 }
@@ -428,7 +428,7 @@ func init() {
 		reconnect = 600
 	}
 
-	connectRpc()
+	connectRPC()
 
 	go func() {
 		reconnect := time.NewTicker(time.Duration(reconnect) * time.Second)
@@ -436,7 +436,7 @@ func init() {
 			select {
 			case <-reconnect.C:
 				log.Print("Reintegrating servers")
-				reconnectRpc(true)
+				reconnectRPC(true)
 			}
 		}
 	}()

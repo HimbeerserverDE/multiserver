@@ -35,7 +35,7 @@ func processJoin(c *Conn) {
 
 	rpcSrvMu.Lock()
 	for srv := range rpcSrvs {
-		srv.doRpc("->JOIN "+c.Username()+" "+cltSrv, "--")
+		srv.doRPC("->JOIN "+c.Username()+" "+cltSrv, "--")
 	}
 	rpcSrvMu.Unlock()
 
@@ -53,7 +53,7 @@ func processLeave(c *Conn) {
 
 	rpcSrvMu.Lock()
 	for srv := range rpcSrvs {
-		srv.doRpc("->LEAVE "+c.Username(), "--")
+		srv.doRPC("->LEAVE "+c.Username(), "--")
 	}
 	rpcSrvMu.Unlock()
 

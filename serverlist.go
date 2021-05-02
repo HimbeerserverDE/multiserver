@@ -17,6 +17,8 @@ const (
 	AnnounceDelete = "delete"
 )
 
+const verString = "multiserver v1.13.3"
+
 func Announce(action string) error {
 	listsrv, ok := ConfKey("serverlist_url").(string)
 	if !ok {
@@ -76,7 +78,7 @@ func Announce(action string) error {
 	if action != AnnounceDelete {
 		data["name"] = conf("serverlist_name")
 		data["description"] = conf("serverlist_desc")
-		data["version"] = "multiserver v1.13.2"
+		data["version"] = verString
 		data["proto_min"] = ProtoMin
 		data["proto_max"] = ProtoLatest
 		data["url"] = conf("serverlist_display_url")

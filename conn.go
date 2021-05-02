@@ -42,9 +42,9 @@ type Conn struct {
 	localPlayerCao   uint16
 	currentPlayerCao uint16
 
-	useRpcMu sync.RWMutex
-	useRpc   bool
-	noClt    bool
+	useRPCMu sync.RWMutex
+	useRPC   bool
+	noCLT    bool
 	modChs   map[string]bool
 
 	huds   map[uint32]bool
@@ -115,28 +115,28 @@ func (c *Conn) SetServer(s *Conn) {
 	c.srv = s
 }
 
-// UseRpc reports whether RPC messages can be sent to the Conn
-func (c *Conn) UseRpc() bool {
-	c.useRpcMu.RLock()
-	defer c.useRpcMu.RUnlock()
+// UseRPC reports whether RPC messages can be sent to the Conn
+func (c *Conn) UseRPC() bool {
+	c.useRPCMu.RLock()
+	defer c.useRPCMu.RUnlock()
 
-	return c.useRpc
+	return c.useRPC
 }
 
-// SetUseRpc sets the value returned by UseRpc
-func (c *Conn) SetUseRpc(useRpc bool) {
-	c.useRpcMu.Lock()
-	defer c.useRpcMu.Unlock()
+// SetUseRPC sets the value returned by UseRPC
+func (c *Conn) SetUseRPC(useRPC bool) {
+	c.useRPCMu.Lock()
+	defer c.useRPCMu.Unlock()
 
-	c.useRpc = useRpc
+	c.useRPC = useRPC
 }
 
-// NoClt reports whether the Conn is RPC-only
-func (c *Conn) NoClt() bool { return c.noClt }
+// NoCLT reports whether the Conn is RPC-only
+func (c *Conn) NoCLT() bool { return c.noCLT }
 
-// MakeRpcOnly marks the Conn as RPC-only
-func (c *Conn) MakeRpcOnly() {
-	c.noClt = true
+// MakeRPCOnly marks the Conn as RPC-only
+func (c *Conn) MakeRPCOnly() {
+	c.noCLT = true
 }
 
 // Inv returns the inventory of the Conn

@@ -157,10 +157,10 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 			if ch == rpcCh {
 				switch sig := ReadUint8(r); sig {
 				case ModChSigJoinOk:
-					src.SetUseRpc(true)
+					src.SetUseRPC(true)
 				case ModChSigSetState:
 					if state == ModChStateRO {
-						src.SetUseRpc(false)
+						src.SetUseRPC(false)
 					}
 				}
 				return true
@@ -168,7 +168,7 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 
 			return false
 		case ToClientModChannelMSG:
-			return processRpc(src, r)
+			return processRPC(src, r)
 		case ToClientBlockdata:
 			data, drop := processBlockdata(dst, r)
 			if drop {
