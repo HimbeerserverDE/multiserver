@@ -85,8 +85,12 @@ func (c *Conn) stopForwarding() {
 }
 
 // Server returns the Conn this Conn is connected to
-// if it isn't a server
+// if it isn't a server, otherwise returns self
 func (c *Conn) Server() *Conn {
+	if c.IsSrv() {
+		return c
+	}
+
 	c.srvMu.RLock()
 	defer c.srvMu.RUnlock()
 
@@ -94,7 +98,7 @@ func (c *Conn) Server() *Conn {
 }
 
 // ServerName returns the name of the Conn this Conn is connected to
-// if this Conn is not a server
+// if this Conn is not a server, or the name of this Conn if it is
 func (c *Conn) ServerName() string {
 	servers := ConfKey("servers").(map[interface{}]interface{})
 	for server := range servers {

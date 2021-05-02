@@ -294,11 +294,13 @@ func processPktCommand(src, dst *Conn, pkt *rudp.Pkt) bool {
 			data := make([]byte, r.Len())
 			r.Read(data)
 
-			media[string(name)] = &mediaFile{
+			srvname := dst.SafeServerName()
+
+			PutMedia(srvname, string(name), &mediaFile{
 				digest:  digest,
 				data:    data,
 				noCache: !cache,
-			}
+			})
 
 			for _, conn := range Conns() {
 				ack, err := conn.Send(*pkt)
