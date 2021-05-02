@@ -4,7 +4,7 @@ import "sync"
 
 const (
 	MaxPlayerNameLength = 20
-	PlayerNameChars     = "[a-zA-Z0-9-_]"
+	PlayerNameChars     = "^[a-zA-Z0-9-_]*$"
 )
 
 var onlinePlayers map[string]bool
