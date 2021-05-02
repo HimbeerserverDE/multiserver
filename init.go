@@ -209,11 +209,14 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 					continue
 				}
 
-				v := []byte("5.4.0-dev-dd5a732fa")
+				v := []byte("5.5.0-dev-83a7b48bb")
 
 				w := bytes.NewBuffer([]byte{0x00, ToServerClientReady})
 				w.Write([]byte{5, 4, 0, 0})
 				WriteBytes16(w, v)
+				if c.FormspecVer() != 1 {
+					WriteUint16(w, c.FormspecVer())
+				}
 
 				_, err := c2.Send(rudp.Pkt{
 					Reader: w,
@@ -533,6 +536,12 @@ func Init(c, c2 *Conn, ignMedia, noAccessDenied bool, fin chan *Conn) {
 					c2.CloseWith(AccessDeniedAlreadyConnected, "", false)
 					fin <- c
 					return
+				}
+
+				r.Seek(4, io.SeekCurrent)
+				ReadBytes16(r)
+				if r.Len() >= 2 {
+					c2.formspecVer = ReadUint16(r) - 1
 				}
 
 				defaultSrv := ConfKey("default_server").(string)

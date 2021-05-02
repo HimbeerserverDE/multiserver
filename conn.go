@@ -18,7 +18,8 @@ var connectedConnsMu sync.RWMutex
 type Conn struct {
 	*rudp.Conn
 
-	protoVer uint16
+	protoVer    uint16
+	formspecVer uint16
 
 	username string
 	srp_s    []byte
@@ -46,17 +47,17 @@ type Conn struct {
 	noClt    bool
 	modChs   map[string]bool
 
-	huds map[uint32]bool
-
+	huds   map[uint32]bool
 	sounds map[int32]bool
-
 	blocks [][3]int16
-
-	inv *mt.Inv
+	inv    *mt.Inv
 }
 
 // ProtoVer returns the protocol version of the Conn
 func (c *Conn) ProtoVer() uint16 { return c.protoVer }
+
+// FormspecVer returns the formspec API version of the Conn
+func (c *Conn) FormspecVer() uint16 { return c.formspecVer + 1 }
 
 // Addr returns the remote address of the Conn
 func (c *Conn) Addr() net.Addr {
