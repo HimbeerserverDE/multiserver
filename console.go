@@ -45,6 +45,8 @@ func autoComplete(all []string, current string) string {
 				} else {
 					return all[0]
 				}
+			} else if strings.HasPrefix(v, current) {
+				return v
 			}
 		}
 	} else if len(all) >= 1 {
