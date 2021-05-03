@@ -291,8 +291,9 @@ func (c *Conn) announceMedia() {
 	currentSrvname := c.SafeServerName()
 
 	w := bytes.NewBuffer([]byte{0x00, ToClientAnnounceMedia})
-	WriteUint16(w, uint16(len(media[currentSrvname])))
-	for f, digest := range GetAllNames(currentSrvname) {
+	names := GetAllNames(currentSrvname)
+	WriteUint16(w, uint16(len(names)))
+	for f, digest := range names {
 		log.Println("Announce: " + f)
 		WriteBytes16(w, []byte(f))
 		WriteBytes16(w, digest)
