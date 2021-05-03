@@ -34,6 +34,45 @@ func PutMedia(serverName string, mediaName string, file *mediaFile) {
 	media[serverName][mediaName] = file
 }
 
+func GetMedia(serverName string, mediaName string) *mediaFile {
+	srvMedia := media[serverName][mediaName]
+	if srvMedia != nil {
+		return srvMedia
+	}
+
+	log.Println("Requested media " + mediaName + " for server " + serverName + " that doesn't exist")
+
+	for srvname, mcache := range media {
+		otherMedia := mcache[mediaName]
+
+		if otherMedia != nil {
+			log.Println("--> Using media from " + srvname + " instead")
+			return otherMedia
+		}
+	}
+
+	for srvname, mcache := range media {
+		for name, file := range mcache {
+			log.Println("--> No mediafile " + mediaName + ", using " + name + " from " + srvname + " instead")
+			return file
+		}
+	}
+
+	return nil
+}
+
+func GetAllNames(srvCurr string) map[string][]byte {
+	set := make(map[string][]byte)
+	for srvname, mcache := range media {
+		for name, file := range mcache {
+			if srvname == srvCurr || set[name] == nil {
+				set[name] = file.digest
+			}
+		}
+	}
+	return set
+}
+
 func (c *Conn) SafeServerName() string {
 	if c.Server() != nil {
 		// Client has an existing connection to server, use that name
@@ -99,7 +138,7 @@ func (c *Conn) fetchMedia() {
 
 				digest := ReadBytes16(r)
 
-				if media[name] == nil && !isCached(srvname, name, digest) {
+				if (media[srvname] == nil || media[srvname][name] == nil) && !isCached(srvname, name, digest) {
 					rq = append(rq, name)
 					PutMedia(srvname, name, &mediaFile{digest: digest})
 				}
@@ -175,6 +214,23 @@ func (c *Conn) updateDetachedInvs(srvname string) {
 	}
 }
 
+func (c *Conn) pushMedia(srvname string) {
+	for name, file := range media[srvname] {
+		w := bytes.NewBuffer([]byte{0x00, ToClientMediaPush})
+		WriteBytes16(w, file.digest)
+		WriteBytes16(w, []byte(name))
+		w.WriteByte(1)
+		WriteBytes32(w, file.data)
+
+		ack, err := c.Send(rudp.Pkt{Reader: w})
+		if err != nil {
+			log.Print(err)
+			continue
+		}
+		<-ack
+	}
+}
+
 func (c *Conn) announceMedia() {
 	// TODO Should this really be the current server name?
 	srvname, ok := ConfKey("default_server").(string)
@@ -236,9 +292,10 @@ func (c *Conn) announceMedia() {
 
 	w := bytes.NewBuffer([]byte{0x00, ToClientAnnounceMedia})
 	WriteUint16(w, uint16(len(media[currentSrvname])))
-	for f := range media[currentSrvname] {
+	for f, digest := range GetAllNames(currentSrvname) {
+		log.Println("Announce: " + f)
 		WriteBytes16(w, []byte(f))
-		WriteBytes16(w, media[currentSrvname][f].digest)
+		WriteBytes16(w, digest)
 	}
 
 	remote, ok := ConfKey("remote_media_server").(string)
@@ -269,8 +326,11 @@ func (c *Conn) sendMedia(r *bytes.Reader) {
 	bunches := []map[string]*mediaFile{make(map[string]*mediaFile)}
 	var bunchlen int
 	for _, f := range rq {
-		bunches[len(bunches)-1][f] = media[srvname][f]
-		bunchlen += len(media[srvname][f].data)
+		file := GetMedia(srvname, f)
+		bunches[len(bunches)-1][f] = file
+		bunchlen += len(file.data)
+
+		log.Println("Sending " + srvname + " -> " + f)
 
 		if bunchlen >= BytesPerBunch {
 			bunches = append(bunches, make(map[string]*mediaFile))
