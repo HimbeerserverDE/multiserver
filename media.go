@@ -24,13 +24,26 @@ var itemdefs map[string][]byte
 var detachedinvs map[string][][]byte
 
 type mediaFile struct {
+	origin  string
 	digest  []byte
 	data    []byte
 	noCache bool
 }
 
+func GetGlobalName(serverName string, mediaName string) string {
+	if strings.Contains(mediaName, ".png") {
+		return serverName + "#" + mediaName
+	} else {
+		return mediaName
+	}
+}
+
+func GetMedia(serverName string, mediaName string) *mediaFile {
+	return media[GetGlobalName(serverName, mediaName)]
+}
+
 func PutMedia(serverName string, mediaName string, file *mediaFile) {
-	media[serverName+"#"+mediaName] = file
+	media[GetGlobalName(serverName, mediaName)] = file
 }
 
 func (c *Conn) SafeServerName() string {
@@ -98,9 +111,9 @@ func (c *Conn) fetchMedia() {
 
 				digest := ReadBytes16(r)
 
-				if media[srvname+"#"+name] == nil && !isCached(srvname, name, digest) {
+				if GetMedia(srvname, name) == nil && !isCached(srvname, name, digest) {
 					rq = append(rq, name)
-					PutMedia(srvname, name, &mediaFile{digest: digest})
+					PutMedia(srvname, name, &mediaFile{digest: digest, origin: srvname})
 				}
 			}
 
@@ -137,18 +150,12 @@ func (c *Conn) fetchMedia() {
 
 			srvname := c.SafeServerName()
 
-			if media[srvname] == nil {
-				log.Println("Attempting to store media data for un-indexed server")
-				c.Close()
-				return
-			}
-
 			for i := uint32(0); i < fileCount; i++ {
-				name := srvname + "#" + string(ReadBytes16(r))
+				file := GetMedia(srvname, string(ReadBytes16(r)))
 				data := ReadBytes32(r)
 
-				if media[name] != nil && len(media[name].data) == 0 {
-					media[name].data = data
+				if file != nil && len(file.data) == 0 && file.origin == srvname {
+					file.data = data
 				}
 			}
 
@@ -340,18 +347,22 @@ func loadMediaCache() error {
 
 	for _, file := range files {
 		if !file.IsDir() {
-			meta := strings.Split(file.Name(), "#")
-			if len(meta) != 3 {
+			fileName := file.Name()
+
+			splitAt := strings.LastIndex(fileName, "#")
+			if splitAt == -1 {
 				os.Remove("cache/" + file.Name())
 				continue
 			}
+			name := fileName[:splitAt]
+			digest := fileName[splitAt+1:]
 
 			data, err := os.ReadFile("cache/" + file.Name())
 			if err != nil {
 				continue
 			}
 
-			PutMedia(meta[0], meta[1], &mediaFile{digest: stringToDigest(meta[2]), data: data})
+			media[name] = &mediaFile{digest: stringToDigest(digest), data: data}
 		}
 	}
 
@@ -361,7 +372,7 @@ func loadMediaCache() error {
 func isCached(srvname string, name string, digest []byte) bool {
 	os.Mkdir("cache", 0777)
 
-	_, err := os.Stat("cache/" + srvname + "#" + name + "#" + digestToString(digest))
+	_, err := os.Stat("cache/" + GetGlobalName(srvname, name) + "#" + digestToString(digest))
 	if os.IsNotExist(err) {
 		return false
 	}
