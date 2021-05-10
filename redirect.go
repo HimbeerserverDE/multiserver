@@ -376,9 +376,6 @@ func (c *Conn) Redirect(newsrv string) error {
 
 	c.SetServer(srv)
 
-	// PUSH new media
-	go c.pushMedia(newsrv)
-
 	go Proxy(c, srv)
 	go Proxy(srv, c)
 

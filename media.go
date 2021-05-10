@@ -2,11 +2,9 @@ package main
 
 import (
 	"bytes"
-	b64 "encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net"
@@ -178,34 +176,6 @@ func (c *Conn) updateDetachedInvs(srvname string) {
 		}
 		<-ack
 	}
-}
-
-func (c *Conn) pushMedia(srvname string) {
-	for name, file := range media {
-		if !strings.Contains(name, ".png") {
-			continue
-		}
-		w := bytes.NewBuffer([]byte{0x00, ToClientMediaPush})
-		rawHash, err := b64.StdEncoding.DecodeString(string(file.digest) + "=")
-		if err != nil {
-			log.Println("Digest: " + string(file.digest))
-			log.Println(err)
-			continue
-		}
-		log.Println("Push: " + srvname + " -> " + name + " " + fmt.Sprint(len(rawHash)))
-
-		WriteBytes16(w, rawHash)
-		WriteBytes16(w, []byte(name))
-		w.WriteByte(1)
-		WriteBytes32(w, file.data)
-
-		ack, err := c.Send(rudp.Pkt{Reader: w})
-		if err != nil {
-			log.Print(err)
-		}
-		<-ack
-	}
-	log.Println("Done pushing media")
 }
 
 func (c *Conn) announceMedia() {
