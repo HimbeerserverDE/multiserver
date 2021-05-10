@@ -18,7 +18,7 @@ import (
 
 const BytesPerBunch = 5000
 
-var media map[string]map[string]*mediaFile
+var media map[string]*mediaFile
 var nodedefs map[string][]byte
 var itemdefs map[string][]byte
 var detachedinvs map[string][][]byte
@@ -30,49 +30,7 @@ type mediaFile struct {
 }
 
 func PutMedia(serverName string, mediaName string, file *mediaFile) {
-	if media[serverName] == nil {
-		media[serverName] = make(map[string]*mediaFile)
-	}
-	media[serverName][mediaName] = file
-}
-
-func GetMedia(serverName string, mediaName string) *mediaFile {
-	srvMedia := media[serverName][mediaName]
-	if srvMedia != nil {
-		return srvMedia
-	}
-
-	log.Println("Requested media " + mediaName + " for server " + serverName + " that doesn't exist")
-
-	for srvname, mcache := range media {
-		otherMedia := mcache[mediaName]
-
-		if otherMedia != nil {
-			log.Println("--> Using media from " + srvname + " instead")
-			return otherMedia
-		}
-	}
-
-	for srvname, mcache := range media {
-		for name, file := range mcache {
-			log.Println("--> No mediafile " + mediaName + ", using " + name + " from " + srvname + " instead")
-			return file
-		}
-	}
-
-	return nil
-}
-
-func GetAllNames(srvCurr string) map[string][]byte {
-	set := make(map[string][]byte)
-	for srvname, mcache := range media {
-		for name, file := range mcache {
-			if srvname == srvCurr || set[name] == nil {
-				set[name] = file.digest
-			}
-		}
-	}
-	return set
+	media[serverName+"#"+mediaName] = file
 }
 
 func (c *Conn) SafeServerName() string {
@@ -140,7 +98,7 @@ func (c *Conn) fetchMedia() {
 
 				digest := ReadBytes16(r)
 
-				if (media[srvname] == nil || media[srvname][name] == nil) && !isCached(srvname, name, digest) {
+				if media[srvname+"#"+name] == nil && !isCached(srvname, name, digest) {
 					rq = append(rq, name)
 					PutMedia(srvname, name, &mediaFile{digest: digest})
 				}
@@ -186,11 +144,11 @@ func (c *Conn) fetchMedia() {
 			}
 
 			for i := uint32(0); i < fileCount; i++ {
-				name := string(ReadBytes16(r))
+				name := srvname + "#" + string(ReadBytes16(r))
 				data := ReadBytes32(r)
 
-				if media[srvname][name] != nil && len(media[srvname][name].data) == 0 {
-					media[srvname][name].data = data
+				if media[name] != nil && len(media[name].data) == 0 {
+					media[name].data = data
 				}
 			}
 
@@ -217,7 +175,7 @@ func (c *Conn) updateDetachedInvs(srvname string) {
 }
 
 func (c *Conn) pushMedia(srvname string) {
-	for name, file := range media[srvname] {
+	for name, file := range media {
 		if !strings.Contains(name, ".png") {
 			continue
 		}
@@ -301,15 +259,12 @@ func (c *Conn) announceMedia() {
 	}
 	<-ack
 
-	currentSrvname := c.SafeServerName()
-
 	w := bytes.NewBuffer([]byte{0x00, ToClientAnnounceMedia})
-	names := GetAllNames(currentSrvname)
-	WriteUint16(w, uint16(len(names)))
-	for f, digest := range names {
-		log.Println("Announce: " + f)
-		WriteBytes16(w, []byte(f))
-		WriteBytes16(w, digest)
+	WriteUint16(w, uint16(len(media)))
+	for name, file := range media {
+		log.Println("Announce: " + name)
+		WriteBytes16(w, []byte(name))
+		WriteBytes16(w, file.digest)
 	}
 
 	remote, ok := ConfKey("remote_media_server").(string)
@@ -335,16 +290,14 @@ func (c *Conn) sendMedia(r *bytes.Reader) {
 		rq = append(rq, name)
 	}
 
-	srvname := c.SafeServerName()
-
 	bunches := []map[string]*mediaFile{make(map[string]*mediaFile)}
 	var bunchlen int
 	for _, f := range rq {
-		file := GetMedia(srvname, f)
+		file := media[f]
 		bunches[len(bunches)-1][f] = file
 		bunchlen += len(file.data)
 
-		log.Println("Sending " + srvname + " -> " + f)
+		log.Println("Sending " + f)
 
 		if bunchlen >= BytesPerBunch {
 			bunches = append(bunches, make(map[string]*mediaFile))
@@ -418,17 +371,15 @@ func isCached(srvname string, name string, digest []byte) bool {
 func updateMediaCache() {
 	os.Mkdir("cache", 0777)
 
-	for srvname, mcache := range media {
-		for mfname, mfile := range mcache {
-			if mfile.noCache {
-				continue
-			}
+	for mfname, mfile := range media {
+		if mfile.noCache {
+			continue
+		}
 
-			cfname := "cache/" + srvname + "#" + mfname + "#" + digestToString(mfile.digest)
-			_, err := os.Stat(cfname)
-			if os.IsNotExist(err) {
-				os.WriteFile(cfname, mfile.data, 0666)
-			}
+		cfname := "cache/" + mfname + "#" + digestToString(mfile.digest)
+		_, err := os.Stat(cfname)
+		if os.IsNotExist(err) {
+			os.WriteFile(cfname, mfile.data, 0666)
 		}
 	}
 }
@@ -448,7 +399,7 @@ func stringToDigest(s string) []byte {
 func loadMedia(servers map[string]struct{}) {
 	log.Print("Fetching media")
 
-	media = make(map[string]map[string]*mediaFile)
+	media = make(map[string]*mediaFile)
 	detachedinvs = make(map[string][][]byte)
 
 	loadMediaCache()
