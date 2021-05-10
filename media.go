@@ -24,7 +24,6 @@ var itemdefs map[string][]byte
 var detachedinvs map[string][][]byte
 
 type mediaFile struct {
-	origin  string
 	digest  []byte
 	data    []byte
 	noCache bool
@@ -113,7 +112,7 @@ func (c *Conn) fetchMedia() {
 
 				if GetMedia(srvname, name) == nil && !isCached(srvname, name, digest) {
 					rq = append(rq, name)
-					PutMedia(srvname, name, &mediaFile{digest: digest, origin: srvname})
+					PutMedia(srvname, name, &mediaFile{digest: digest})
 				}
 			}
 
@@ -154,7 +153,7 @@ func (c *Conn) fetchMedia() {
 				file := GetMedia(srvname, string(ReadBytes16(r)))
 				data := ReadBytes32(r)
 
-				if file != nil && len(file.data) == 0 && file.origin == srvname {
+				if file != nil && len(file.data) == 0 {
 					file.data = data
 				}
 			}
