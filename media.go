@@ -29,7 +29,7 @@ type mediaFile struct {
 
 func GetGlobalName(serverName string, mediaName string) string {
 	if strings.Contains(mediaName, ".png") {
-		return serverName + "#" + mediaName
+		return serverName + "__" + mediaName
 	} else {
 		return mediaName
 	}
@@ -41,6 +41,8 @@ func GetMedia(serverName string, mediaName string) *mediaFile {
 
 func PutMedia(serverName string, mediaName string, file *mediaFile) {
 	media[GetGlobalName(serverName, mediaName)] = file
+	// Keep original media names around for use by formspecs
+	media[mediaName] = file
 }
 
 func (c *Conn) SafeServerName() string {

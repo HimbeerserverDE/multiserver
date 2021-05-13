@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"io"
 	"log"
+	"regexp"
 	"sync"
 )
 
@@ -77,12 +78,17 @@ const TILE_FLAG_HAS_COLOR uint16 = 1 << 3
 const TILE_FLAG_HAS_SCALE uint16 = 1 << 4
 const TILE_FLAG_HAS_ALIGN_STYLE uint16 = 1 << 5
 
+var reTexture = regexp.MustCompile(`(?:[^\^(]*)[.]png`)
+
 func processTileDef(srv string, dw io.Writer, dr io.Reader) {
 	WriteUint8(dw, ReadUint8(dr))
 
 	// Reference unique media path
-	name := srv + "#" + string(ReadBytes16(dr))
-	WriteBytes16(dw, []byte(name))
+	name := ReadBytes16(dr)
+	processed := reTexture.ReplaceAllFunc(name, func(match []byte) []byte {
+		return []byte(srv + "__" + string(match))
+	})
+	WriteBytes16(dw, processed)
 
 	animType := ReadUint8(dr)
 	WriteUint8(dw, animType)
@@ -169,6 +175,7 @@ func mergeNodedefs(mgrs map[string][]byte) error {
 
 			// Groups
 			groupCount := ReadUint16(dr)
+			WriteUint16(dw, groupCount)
 			for g := uint16(0); g < groupCount; g++ {
 				WriteBytes16(dw, ReadBytes16(dr))
 				WriteUint16(dw, ReadUint16(dr))
@@ -214,14 +221,6 @@ func mergeNodedefs(mgrs map[string][]byte) error {
 			}
 
 			defu := dw.Bytes()
-
-			if def := NodeDefByName(srv, nodeName); def != nil {
-				nodeDefs[srv][id] = &NodeDef{
-					id:   def.ID(),
-					name: nodeName,
-					data: defu,
-				}
-			}
 
 			nodeDefs[srv][id] = &NodeDef{
 				id:   nextID,
