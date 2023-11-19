@@ -1,10 +1,10 @@
+# DEPRECATED
+This version has many bugs, is __NOT__ updated to work with Minetest 5.4.1
+or above and is unlikely to receive any future updates.
+It's untested and the code isn't very clean. __You should use [mt-multiserver-proxy](https://github.com/HimbeerserverDE/mt-multiserver-proxy) instead.__
+
 # multiserver
 Minetest reverse proxy supporting multiple servers and media multiplexing
-
-## Obsolete
-This version has many bugs, is __NOT__ updated to work with Minetest 5.4.1
-and is unlikely to receive any future updates.
-It's untested and the code isn't very clean. __You should use [mt-multiserver-proxy](https://github.com/HimbeerserverDE/mt-multiserver-proxy) instead.__
 
 ## Credits
 This project was made possible by [anon55555's Minetest RUDP package](https://github.com/anon55555/mt/tree/master/rudp).
